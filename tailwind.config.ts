@@ -51,6 +51,18 @@ export default {
           "4": "hsl(var(--chart-4))",
           "5": "hsl(var(--chart-5))",
         },
+        "primary-blue": "var(--primary-blue)",
+        "secondary-blue": "var(--secondary-blue)",
+        "primary-yellow": "var(--primary-yellow)",
+        "hero-bg-dark": "var(--hero-bg-dark)",
+        "hero-bg-mid": "var(--hero-bg-mid)",
+        "hero-accent": "var(--hero-accent)",
+      },
+      fontFamily: {
+        heading: ["var(--font-heading)", "sans-serif"],
+        body: ["var(--font-body)", "sans-serif"],
+        embrace: ["var(--font-custom)", "sans-serif"],
+        deep: ["var(--font-deep)", "sans-serif"],
       },
       borderRadius: {
         lg: "var(--radius)",
