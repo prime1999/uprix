@@ -71,12 +71,11 @@ const SERVICES: Service[] = [
   {
     id: 6,
     title: "Weed Control",
-    desc: "Keeps unwanted weeds from taking over your lawn.",
+    desc: "Keeps wanted weeds from taking over.",
     Icon: Leaf,
     photo: null,
   },
 ];
-
 const TOTAL = SERVICES.length;
 const AUTOPLAY_MS = 2800;
 const SWIPE_THRESHOLD = 40;
