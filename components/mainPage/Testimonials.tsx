@@ -64,7 +64,7 @@ const SERVICES: Service[] = [
   {
     id: 5,
     title: "Aeration",
-    desc: "Core aeration improves soil health and root growth.",
+    desc: "Core aeration improves health and root growth.",
     Icon: CircleDot,
     photo: null,
   },
