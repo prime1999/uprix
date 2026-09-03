@@ -293,7 +293,7 @@ const UprizerSlider = () => {
 
         <div className="mt-8 flex flex-col items-center justify-center">
           <h6 className="flex items-end gap-1 mb-8 text-secondary-blue">
-            <span className="text-4xl font-deep font-bold">700+</span> Inducted
+            <span className="text-4xl font-deep font-bold">700+</span> Bonafied
             Uprizers
           </h6>
           <Link

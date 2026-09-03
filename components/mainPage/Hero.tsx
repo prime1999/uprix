@@ -231,14 +231,16 @@ export default function HeroSection() {
 
       <div className="relative max-w-5xl mx-auto px-6 pt-48 pb-28 text-center">
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-[1.08] tracking-tight">
-          <span className="block">Growth demands</span>
-          <span className="block">
+          <span className="block tracking-wide">Growth demands</span>
+          <span className="block mt-8">
             <em className="font-serif italic font-medium">the right</em>{" "}
-            <span className="font-extrabold">environment.</span>
+            <span className="font-extrabold bg-gradient-to-t from-secondary-blue to-primary-blue text-center py-1 px-4 rounded-lg">
+              environment.
+            </span>
           </span>
         </h1>
 
-        <p className="mt-5 text-sm md:text-[15px] text-white/70 max-w-md mx-auto">
+        <p className="mt-5 text-sm md:text-[15px] text-gray-100 max-w-md mx-auto">
           A community designed for those who want more. We provide the right
           circle, right knowledge and right actions to take to begin your growth
           journey.

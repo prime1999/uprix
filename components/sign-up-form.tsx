@@ -1,5 +1,9 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,9 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import logo from "@/app/assets/images/mobileLogo.png";
 
 export function SignUpForm({
   className,
@@ -58,52 +60,57 @@ export function SignUpForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">Sign up</CardTitle>
-          <CardDescription>Create a new account</CardDescription>
+      <Card className="border border-white/30 bg-white/20 shadow-xl backdrop-blur-xl">
+        <CardHeader className="relative -mt-4 flex flex-col items-center justify-center">
+          <Image src={logo} alt="Logo" width={80} height={80} />
+
+          <CardTitle className="text-2xl mt-2 font-heading text-secondary-blue">
+            Become a Bonafied Uprizer
+          </CardTitle>
+          <CardDescription className="-mt-4">
+            Join a community of growth
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignUp}>
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-4 mt-2">
               <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="Your email address"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
               <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
-                </div>
                 <Input
                   id="password"
                   type="password"
+                  placeholder="Your password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
               <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="repeat-password">Repeat Password</Label>
-                </div>
                 <Input
                   id="repeat-password"
                   type="password"
+                  placeholder="Repeat your password"
                   required
                   value={repeatPassword}
                   onChange={(e) => setRepeatPassword(e.target.value)}
                 />
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Creating an account..." : "Sign up"}
+              <Button
+                type="submit"
+                className="w-full rounded-full bg-gradient-to-r from-secondary-blue to-primary-blue text-white cursor-pointer duration-700 transition hover:from-primary-blue hover:to-secondary-blue"
+                disabled={isLoading}
+              >
+                {isLoading ? "Creating an account..." : "Continue  →"}
               </Button>
             </div>
             <div className="mt-4 text-center text-sm">

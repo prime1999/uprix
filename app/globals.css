@@ -81,6 +81,14 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body), sans-serif;
+    background-image:
+      radial-gradient(circle at top, rgba(96, 165, 250, 0.12), transparent 26%),
+      linear-gradient(rgba(15, 23, 42, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15, 23, 42, 0.045) 1px, transparent 1px);
+    background-size:
+      100% 100%,
+      64px 64px,
+      64px 64px;
   }
 
   h1,

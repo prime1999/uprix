@@ -1,3 +1,5 @@
+import type { Option } from "./types";
+
 const TESTIMONIALS = [
   {
     author: "Tianah Δ",
@@ -175,3 +177,210 @@ Queen's Creativity💙🏅`,
 ];
 
 export default TESTIMONIALS;
+
+const AgeGroup = {
+  UNDER_18: "under_18",
+  AGE_18_24: "18_24",
+  AGE_25_34: "25_34",
+  AGE_35_44: "35_44",
+  AGE_45_PLUS: "45_plus",
+};
+export const AGE_GROUP_OPTIONS = [
+  { value: AgeGroup.UNDER_18, label: "Under 18" },
+  { value: AgeGroup.AGE_18_24, label: "18 – 24" },
+  { value: AgeGroup.AGE_25_34, label: "25 – 34" },
+  { value: AgeGroup.AGE_35_44, label: "35 – 44" },
+  { value: AgeGroup.AGE_45_PLUS, label: "45+" },
+] satisfies Option[];
+
+export const Gender = { MALE: "male", FEMALE: "female" };
+export const GENDER_OPTIONS = [
+  { value: Gender.MALE, label: "Male" },
+  { value: Gender.FEMALE, label: "Female" },
+] satisfies Option[];
+
+export const CurrentStatus = {
+  STUDENT: "student",
+  WORKING: "working",
+  BUSINESS_OWNER: "business_owner",
+  FREELANCER: "freelancer",
+  STUDENT_AND_WORKING: "student_and_working",
+};
+export const CURRENT_STATUS_OPTIONS = [
+  { value: CurrentStatus.STUDENT, label: "Student" },
+  { value: CurrentStatus.WORKING, label: "Working" },
+  { value: CurrentStatus.BUSINESS_OWNER, label: "Business owner" },
+  { value: CurrentStatus.FREELANCER, label: "Freelancer" },
+  { value: CurrentStatus.STUDENT_AND_WORKING, label: "Student & working" },
+] satisfies Option[];
+
+export const University = {
+  COVENANT: "covenant_university",
+  UI: "university_of_ibadan",
+  BOWEN: "bowen",
+  OAU: "obafemi_awolowo_university",
+  LASU: "lasu",
+  LAUTECH: "lautech",
+  FUOYE: "fuoye",
+  OTHER: "other",
+};
+export const UNIVERSITY_OPTIONS = [
+  { value: University.COVENANT, label: "Covenant University" },
+  { value: University.UI, label: "University of Ibadan" },
+  { value: University.BOWEN, label: "Bowen University" },
+  { value: University.OAU, label: "Obafemi Awolowo University" },
+  { value: University.LASU, label: "LASU" },
+  { value: University.LAUTECH, label: "LAUTECH" },
+  { value: University.FUOYE, label: "FUOYE" },
+  { value: University.OTHER, label: "Other" },
+] satisfies Option[];
+
+export const CurrentStage = {
+  JUST_STARTING: "just_starting",
+  INCONSISTENT: "trying_but_inconsistent",
+  CLARITY_EXECUTION: "clarity_but_struggle_with_execution",
+  GROWING_SCALING: "growing_but_want_to_scale",
+};
+export const CURRENT_STAGE_OPTIONS = [
+  { value: CurrentStage.JUST_STARTING, label: "Just starting out" },
+  { value: CurrentStage.INCONSISTENT, label: "Trying, but inconsistent" },
+  {
+    value: CurrentStage.CLARITY_EXECUTION,
+    label: "Have clarity, struggle with execution",
+  },
+  { value: CurrentStage.GROWING_SCALING, label: "Growing, want to scale" },
+] satisfies Option[];
+
+export const FocusArea = {
+  STARTING_BUSINESS: "starting_business",
+  GROWING_BUSINESS: "growing_business",
+  PERSONAL_BRAND: "personal_brand",
+  HIGH_INCOME_SKILL: "high_income_skill",
+  MINDSET: "mindset",
+  PRODUCTIVITY: "productivity",
+  MAKING_MONEY: "making_money",
+  DISCIPLINE: "discipline",
+  OTHER: "other",
+};
+export const FOCUS_AREA_OPTIONS = [
+  { value: FocusArea.STARTING_BUSINESS, label: "Starting a business" },
+  { value: FocusArea.GROWING_BUSINESS, label: "Growing a business" },
+  { value: FocusArea.PERSONAL_BRAND, label: "Personal brand" },
+  { value: FocusArea.HIGH_INCOME_SKILL, label: "High-income skill" },
+  { value: FocusArea.MINDSET, label: "Mindset" },
+  { value: FocusArea.PRODUCTIVITY, label: "Productivity" },
+  { value: FocusArea.MAKING_MONEY, label: "Making money" },
+  { value: FocusArea.DISCIPLINE, label: "Discipline" },
+  { value: FocusArea.OTHER, label: "Other" },
+] satisfies Option[];
+
+export const GuidanceArea = {
+  BUSINESS_BRANDING_SALES: "business_branding_sales",
+  CONTENT_POSITIONING: "content_creation_positioning",
+  LEAD_GENERATION: "lead_generation_client_attraction",
+  TEAM_LEADERSHIP: "team_building_leadership",
+  SELF_DEVELOPMENT: "self_development_mindset",
+  TIME_MANAGEMENT: "time_task_management",
+  DISCIPLINE_CONSISTENCY: "discipline_consistency",
+  CONFIDENCE_COMMUNICATION: "confidence_communication",
+  MONETIZING_SKILL: "monetizing_skill",
+  BUSINESS_SCHOOL: "balancing_business_school",
+  FINANCIAL_GROWTH: "financial_growth_money_habits",
+  CLARITY_DIRECTION: "clarity_direction_life",
+  OTHER: "other",
+};
+export const GUIDANCE_AREA_OPTIONS = [
+  {
+    value: GuidanceArea.BUSINESS_BRANDING_SALES,
+    label: "Business, branding & sales",
+  },
+  {
+    value: GuidanceArea.CONTENT_POSITIONING,
+    label: "Content creation & positioning",
+  },
+  {
+    value: GuidanceArea.LEAD_GENERATION,
+    label: "Lead generation & client attraction",
+  },
+  { value: GuidanceArea.TEAM_LEADERSHIP, label: "Team building & leadership" },
+  { value: GuidanceArea.SELF_DEVELOPMENT, label: "Self-development & mindset" },
+  { value: GuidanceArea.TIME_MANAGEMENT, label: "Time & task management" },
+  {
+    value: GuidanceArea.DISCIPLINE_CONSISTENCY,
+    label: "Discipline & consistency",
+  },
+  {
+    value: GuidanceArea.CONFIDENCE_COMMUNICATION,
+    label: "Confidence & communication",
+  },
+  { value: GuidanceArea.MONETIZING_SKILL, label: "Monetizing a skill" },
+  { value: GuidanceArea.BUSINESS_SCHOOL, label: "Balancing business & school" },
+  {
+    value: GuidanceArea.FINANCIAL_GROWTH,
+    label: "Financial growth & money habits",
+  },
+  {
+    value: GuidanceArea.CLARITY_DIRECTION,
+    label: "Clarity & direction in life",
+  },
+  { value: GuidanceArea.OTHER, label: "Other" },
+] satisfies Option[];
+
+export const ProgressBlocker = {
+  LACK_OF_CLARITY: "lack_of_clarity",
+  FEAR_OF_FAILURE: "fear_of_failure",
+  PROCRASTINATION: "procrastination",
+  DISTRACTIONS: "distractions",
+  DONT_KNOW_WHERE_TO_START: "dont_know_where_to_start",
+  INCONSISTENCY: "inconsistency",
+  SELF_DOUBT: "self_doubt",
+  LACK_OF_DISCIPLINE: "lack_of_discipline",
+  OTHER: "other",
+};
+export const PROGRESS_BLOCKER_OPTIONS = [
+  { value: ProgressBlocker.LACK_OF_CLARITY, label: "Lack of clarity" },
+  { value: ProgressBlocker.FEAR_OF_FAILURE, label: "Fear of failure" },
+  { value: ProgressBlocker.PROCRASTINATION, label: "Procrastination" },
+  { value: ProgressBlocker.DISTRACTIONS, label: "Distractions" },
+  {
+    value: ProgressBlocker.DONT_KNOW_WHERE_TO_START,
+    label: "Don't know where to start",
+  },
+  { value: ProgressBlocker.INCONSISTENCY, label: "Inconsistency" },
+  { value: ProgressBlocker.SELF_DOUBT, label: "Self-doubt" },
+  { value: ProgressBlocker.LACK_OF_DISCIPLINE, label: "Lack of discipline" },
+  { value: ProgressBlocker.OTHER, label: "Other" },
+] satisfies Option[];
+
+export const TeachingStyle = {
+  STEP_BY_STEP: "practical_step_by_step",
+  REAL_LIFE_EXAMPLES: "real_life_examples",
+  TOUGH_MOTIVATIONAL_TRUTHS: "tough_motivational_truths",
+  DEEP_MINDSET: "deep_mindset_teachings",
+  SHORT_DAILY_LESSONS: "short_daily_lessons",
+  SERIES: "series_based_teachings",
+};
+export const TEACHING_STYLE_OPTIONS = [
+  { value: TeachingStyle.STEP_BY_STEP, label: "Practical, step-by-step" },
+  { value: TeachingStyle.REAL_LIFE_EXAMPLES, label: "Real-life examples" },
+  {
+    value: TeachingStyle.TOUGH_MOTIVATIONAL_TRUTHS,
+    label: "Tough, motivational truths",
+  },
+  { value: TeachingStyle.DEEP_MINDSET, label: "Deep mindset teachings" },
+  { value: TeachingStyle.SHORT_DAILY_LESSONS, label: "Short daily lessons" },
+  { value: TeachingStyle.SERIES, label: "Series-based teachings" },
+] satisfies Option[];
+
+export const ActiveOnlineTime = {
+  MORNING: "morning",
+  AFTERNOON: "afternoon",
+  EVENING: "evening",
+  NIGHT: "night",
+};
+export const ACTIVE_ONLINE_TIME_OPTIONS = [
+  { value: ActiveOnlineTime.MORNING, label: "Morning" },
+  { value: ActiveOnlineTime.AFTERNOON, label: "Afternoon" },
+  { value: ActiveOnlineTime.EVENING, label: "Evening" },
+  { value: ActiveOnlineTime.NIGHT, label: "Night" },
+] satisfies Option[];
