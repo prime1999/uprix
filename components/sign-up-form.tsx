@@ -15,7 +15,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import logo from "@/app/assets/images/mobileLogo.png";
 
 export function SignUpForm({
@@ -63,7 +62,6 @@ export function SignUpForm({
       <Card className="border border-white/30 bg-white/20 shadow-xl backdrop-blur-xl">
         <CardHeader className="relative -mt-4 flex flex-col items-center justify-center">
           <Image src={logo} alt="Logo" width={80} height={80} />
-
           <CardTitle className="text-2xl mt-2 font-heading text-secondary-blue">
             Become a Bonafied Uprizer
           </CardTitle>
