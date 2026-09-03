@@ -4,6 +4,7 @@ import UprizerSlider from "@/components/mainPage/UprizerSlider";
 import MissionVission from "@/components/mainPage/MissionVission";
 import Testimonials from "@/components/mainPage/Testimonials";
 import Activities from "@/components/mainPage/Activities";
+import Footer from "@/components/mainPage/Footer";
 
 const Home = () => {
   return (
@@ -23,6 +24,7 @@ const Home = () => {
       <MissionVission />
       <Activities />
       <Testimonials />
+      <Footer />
     </main>
   );
 };

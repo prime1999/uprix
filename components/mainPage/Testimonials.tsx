@@ -18,6 +18,8 @@ import {
   ChevronRight,
   type LucideIcon,
 } from "lucide-react";
+import TESTIMONIALS from "@/lib/constants";
+import deepBg from "@/app/assets/images/deepBg.png";
 
 type Service = {
   id: number;
@@ -76,6 +78,7 @@ const SERVICES: Service[] = [
     photo: null,
   },
 ];
+
 const TOTAL = SERVICES.length;
 const AUTOPLAY_MS = 2800;
 const SWIPE_THRESHOLD = 40;
@@ -95,46 +98,32 @@ function mod(n: number, m: number) {
 /* ---------------------------------------------------------
    Service card visual
 --------------------------------------------------------- */
-function ServiceCard({ service }: { service: Service }) {
-  const { Icon } = service;
+function ServiceCard({ testimonial }: { testimonial: any }) {
   return (
     <div
-      className="relative h-full w-full rounded-2xl overflow-hidden shadow-xl"
+      className="relative h-full w-full rounded-2xl overflow-hidden shadow-xl p-2"
       style={{
-        background: service.photo
-          ? `url(${service.photo}) center/cover no-repeat`
-          : "radial-gradient(120% 90% at 20% 10%, #4f7d3c 0%, #2f5a28 45%, #16351a 100%)",
+        backgroundImage: `url(${deepBg.src})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
       }}
     >
       {/* readability overlay */}
-      <div
+      {/* <div
         className="absolute inset-0"
         style={{
           background:
             "linear-gradient(180deg, rgba(10,25,12,0.15) 0%, rgba(8,20,10,0.55) 55%, rgba(6,15,8,0.9) 100%)",
         }}
-      />
+      /> */}
 
-      <div className="relative h-full flex flex-col justify-between p-4">
-        <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center shadow-md">
-          <Icon size={16} className="text-green-800" />
-        </div>
-
-        <div>
-          <h3 className="text-white font-bold text-base leading-tight mb-1">
-            {service.title}
-          </h3>
-          <p className="text-white/75 text-[11px] leading-snug mb-3 line-clamp-2">
-            {service.desc}
-          </p>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1 text-white text-xs font-semibold border-b border-white/60 pb-0.5 hover:border-white transition"
-          >
-            Learn More
-            <ChevronRight size={13} />
-          </button>
-        </div>
+      <div className="relative h-full flex flex-col justify-between p-4 bg-[rgba(255,255,255,0.80)] rounded-md">
+        <p className="text-black/75 text-[11px] leading-snug mb-3 line-clamp-6">
+          {testimonial.text}
+        </p>
+        <h3 className="absolute bottom-2 font-bold text-base leading-tight mb-1">
+          {testimonial.author}
+        </h3>
       </div>
     </div>
   );
@@ -180,8 +169,8 @@ export default function Testimonials() {
 
   const animateCards = useCallback((activeIdx: number) => {
     const width = stageRef.current ? stageRef.current.offsetWidth : 900;
-    const cardWidth = Math.max(150, Math.min(220, width * 0.24));
-    const gap = 14;
+    const cardWidth = Math.max(165, Math.min(235, width * 0.24));
+    const gap = 24;
     const step = cardWidth + gap;
 
     cardRefs.current.forEach((el, i) => {
@@ -234,39 +223,41 @@ export default function Testimonials() {
 
   return (
     <section className="w-full py-14 px-4 select-none">
-      <h2 className="text-center text-3xl md:text-4xl font-extrabold text-secondary-blue mb-10 tracking-tight">
-        Our Services
+      <h2 className="text-center text-3xl md:text-4xl font-extrabold text-secondary-blue mb-1 tracking-tight">
+        Testimonials
       </h2>
-
+      <p className="text-center text-xs mb-10">
+        Hear what people say about Uprix.
+      </p>
       <div className="relative w-full mx-auto">
         <div
           ref={stageRef}
-          className="relative h-[230px] md:h-[260px] overflow-hidden cursor-grab active:cursor-grabbing touch-pan-y"
+          className="relative h-[260px] md:h-[290px] overflow-hidden cursor-grab active:cursor-grabbing touch-pan-y"
           onPointerDown={onPointerDown}
           onPointerUp={onPointerUp}
           onPointerLeave={onPointerUp}
         >
-          {SERVICES.map((service, i) => (
+          {TESTIMONIALS.map((testimonial, i) => (
             <div
-              key={service.id}
+              key={i}
               ref={(el) => {
                 cardRefs.current[i] = el;
               }}
-              className="absolute top-0 left-1/2 w-[160px] md:w-[190px] h-[230px] md:h-[260px] -ml-[80px] md:-ml-[95px]"
+              className="absolute top-0 left-1/2 w-[175px] md:w-[205px] h-[260px] md:h-[290px] -ml-[87.5px] md:-ml-[102.5px]"
               style={{ willChange: "transform" }}
             >
-              <ServiceCard service={service} />
+              <ServiceCard testimonial={testimonial} />
             </div>
           ))}
         </div>
 
         {/* Current-slide dot navigation (no prev/next buttons) */}
         <div className="flex items-center justify-center gap-2 mt-8">
-          {SERVICES.map((service, i) => (
+          {TESTIMONIALS.map((testimonial, i) => (
             <button
-              key={service.id}
+              key={i}
               type="button"
-              aria-label={`Go to ${service.title}`}
+              aria-label={`Go to ${testimonial.author}`}
               aria-current={i === active}
               onClick={() => goTo(i)}
               className={`h-1.5 rounded-full transition-all duration-300 ${
