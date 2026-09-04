@@ -15,6 +15,7 @@ import {
   BookOpen,
   Clock,
   Flag,
+  LoaderCircle,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import logo from "@/app/assets/images/mobileLogo.png";
@@ -40,6 +41,7 @@ import type {
   ProfileFormData,
   SingleChipFieldKey,
 } from "@/lib/types";
+import { createProfile } from "@/lib/supabase/action";
 
 /* ===========================================================
    ENUMS — mirrors the provided TypeScript enums as plain
@@ -292,6 +294,10 @@ function ChipGroup({
 =========================================================== */
 export default function ProfileCollectionForm() {
   const [form, setForm] = useState(INITIAL_FORM);
+  const [loadingStage, setLoadingStage] = useState<
+    "idle" | "preparing" | "saving" | "complete"
+  >("idle");
+  const [submitError, setSubmitError] = useState("");
   const router = useRouter();
 
   const setField = useCallback(
@@ -326,11 +332,54 @@ export default function ProfileCollectionForm() {
 
   const handleClear = () => setForm(INITIAL_FORM);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // wire this up to your API call
-    console.log("Profile submitted:", form);
+
+    if (
+      !form.fullName.trim() ||
+      !form.ageGroup ||
+      !form.gender ||
+      !form.currentStatus ||
+      !form.location.trim() ||
+      !form.currentStage ||
+      !form.currentFocus.length ||
+      !form.guidanceAreas.length ||
+      !form.progressBlocker ||
+      !form.teachingStyle.length ||
+      !form.activeOnlineTime ||
+      !form.biggestStruggle.trim() ||
+      !form.biggestFear.trim() ||
+      !form.ninetyDayGoal.trim()
+    ) {
+      setSubmitError("Please complete all required fields before saving.");
+      return;
+    }
+
+    setSubmitError("");
+    setLoadingStage("preparing");
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      setLoadingStage("saving");
+      console.log({ form });
+      await createProfile(form);
+      setLoadingStage("complete");
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      router.push("/protected");
+    } catch (error) {
+      console.error("Unable to save profile:", error);
+      setLoadingStage("idle");
+      setSubmitError("We could not save your profile. Please try again.");
+    }
   };
+
+  const isSubmitting = loadingStage !== "idle";
+  const loadingLabel = {
+    idle: "",
+    preparing: "Preparing profile...",
+    saving: "Saving profile...",
+    complete: "Profile saved",
+  }[loadingStage];
 
   return (
     <div className="min-h-screen w-full bg-transparent flex items-start justify-center py-10 px-4">
@@ -561,11 +610,26 @@ export default function ProfileCollectionForm() {
           />
 
           <div className="mt-6 border-t border-neutral-100 pt-4">
+            {submitError && (
+              <p role="alert" className="mb-3 text-center text-xs text-red-600">
+                {submitError}
+              </p>
+            )}
             <button
               type="submit"
+              disabled={isSubmitting}
               className="w-full rounded-full py-2 bg-gradient-to-r from-secondary-blue to-primary-blue text-white cursor-pointer duration-700 transition hover:from-primary-blue hover:to-secondary-blue"
             >
-              Save profile
+              {isSubmitting ? (
+                <span className="flex items-center justify-center gap-2">
+                  {loadingStage !== "complete" && (
+                    <LoaderCircle size={15} className="animate-spin" />
+                  )}
+                  {loadingLabel}
+                </span>
+              ) : (
+                "Save profile"
+              )}
             </button>
           </div>
         </form>

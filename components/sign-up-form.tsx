@@ -63,7 +63,7 @@ export function SignUpForm({
         description: "Welcome to Uprix. Your profile is ready to complete.",
         variant: "success",
       });
-      router.push("/profile");
+      router.push("/profile/create");
     } catch (error: unknown) {
       toast({
         title: "Sign-up failed",

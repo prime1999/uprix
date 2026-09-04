@@ -1,69 +1,7 @@
 import { createClient } from "./client";
+import type { ProfileFormData } from "@/lib/types";
 
 const supabase = createClient();
-
-export interface ProfileFormData {
-  fullName: string;
-
-  ageGroup: "under_18" | "18_24" | "25_34" | "35_44" | "45_plus";
-  gender: "male" | "female";
-
-  currentStatus:
-    | "student"
-    | "working"
-    | "business_owner"
-    | "freelancer"
-    | "student_and_working";
-
-  university?:
-    | "covenant_university"
-    | "university_of_ibadan"
-    | "bowen"
-    | "obafemi_awolowo_university"
-    | "lasu"
-    | "lautech"
-    | "fuoye"
-    | "other";
-
-  universityOther?: string;
-
-  location: string;
-
-  currentStage:
-    | "just_starting"
-    | "trying_but_inconsistent"
-    | "clarity_but_struggle_with_execution"
-    | "growing_but_want_to_scale";
-
-  currentFocus: string[];
-  currentFocusOther?: string;
-
-  guidanceAreas: string[];
-  guidanceAreasOther?: string;
-
-  biggestStruggle: string;
-
-  progressBlocker:
-    | "lack_of_clarity"
-    | "fear_of_failure"
-    | "procrastination"
-    | "distractions"
-    | "dont_know_where_to_start"
-    | "inconsistency"
-    | "self_doubt"
-    | "lack_of_discipline"
-    | "other";
-
-  progressBlockerOther?: string;
-
-  biggestFear: string;
-
-  teachingStyle: string[];
-
-  activeOnlineTime: "morning" | "afternoon" | "evening" | "night";
-
-  ninetyDayGoal: string;
-}
 
 export const createProfile = async (formData: ProfileFormData) => {
   const {
@@ -78,6 +16,8 @@ export const createProfile = async (formData: ProfileFormData) => {
   if (!user) {
     throw new Error("User is not authenticated");
   }
+
+  console.log({ formData, user });
 
   const { data, error } = await supabase
     .from("user_profiles")
@@ -133,6 +73,8 @@ export const createProfile = async (formData: ProfileFormData) => {
     console.error("Profile creation error:", error);
     throw error;
   }
+
+  console.log("Profile created successfully:", data);
 
   return data;
 };
