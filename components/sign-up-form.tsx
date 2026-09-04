@@ -15,6 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast";
 import logo from "@/app/assets/images/mobileLogo.png";
 
 export function SignUpForm({
@@ -24,18 +25,26 @@ export function SignUpForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     const supabase = createClient();
     setIsLoading(true);
-    setError(null);
+    toast({
+      title: "Creating your account",
+      description: "Please wait while we set up your Uprizer account.",
+      variant: "info",
+    });
 
     if (password !== repeatPassword) {
-      setError("Passwords do not match");
+      toast({
+        title: "Unable to sign up",
+        description: "Passwords do not match.",
+        variant: "destructive",
+      });
       setIsLoading(false);
       return;
     }
@@ -49,9 +58,19 @@ export function SignUpForm({
         },
       });
       if (error) throw error;
-      router.push("/auth/sign-up-success");
+      toast({
+        title: "Account created",
+        description: "Welcome to Uprix. Your profile is ready to complete.",
+        variant: "success",
+      });
+      router.push("/profile");
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      toast({
+        title: "Sign-up failed",
+        description:
+          error instanceof Error ? error.message : "An error occurred.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -102,7 +121,6 @@ export function SignUpForm({
                   onChange={(e) => setRepeatPassword(e.target.value)}
                 />
               </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
               <Button
                 type="submit"
                 className="w-full rounded-full bg-gradient-to-r from-secondary-blue to-primary-blue text-white cursor-pointer duration-700 transition hover:from-primary-blue hover:to-secondary-blue"
@@ -112,7 +130,7 @@ export function SignUpForm({
               </Button>
             </div>
             <div className="mt-4 text-center text-sm">
-              Already have an account?{" "}
+              Already an uprizer?{" "}
               <Link href="/auth/login" className="underline underline-offset-4">
                 Login
               </Link>
