@@ -54,12 +54,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${bricolage.variable} ${lato.variable} ${myCustomFont.variable} ${myDeepFont.variable} antialiased`}
-      >
-        <ToastProvider>{children}</ToastProvider>
-      </body>
-    </html>
+  <html lang="en" className="scroll-smooth" suppressHydrationWarning>
+  <body
+    className={`${bricolage.variable} ${lato.variable} ${myCustomFont.variable} ${myDeepFont.variable} antialiased`}
+  >
+    <ToastProvider>{children}</ToastProvider>
+  </body>
+</html>
   );
 }

@@ -31,30 +31,31 @@ const Navbar = () => {
           >
             X-deep
           </Link>
+          {/* Assigned Product Links */}
           <Link
-            href="/resultRoom"
+            href="#result-room"
             className="cursor-pointer text-sm font-semibold transition duration-500 hover:text-primary-blue"
           >
             Result Room
           </Link>
           <Link
-            href="/x-growth"
+            href="#x-growth"
             className="cursor-pointer text-sm font-semibold transition duration-500 hover:text-primary-blue"
           >
             X-Growth
           </Link>
           <Link
-            href="/upritunity"
+            href="#uprixtunity"
             className="cursor-pointer text-sm font-semibold transition duration-500 hover:text-primary-blue"
           >
-            Upritunity
+            Uprixtunity
           </Link>
-          <Link
-            href="#testimonials"
-            className="cursor-pointer text-sm font-semibold transition duration-500 hover:text-primary-blue"
-          >
-            Testimonials
-          </Link>
+         <Link
+  href="/#testimonials"
+  className="cursor-pointer text-sm font-semibold transition duration-500 hover:text-primary-blue"
+>
+  Testimonials
+</Link>
           <Link
             href="#faqs"
             className="cursor-pointer text-sm font-semibold transition duration-500 hover:text-primary-blue"
@@ -82,23 +83,24 @@ const Navbar = () => {
               >
                 X-deep
               </Link>
+              {/* Assigned Product Mobile Links */}
               <Link
-                href="/resultRoom"
+                href="#result-room"
                 className="cursor-pointer text-lg font-semibold uppercase transition duration-500 hover:text-primary-blue"
               >
                 Result Room
               </Link>
               <Link
-                href="/x-growth"
+                href="#x-growth"
                 className="cursor-pointer text-lg font-semibold uppercase transition duration-500 hover:text-primary-blue"
               >
                 X-Growth
               </Link>
               <Link
-                href="/upritunity"
+                href="#uprixtunity"
                 className="cursor-pointer text-lg font-semibold uppercase transition duration-500 hover:text-primary-blue"
               >
-                Upritunity
+                Uprixtunity
               </Link>
               <Link
                 href="#testimonials"
