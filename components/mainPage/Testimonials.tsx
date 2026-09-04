@@ -108,15 +108,6 @@ function ServiceCard({ testimonial }: { testimonial: any }) {
         backgroundPosition: "center",
       }}
     >
-      {/* readability overlay */}
-      {/* <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(180deg, rgba(10,25,12,0.15) 0%, rgba(8,20,10,0.55) 55%, rgba(6,15,8,0.9) 100%)",
-        }}
-      /> */}
-
       <div className="relative h-full flex flex-col justify-between p-4 bg-[rgba(255,255,255,0.80)] rounded-md">
         <p className="text-black/75 text-[11px] leading-snug mb-3 line-clamp-6">
           {testimonial.text}
@@ -222,7 +213,7 @@ export default function Testimonials() {
   };
 
   return (
-    <section className="w-full py-14 px-4 select-none">
+    <section id="testimonials" className="scroll-mt-28 w-full py-14 px-4 select-none">
       <h2 className="text-center text-3xl md:text-4xl font-extrabold text-secondary-blue mb-1 tracking-tight">
         Testimonials
       </h2>
