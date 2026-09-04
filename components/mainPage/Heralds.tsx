@@ -1,79 +1,47 @@
 import React from "react";
-import Image from "next/image";
-
-interface HeraldMember {
-  name: string;
-  role: string;
-  image: string;
-  handle?: string;
-}
-
-const heraldsData: HeraldMember[] = [
-  {
-    name: "Herald One",
-    role: "Community Growth & Culture",
-    image: "/placeholder-avatar.png",
-    
-  },
-  {
-    name: "Herald Two",
-    role: "Advocacy & Engagement",
-    image: "/placeholder-avatar.png",
-    
-  },
-  {
-    name: "Herald Three",
-    role: "Social & Brand Voice",
-    image: "/placeholder-avatar.png",
-    
-  },
-];
 
 export default function Heralds() {
   return (
-    <section id="heralds" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto font-body">
-      {/* Header */}
-      <div className="text-center max-w-3xl mx-auto mb-16">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground font-heading tracking-tight">
-          Meet the Voices of Uprix.
-        </h2>
-        <p className="mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed">
-          The Uprix Heralds are the active, passionate members who carry the
-          community&apos;s vision forward. They are the standard-bearers who help
-          guide new members, spread our culture of growth, and keep the Uprix
-          spirit alive across social media.
-        </p>
-      </div>
-
-      {/* Grid of Heralds */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-        {heraldsData.map((herald, idx) => (
-          <div
-            key={idx}
-            className="group relative bg-card/70 backdrop-blur-sm border border-border hover:border-primary-blue/50 rounded-2xl p-6 flex flex-col items-center text-center shadow-sm hover:shadow-lg transition-all duration-300"
+    <section id="heralds" className="relative w-full overflow-hidden py-16 sm:py-24 font-body">
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Parallax Container */}
+        <div className="relative rounded-3xl overflow-hidden shadow-xl border border-border p-4 sm:p-10 flex items-center justify-start min-h-[480px]">
+          
+          {/* Parallax Background: People, unity, and growth */}
+          <div 
+            className="absolute inset-0 bg-fixed bg-center bg-cover -z-10"
+            style={{
+              backgroundImage: `url('https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1800&q=80)'`,
+            }}
           >
-            {/* Avatar container */}
-            <div className="relative w-28 h-28 mb-5 rounded-2xl overflow-hidden bg-primary-blue/10 border-2 border-primary-blue/20 flex items-center justify-center">
-              <span className="text-primary-blue text-3xl font-extrabold font-heading">
-                {herald.name.charAt(0)}
-              </span>
-            </div>
+            {/* Dark contrast gradient */}
+            <div className="absolute inset-0 bg-black/40" />
+          </div>
 
-            <h3 className="text-xl font-bold text-card-foreground font-heading group-hover:text-primary-blue transition-colors">
-              {herald.name}
-            </h3>
+          {/* Frosted Content Card */}
+          <div className="relative z-10 py-10 px-6 sm:px-10 max-w-xl bg-white/90 dark:bg-slate-950/90 backdrop-blur-md rounded-2xl border border-white/60 dark:border-white/10 shadow-2xl">
+            <span className="inline-block text-xs font-semibold text-primary-blue uppercase tracking-widest bg-primary-blue/10 border border-primary-blue/20 rounded-full px-3.5 py-1 mb-4">
+              Uprix Community
+            </span>
             
-            <p className="text-xs font-semibold text-primary-blue uppercase tracking-wider mt-1.5">
-              {herald.role}
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground font-heading tracking-tight leading-tight">
+              Meet the Voices of Uprix.
+            </h2>
+            
+            <p className="mt-4 text-sm sm:text-base text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
+              The Uprix Heralds are the active, passionate collective carrying the
+              community&apos;s vision forward. Serving as standard-bearers across networks,
+              they guide newcomers, embody our culture of continuous growth, and elevate
+              the Uprix narrative across every space.
             </p>
 
-            {herald.handle && (
-              <span className="mt-3 text-xs text-muted-foreground font-mono">
-                {herald.handle}
-              </span>
-            )}
+            <div className="mt-6 flex items-center gap-3 text-xs sm:text-sm font-semibold text-primary-blue">
+              <span className="h-0.5 w-6 sm:w-8 bg-primary-blue" />
+              <span>Advocates &bull; Culture Builders &bull; Standard-Bearers</span>
+            </div>
           </div>
-        ))}
+
+        </div>
       </div>
     </section>
   );
