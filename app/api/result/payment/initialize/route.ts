@@ -183,7 +183,6 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-    console.log("key: ", process.env.PAYSTACK_SECRET_KEY);
     // Initialize Paystack transaction
     const paystackResponse = await fetch(
       "https://api.paystack.co/transaction/initialize",
@@ -198,7 +197,7 @@ export async function POST(req: Request) {
           amount,
           currency: "NGN",
 
-          callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/result-room/payment/callback`,
+          callback_url: `${process.env.APP_URL}/result-room/payment/callback`,
 
           metadata: {
             userId,
