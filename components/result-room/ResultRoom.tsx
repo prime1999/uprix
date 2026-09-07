@@ -1,10 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, TrendingUp, Star } from "lucide-react";
+import { ArrowLeft, TrendingUp, Star, HelpCircle } from "lucide-react";
 import Faq from "@/components/result-room/Faq";
 import PaymentModal from "@/components/payment/paymentModal";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import ContinuePaymentModal from "@/components/payment/ContinuePaymentModal";
 import PaymentCompletedCard from "@/components/payment/PaymentComplete";
 import type { ResultRoomStatus } from "@/lib/supabase/result-room";
@@ -59,6 +67,32 @@ export default function ResultRoom({ status }: { status: ResultRoomStatus }) {
                 )}
               </DialogContent>
             </Dialog>
+
+            <Sheet>
+              <SheetTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-4 py-3 text-xs font-semibold font-heading text-neutral-800 shadow-sm md:hidden"
+                >
+                  <HelpCircle size={16} />
+                  FAQs
+                </button>
+              </SheetTrigger>
+              <SheetContent
+                side="right"
+                className="w-full overflow-y-auto p-0 sm:max-w-md"
+              >
+                <SheetHeader className="border-b border-neutral-200 px-6 py-5 pr-14">
+                  <SheetTitle className="text-left text-neutral-900">
+                    Frequently asked questions
+                  </SheetTitle>
+                  <SheetDescription className="text-left">
+                    Find answers about joining and completing the Result Room.
+                  </SheetDescription>
+                </SheetHeader>
+                <Faq className="min-h-0 items-start p-6 pt-5" />
+              </SheetContent>
+            </Sheet>
           </div>
 
           <div className="flex items-center gap-8">
@@ -95,7 +129,7 @@ export default function ResultRoom({ status }: { status: ResultRoomStatus }) {
             </div>
           </div>
         </div>
-        <Faq />
+        <Faq className="hidden md:flex" />
       </div>
     </div>
   );

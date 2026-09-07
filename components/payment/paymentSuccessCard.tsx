@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { Check, Clock, ExternalLink, X } from "lucide-react";
+
+import { Check, Clock, ExternalLink, MessageCircle, X } from "lucide-react";
+
 import Link from "next/link";
 
 type PaymentStatus =
@@ -13,13 +15,20 @@ type PaymentStatus =
 
 type PaymentSuccessCardProps = {
   status: PaymentStatus;
+
   paidAmount?: number;
   totalAmount?: number;
   balance?: number;
   seatNumber?: number | null;
+
   fullName?: string;
+  email?: string;
   reference?: string;
   message?: string;
+
+  // Payment state
+  isFirstPayment?: boolean;
+  isFullyPaid?: boolean;
 };
 
 function SuccessBadge() {
@@ -98,15 +107,26 @@ export default function PaymentSuccessCard({
   balance = 0,
   seatNumber = null,
   fullName,
+  email,
   reference,
   message,
+  isFirstPayment = false,
+  isFullyPaid = false,
 }: PaymentSuccessCardProps) {
+  // ============================================================
+  // CARD TILT
+  // ============================================================
+
   const cardRef = useRef<HTMLDivElement>(null);
 
   const [tilt, setTilt] = useState({
     rx: 0,
     ry: 0,
   });
+
+  // ============================================================
+  // PAYMENT CALCULATIONS
+  // ============================================================
 
   const percent =
     totalAmount > 0
@@ -115,6 +135,10 @@ export default function PaymentSuccessCard({
 
   const formatNaira = (amount: number) =>
     `₦${(amount / 100).toLocaleString("en-NG")}`;
+
+  // ============================================================
+  // CARD MOUSE MOVEMENT
+  // ============================================================
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const el = cardRef.current;
@@ -140,13 +164,97 @@ export default function PaymentSuccessCard({
     });
   };
 
-  const isFullyPaid = status === "FULLY_PAID";
+  // ============================================================
+  // PAYMENT STATES
+  // ============================================================
+
   const isPartial = status === "PARTIALLY_PAID";
+
   const isPending = status === "PENDING";
+
   const isFailed = status === "FAILED" || status === "NOT_FOUND";
 
+  // ============================================================
+  // WHATSAPP MESSAGE
+  // ============================================================
+  //
+  // IMPORTANT:
+  //
+  // We ONLY generate a WhatsApp message for the FIRST payment.
+  //
+  // FIRST PAYMENT + FULL PAYMENT
+  // --------------------------------
+  // The user paid the entire ₦10,600 at once.
+  //
+  // FIRST PAYMENT + PARTIAL PAYMENT
+  // --------------------------------
+  // The user made their first installment.
+  //
+  // SUBSEQUENT PAYMENT
+  // --------------------------------
+  // No first-payment WhatsApp message.
+  //
+
+  let whatsappMessage: string | null = null;
+
+  if (isFirstPayment && isFullyPaid) {
+    whatsappMessage = `Hello Uprix 👋
+
+My name is ${fullName ?? ""}. I just completed my full payment for The Result Room 2.0.
+<span className="font-bold">Seat Number: ${seatNumber?.toString().padStart(3, "0") ?? "Not assigned yet"}.</span>
+<span className="font-bold">Email: ${email ?? ""}</span>
+
+I'm excited to be part of the room and get started!
+
+Thank you!`;
+  } else if (isFirstPayment && !isFullyPaid) {
+    whatsappMessage = `Hello Uprix 👋
+
+My name is ${fullName ?? ""}. I just made my first payment for The Result Room 2.0.
+Email: ${email ?? ""}
+
+I'm excited to get started and continue with the program.
+
+Thank you!`;
+  }
+
+  // ============================================================
+  // WHATSAPP NUMBER
+  // ============================================================
+  //
+  // Replace this with your actual Uprix WhatsApp number.
+  //
+  // Example:
+  //
+  // 08012345678
+  //
+  // becomes:
+  //
+  // 2348012345678
+  //
+  // No "+".
+  // No spaces.
+  // No leading "0".
+  //
+
+  const whatsappNumber = "2347025120945";
+
+  // ============================================================
+  // WHATSAPP LINK
+  // ============================================================
+
+  const whatsappLink = whatsappMessage
+    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+        whatsappMessage,
+      )}`
+    : null;
+
+  // ============================================================
+  // UI
+  // ============================================================
+
   return (
-    <div className="flex min-h-screen w-full items-center justify-center p-6">
+    <div className="flex min-[500px] overflow-y-auto w-full items-center justify-center p-6">
       <div style={{ perspective: "1200px" }}>
         <div
           ref={cardRef}
@@ -161,6 +269,7 @@ export default function PaymentSuccessCard({
           }}
         >
           {/* Badge */}
+
           <div className="mb-5 flex justify-center">
             {isPending ? (
               <PendingBadge />
@@ -172,6 +281,7 @@ export default function PaymentSuccessCard({
           </div>
 
           {/* Heading */}
+
           <h1 className="mb-1.5 text-center text-xl font-bold text-neutral-900">
             {isFullyPaid
               ? "Payment Successful!"
@@ -183,10 +293,13 @@ export default function PaymentSuccessCard({
           </h1>
 
           {/* Description */}
+
           <p className="mb-6 px-3 text-center text-[13px] leading-relaxed text-neutral-500">
             {message ||
               (isFullyPaid
-                ? `You're officially in The Result Room 2.0${fullName ? `, ${fullName}` : ""}.`
+                ? `You're officially in The Result Room 2.0${
+                    fullName ? `, ${fullName}` : ""
+                  }.`
                 : isPartial
                   ? "Your payment has been received. Complete your remaining balance to secure your official seat."
                   : isPending
@@ -195,6 +308,7 @@ export default function PaymentSuccessCard({
           </p>
 
           {/* Payment */}
+
           {!isFailed && !isPending && (
             <div className="mb-6 rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-4">
               <div className="mb-2.5 flex items-end justify-between">
@@ -220,6 +334,7 @@ export default function PaymentSuccessCard({
               </div>
 
               {/* Progress */}
+
               <div className="h-2.5 w-full overflow-hidden rounded-full bg-neutral-200">
                 <div
                   className="h-full rounded-full transition-all duration-700 ease-out"
@@ -243,6 +358,7 @@ export default function PaymentSuccessCard({
           )}
 
           {/* Seat */}
+
           {isFullyPaid && seatNumber !== null && (
             <div className="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-center">
               <p className="text-[10px] font-medium uppercase tracking-wider text-emerald-600">
@@ -256,6 +372,7 @@ export default function PaymentSuccessCard({
           )}
 
           {/* Partial */}
+
           {isPartial && (
             <div className="mb-6 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-center">
               <p className="text-[12px] font-medium text-amber-700">
@@ -269,6 +386,7 @@ export default function PaymentSuccessCard({
           )}
 
           {/* Pending reference */}
+
           {isPending && reference && (
             <div className="mb-6 rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-3 text-center">
               <p className="text-[10px] text-neutral-400">Payment reference</p>
@@ -279,7 +397,22 @@ export default function PaymentSuccessCard({
             </div>
           )}
 
-          {/* Action */}
+          {/* WhatsApp */}
+
+          {whatsappLink && (
+            <a
+              href={whatsappLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mb-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 py-3.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 active:scale-[0.99]"
+            >
+              <MessageCircle size={17} />
+              Message Uprix on WhatsApp
+            </a>
+          )}
+
+          {/* Main Action */}
+
           {!isPending && !isFailed && (
             <Link
               href="/result-room"
@@ -290,6 +423,8 @@ export default function PaymentSuccessCard({
             </Link>
           )}
 
+          {/* Pending */}
+
           {isPending && (
             <button
               type="button"
@@ -299,6 +434,8 @@ export default function PaymentSuccessCard({
               Check Again
             </button>
           )}
+
+          {/* Failed */}
 
           {isFailed && (
             <button
@@ -311,6 +448,7 @@ export default function PaymentSuccessCard({
           )}
 
           {/* Reference */}
+
           {reference && !isPending && (
             <p className="mt-5 text-center text-[10px] text-neutral-300">
               Ref: {reference}

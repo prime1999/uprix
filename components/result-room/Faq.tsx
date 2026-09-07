@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Minus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const ITEMS = [
   {
@@ -87,11 +88,16 @@ function AccordionItem({ item, isOpen, onToggle }: AccordionItemProps) {
   );
 }
 
-export default function GlassAccordion() {
+export default function GlassAccordion({ className }: { className?: string }) {
   const [openIndex, setOpenIndex] = useState(0);
 
   return (
-    <div className="min-h-screen w-full relative flex items-center justify-center p-6 overflow-hidden">
+    <div
+      className={cn(
+        "min-h-screen w-full relative flex items-center justify-center p-6 overflow-hidden",
+        className,
+      )}
+    >
       <div className="relative w-full max-w-md space-y-4">
         {ITEMS.map((item, i) => (
           <AccordionItem

@@ -3,8 +3,9 @@ import Hero from "@/components/mainPage/Hero";
 import UprizerSlider from "@/components/mainPage/UprizerSlider";
 import MissionVission from "@/components/mainPage/MissionVission";
 import Testimonials from "@/components/mainPage/Testimonials";
-import Products from "@/components/mainPage/Products"; 
+import Products from "@/components/mainPage/Products";
 import Activities from "@/components/mainPage/Activities";
+import Faq from "@/components/mainPage/Faq";
 import Heralds from "@/components/mainPage/Heralds";
 import Footer from "@/components/mainPage/Footer";
 
@@ -20,6 +21,7 @@ const Home = () => {
       <Activities />
       <Products />
       <Testimonials />
+      <Faq />
       <Heralds />
       <Footer />
     </main>
