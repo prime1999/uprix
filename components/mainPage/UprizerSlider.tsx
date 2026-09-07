@@ -1,60 +1,30 @@
 "use client";
 
 import Link from "next/link";
+import Image, { StaticImageData } from "next/image";
 import { useState, useEffect, useRef, useCallback } from "react";
 import gsap from "gsap";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+
+import uprix1 from "@/app/assets/images/uprix-headshots/Uprix1.png";
+import uprix2 from "@/app/assets/images/uprix-headshots/uprix2.jpg";
+import uprix3 from "@/app/assets/images/uprix-headshots/uprix3.png";
+import uprix4 from "@/app/assets/images/uprix-headshots/uprix4.png";
 
 type Member = {
   id: number;
   name: string;
-  role: string;
-  initials: string;
-  accent: string;
-  photo: string | null;
+  photo: StaticImageData;
 };
 
 const MEMBERS: Member[] = [
-  {
-    id: 1,
-    name: "Sofia Reyes",
-    role: "Creative Director",
-    initials: "SR",
-    accent: "linear-gradient(160deg,#f5b731 0%,#e8862c 100%)",
-    photo: null,
-  },
-  {
-    id: 2,
-    name: "Marco Villegas",
-    role: "Lead Designer",
-    initials: "MV",
-    accent: "linear-gradient(160deg,#1f6a5e 0%,#0c332c 100%)",
-    photo: null,
-  },
-  {
-    id: 3,
-    name: "Elena Duarte",
-    role: "Brand Strategist",
-    initials: "ED",
-    accent: "linear-gradient(160deg,#4a2a1a 0%,#140806 100%)",
-    photo: null,
-  },
-  {
-    id: 4,
-    name: "Diego Ortiz",
-    role: "Motion Designer",
-    initials: "DO",
-    accent: "linear-gradient(160deg,#3d4a63 0%,#12151f 100%)",
-    photo: null,
-  },
-  {
-    id: 5,
-    name: "Camila Torres",
-    role: "Founder & CEO",
-    initials: "CT",
-    accent: "linear-gradient(160deg,#171a22 0%,#05060a 100%)",
-    photo: null,
-  },
+  { id: 1, name: "Uprizer 1", photo: uprix1 },
+  { id: 2, name: "Uprizer 2", photo: uprix2 },
+  { id: 3, name: "Uprizer 3", photo: uprix3 },
+  { id: 4, name: "Uprizer 4", photo: uprix4 },
+  { id: 5, name: "Uprizer 5", photo: uprix1 },
+  { id: 6, name: "Uprizer 6", photo: uprix2 },
+  { id: 7, name: "Uprizer 7", photo: uprix3 },
+  { id: 8, name: "Uprizer 8", photo: uprix4 },
 ];
 
 const TOTAL = MEMBERS.length;
@@ -75,14 +45,14 @@ function mod(n: number, m: number) {
 
 function MemberCard({ member }: { member: Member }) {
   return (
-    <div className="h-full w-full overflow-hidden rounded-[1.4rem]">
-      <div
-        className="h-full w-full bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: member.photo
-            ? `url(${member.photo})`
-            : member.accent,
-        }}
+    <div className="relative h-full w-full overflow-hidden rounded-[1.4rem] bg-neutral-900 shadow-xl">
+      <Image
+        src={member.photo}
+        alt={member.name}
+        fill
+        sizes="(max-width: 768px) 225px, 255px"
+        className="object-cover rounded-[1.4rem]"
+        priority
       />
     </div>
   );
@@ -140,19 +110,21 @@ const UprizerSlider = () => {
 
   const animateCards = useCallback((activeIdx: number) => {
     const width = stageRef.current ? stageRef.current.offsetWidth : 1000;
-    const spacing = Math.max(140, Math.min(240, width * 0.19));
+    const spacing = Math.max(140, Math.min(220, width * 0.2));
 
     cardRefs.current.forEach((el, i) => {
       if (!el) return;
 
       const offset = getOffset(i, activeIdx, TOTAL);
       const abs = Math.abs(offset);
+
       const x = offset * spacing;
-      const rotateY = offset * -26;
-      const z = -abs * 170;
-      const y = abs * 16;
-      const scale = abs === 0 ? 1 : abs === 1 ? 0.82 : 0.66;
-      const opacity = abs > 2 ? 0 : 1;
+      const rotateY = offset * -22;
+      const z = -abs * 140;
+      const y = abs * 10;
+      const scale = abs === 0 ? 1 : abs === 1 ? 0.84 : 0.7;
+
+      const opacity = abs > 2 ? 0 : abs === 2 ? 0.55 : 1;
       const zIndex = 100 - abs;
 
       gsap.to(el, {
@@ -234,26 +206,9 @@ const UprizerSlider = () => {
         Join a global community of growth-driven individuals
       </p>
       <div className="relative mx-auto max-w-5xl">
-        <button
-          type="button"
-          aria-label="Previous member"
-          onClick={handleManual(prev)}
-          className="absolute left-0 top-1/2 z-[200] flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-black/5 bg-white text-neutral-700 shadow-lg transition hover:bg-neutral-50 active:scale-95 md:-left-4"
-        >
-          <ChevronLeft size={20} />
-        </button>
-        <button
-          type="button"
-          aria-label="Next member"
-          onClick={handleManual(next)}
-          className="absolute right-0 top-1/2 z-[200] flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-black/5 bg-white text-neutral-700 shadow-lg transition hover:bg-neutral-50 active:scale-95 md:-right-4"
-        >
-          <ChevronRight size={20} />
-        </button>
-
         <div
           ref={stageRef}
-          className="relative mx-8 h-[360px] cursor-grab touch-pan-y active:cursor-grabbing md:mx-14 md:h-[420px]"
+          className="relative mx-auto h-[360px] cursor-grab touch-pan-y active:cursor-grabbing md:h-[420px]"
           style={{ perspective: "1400px" }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
@@ -262,7 +217,7 @@ const UprizerSlider = () => {
         >
           {MEMBERS.map((member, i) => (
             <div
-              key={member.id}
+              key={`${member.id}-${i}`}
               ref={(el) => {
                 cardRefs.current[i] = el;
               }}
@@ -278,22 +233,25 @@ const UprizerSlider = () => {
           ))}
         </div>
 
+        {/* 4 indicator dots */}
         <div className="mt-8 flex items-center justify-center gap-2">
-          {MEMBERS.map((member, i) => (
+          {[0, 1, 2, 3].map((dotIdx) => (
             <button
-              key={member.id}
-              aria-label={`Go to ${member.name}`}
-              onClick={handleManual(() => goTo(i))}
+              key={dotIdx}
+              aria-label={`Go to member ${dotIdx + 1}`}
+              onClick={handleManual(() => goTo(dotIdx))}
               className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === active ? "w-6 bg-secondary-blue" : "w-1.5 bg-primary-blue"
+                active % 4 === dotIdx
+                  ? "w-6 bg-secondary-blue"
+                  : "w-1.5 bg-primary-blue"
               }`}
             />
           ))}
         </div>
+
         <div className="mt-8 flex flex-col items-center justify-center">
           <h6 className="flex items-end gap-1 mb-8 text-secondary-blue">
-            <span className="text-4xl font-deep font-bold">700+</span> Bonafied
-            Uprizers
+            <span className="text-4xl font-deep font-bold">700+</span> Bonafied Uprizers
           </h6>
           <Link
             href="/signUp"
