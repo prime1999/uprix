@@ -61,12 +61,25 @@ export default function PaymentModal() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [goal, setGoal] = useState<string>("");
   const [amount, setAmount] = useState<number>(10600);
+  const MIN_AMOUNT = 5000;
+  const MAX_AMOUNT = 10600;
 
   const handlePayment = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
+
+    if (amount < MIN_AMOUNT) {
+      alert("Minimum payment is ₦5,000");
+      return;
+    }
+
+    if (amount > MAX_AMOUNT) {
+      alert("Maximum payment is ₦10,600");
+      return;
+    }
+
     try {
-      console.log({ phoneNumber, amount });
-      const amountInKobo = amount * 100; // Convert to kobo
+      const amountInKobo = amount * 100;
+
       const response = await fetch("/api/result/payment/initialize", {
         method: "POST",
         headers: {
@@ -74,13 +87,12 @@ export default function PaymentModal() {
         },
         body: JSON.stringify({
           amount: amountInKobo,
-          phoneNumber: phoneNumber.toString(),
+          phoneNumber,
           goal,
         }),
       });
 
       const data = await response.json();
-      console.log({ data });
 
       if (!response.ok) {
         throw new Error(data.error);
@@ -91,7 +103,6 @@ export default function PaymentModal() {
       console.error("Payment failed:", error);
     }
   };
-
   return (
     <form className="w-full flex items-center justify-center px-4">
       <div className="relative">
@@ -172,9 +183,26 @@ export default function PaymentModal() {
             );
           })}
         </div>
+        <input
+          id="amount"
+          type="number"
+          min={MIN_AMOUNT}
+          max={MAX_AMOUNT}
+          value={amount}
+          onChange={(e) => {
+            const value = Number(e.target.value);
 
+            if (value <= MAX_AMOUNT) {
+              setAmount(value);
+            }
+
+            setSelected("");
+          }}
+          placeholder="Enter amount"
+          className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 mt-2 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-secondary-blue focus:ring-2 focus:ring-secondary-blue/10"
+        />
         {/* footer nav */}
-        <div className="w-full mt-12">
+        <div className="w-full mt-4">
           <button
             type="button"
             onClick={(e) => handlePayment(e)}

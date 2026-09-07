@@ -6,15 +6,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export async function POST(req: Request) {
   try {
     // --------------------------------------------------
-    // 1. Read raw request body
+    // 1. Read the raw request body
     // --------------------------------------------------
-
     const body = await req.text();
 
     // --------------------------------------------------
-    // 2. Verify Paystack signature
+    // 2. Verify Paystack webhook signature
     // --------------------------------------------------
-
     const signature = req.headers.get("x-paystack-signature");
 
     if (!signature) {
@@ -47,9 +45,8 @@ export async function POST(req: Request) {
     }
 
     // --------------------------------------------------
-    // 3. Parse webhook
+    // 3. Parse the webhook payload
     // --------------------------------------------------
-
     const event = JSON.parse(body);
 
     console.log("PAYSTACK WEBHOOK VERIFIED");
@@ -60,9 +57,8 @@ export async function POST(req: Request) {
     });
 
     // --------------------------------------------------
-    // 4. Only process successful charges
+    // 4. Only process successful charge events
     // --------------------------------------------------
-
     if (event.event !== "charge.success") {
       return NextResponse.json({
         received: true,
@@ -76,9 +72,8 @@ export async function POST(req: Request) {
       transaction;
 
     // --------------------------------------------------
-    // 5. Make sure transaction was successful
+    // 5. Make sure the transaction itself was successful
     // --------------------------------------------------
-
     if (status !== "success") {
       return NextResponse.json({
         received: true,
@@ -87,9 +82,8 @@ export async function POST(req: Request) {
     }
 
     // --------------------------------------------------
-    // 6. Validate required metadata
+    // 6. Validate required payment metadata
     // --------------------------------------------------
-
     if (!metadata?.userId || !metadata?.roomId) {
       console.error("Missing required payment metadata");
 
@@ -103,15 +97,16 @@ export async function POST(req: Request) {
     const roomId = metadata.roomId;
 
     // --------------------------------------------------
-    // 7. Admin Supabase client
+    // 7. Create admin Supabase client
     // --------------------------------------------------
-
+    // Paystack does not have a Supabase user session,
+    // so the webhook must use the service-role client.
+    // --------------------------------------------------
     const supabase = createAdminClient();
 
     // --------------------------------------------------
-    // 8. Check for duplicate webhook
+    // 8. Prevent duplicate webhook processing
     // --------------------------------------------------
-
     const { data: existingPayment, error: existingPaymentError } =
       await supabase
         .from("payments")
@@ -128,8 +123,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // Paystack can retry webhooks.
-    // Never process the same reference twice.
+    // Paystack can retry the same webhook.
+    // The payment reference is unique, so never process it twice.
     if (existingPayment) {
       console.log("Payment already processed:", reference);
 
@@ -140,9 +135,8 @@ export async function POST(req: Request) {
     }
 
     // --------------------------------------------------
-    // 9. Get room settings
+    // 9. Get room payment settings
     // --------------------------------------------------
-
     const { data: roomSettings, error: settingsError } = await supabase
       .from("room_settings")
       .select("entry_fee, minimum_deposit, capacity")
@@ -159,9 +153,8 @@ export async function POST(req: Request) {
     }
 
     // --------------------------------------------------
-    // 10. Validate payment amount
+    // 10. Validate the payment amount
     // --------------------------------------------------
-
     if (
       !Number.isInteger(amount) ||
       amount <= 0 ||
@@ -176,12 +169,21 @@ export async function POST(req: Request) {
     }
 
     // --------------------------------------------------
-    // 11. Find existing participant
+    // 11. Find the participant for this room and user
     // --------------------------------------------------
-
     const { data: participant, error: participantError } = await supabase
       .from("participants")
-      .select("id, room_id, user_id, total_paid, balance, status, seat_number")
+      .select(
+        `
+            id,
+            room_id,
+            user_id,
+            total_paid,
+            balance,
+            status,
+            seat_number
+          `,
+      )
       .eq("room_id", roomId)
       .eq("user_id", userId)
       .maybeSingle();
@@ -200,9 +202,10 @@ export async function POST(req: Request) {
     // --------------------------------------------------
     // 12. Create participant after successful payment
     // --------------------------------------------------
-
     if (!participant) {
-      // Get name from Uprix profile
+      // This is the user's first successful payment.
+
+      // Get the user's name from their Uprix profile.
       const { data: profile, error: profileError } = await supabase
         .from("user_profiles")
         .select("full_name")
@@ -223,6 +226,19 @@ export async function POST(req: Request) {
 
         return NextResponse.json(
           { error: "Customer email missing" },
+          { status: 400 },
+        );
+      }
+
+      // Phone number and goal should come from the
+      // initial payment metadata.
+      if (!metadata.phoneNumber || !metadata.goal) {
+        console.error("Missing phone number or goal in payment metadata");
+
+        return NextResponse.json(
+          {
+            error: "Required participant information is missing",
+          },
           { status: 400 },
         );
       }
@@ -255,13 +271,75 @@ export async function POST(req: Request) {
 
       participantId = newParticipant.id;
     } else {
+      // This is a continuation payment.
+
       participantId = participant.id;
+
+      // --------------------------------------------------
+      // 12A. Make sure the participant still has a balance
+      // --------------------------------------------------
+      if (participant.balance <= 0) {
+        console.error(
+          "Payment received for an already fully-paid participant:",
+          participant.id,
+        );
+
+        return NextResponse.json(
+          {
+            error: "Participant payment is already complete",
+          },
+          { status: 400 },
+        );
+      }
+
+      // --------------------------------------------------
+      // 12B. Never allow payment above the balance
+      // --------------------------------------------------
+      if (amount > participant.balance) {
+        console.error("Payment exceeds participant balance:", {
+          amount,
+          balance: participant.balance,
+          participantId: participant.id,
+        });
+
+        return NextResponse.json(
+          {
+            error: "Payment exceeds the participant's remaining balance",
+          },
+          { status: 400 },
+        );
+      }
+
+      // --------------------------------------------------
+      // 12C. Validate installment amount
+      //
+      // Allowed:
+      // - ₦1,000 increments
+      // - Exact remaining balance
+      // --------------------------------------------------
+      const isExactBalance = amount === participant.balance;
+
+      const isThousandIncrement = amount % 100000 === 0;
+
+      if (!isExactBalance && !isThousandIncrement) {
+        console.error("Invalid continuation payment amount:", {
+          amount,
+          balance: participant.balance,
+        });
+
+        return NextResponse.json(
+          {
+            error:
+              "Installment payments must be in ₦1,000 increments or the exact remaining balance",
+          },
+          { status: 400 },
+        );
+      }
     }
 
     // --------------------------------------------------
-    // 13. Record payment
+    // 13. Record the successful payment
     // --------------------------------------------------
-
     const { error: paymentError } = await supabase.from("payments").insert({
       participant_id: participantId,
       amount,
@@ -274,8 +352,9 @@ export async function POST(req: Request) {
     if (paymentError) {
       console.error("Payment insert error:", paymentError);
 
-      // Duplicate reference can happen if Paystack retries
-      // at exactly the wrong moment.
+      // The reference is unique.
+      // If Paystack somehow sends the same transaction
+      // again, treat it as already processed.
       if (paymentError.code === "23505") {
         return NextResponse.json({
           received: true,
@@ -292,7 +371,6 @@ export async function POST(req: Request) {
     // --------------------------------------------------
     // 14. Calculate total paid for THIS participant
     // --------------------------------------------------
-
     const { data: payments, error: paymentsError } = await supabase
       .from("payments")
       .select("amount")
@@ -317,6 +395,7 @@ export async function POST(req: Request) {
     const isFullyPaid = balance === 0;
 
     console.log({
+      participantId,
       totalPaid,
       balance,
       isFullyPaid,
@@ -325,7 +404,6 @@ export async function POST(req: Request) {
     // --------------------------------------------------
     // 15. Update participant payment status
     // --------------------------------------------------
-
     const { error: updateParticipantError } = await supabase
       .from("participants")
       .update({
@@ -346,9 +424,8 @@ export async function POST(req: Request) {
     }
 
     // --------------------------------------------------
-    // 16. Assign seat ONLY after full payment
+    // 16. Assign a seat only after full payment
     // --------------------------------------------------
-
     let seatNumber: number | null = null;
 
     if (isFullyPaid) {
@@ -360,11 +437,17 @@ export async function POST(req: Request) {
           p_capacity: roomSettings.capacity,
         },
       );
-      console.log({ assignedSeat, seatError });
+
+      console.log({
+        assignedSeat,
+        seatError,
+      });
+
       if (seatError) {
         console.error("Seat assignment error:", seatError);
 
-        // Room is full.
+        // The RPC returns ROOM_FULL when all seats
+        // have already been taken.
         if (seatError.message?.includes("ROOM_FULL")) {
           return NextResponse.json(
             {
@@ -386,7 +469,6 @@ export async function POST(req: Request) {
     // --------------------------------------------------
     // 17. Final logging
     // --------------------------------------------------
-
     console.log("PAYMENT PROCESSED SUCCESSFULLY");
 
     console.log({
@@ -404,7 +486,6 @@ export async function POST(req: Request) {
     // --------------------------------------------------
     // 18. Respond to Paystack
     // --------------------------------------------------
-
     return NextResponse.json({
       received: true,
       processed: true,

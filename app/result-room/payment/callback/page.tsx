@@ -145,6 +145,8 @@ export default async function PaymentCallback({ searchParams }: Props) {
     );
   }
 
+  console.log({ participant });
+
   /*
    * 4. Determine the correct UI state from the database.
    */
