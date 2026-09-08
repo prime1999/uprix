@@ -201,8 +201,9 @@ export default function PaymentSuccessCard({
     whatsappMessage = `Hello Uprix 👋
 
 My name is ${fullName ?? ""}. I just completed my full payment for The Result Room 2.0.
-<span className="font-bold">Seat Number: ${seatNumber?.toString().padStart(3, "0") ?? "Not assigned yet"}.</span>
-<span className="font-bold">Email: ${email ?? ""}</span>
+
+*Seat Number: ${seatNumber?.toString().padStart(3, "0") ?? "Not assigned yet"}*
+*Email: ${email ?? ""}*
 
 I'm excited to be part of the room and get started!
 
@@ -211,7 +212,8 @@ Thank you!`;
     whatsappMessage = `Hello Uprix 👋
 
 My name is ${fullName ?? ""}. I just made my first payment for The Result Room 2.0.
-Email: ${email ?? ""}
+
+*Email: ${email ?? ""}*
 
 I'm excited to get started and continue with the program.
 
@@ -407,7 +409,7 @@ Thank you!`;
               className="mb-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 py-3.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 active:scale-[0.99]"
             >
               <MessageCircle size={17} />
-              Click to book your call!
+              Click to book your Call!
             </a>
           )}
 
