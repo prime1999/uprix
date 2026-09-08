@@ -1,5 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
+import { Suspense } from "react";
+import { connection } from "next/server";
 
+import { createClient } from "@/lib/supabase/server";
 import PaymentSuccessCard from "@/components/payment/paymentSuccessCard";
 
 type Props = {
@@ -9,7 +11,21 @@ type Props = {
   }>;
 };
 
-export default async function PaymentCallback({ searchParams }: Props) {
+export default function PaymentCallback({ searchParams }: Props) {
+  return (
+    <Suspense fallback={<PaymentCallbackSkeleton />}>
+      <PaymentCallbackContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function PaymentCallbackContent({ searchParams }: Props) {
+  // ============================================================
+  // 0. RUN THIS ROUTE AT REQUEST TIME
+  // ============================================================
+
+  await connection();
+
   // ============================================================
   // 1. GET PAYMENT REFERENCE FROM PAYSTACK
   // ============================================================
@@ -36,10 +52,6 @@ export default async function PaymentCallback({ searchParams }: Props) {
   // ============================================================
   // 3. FIND PAYMENT BY PAYSTACK REFERENCE
   // ============================================================
-  //
-  // The webhook is responsible for processing the payment.
-  // This callback only reads the database and displays the result.
-  //
 
   const { data: payment, error: paymentError } = await supabase
     .from("payments")
@@ -77,10 +89,6 @@ export default async function PaymentCallback({ searchParams }: Props) {
   // ============================================================
   // 5. WEBHOOK MAY NOT HAVE FINISHED YET
   // ============================================================
-  //
-  // The user can reach this page before the webhook has created
-  // the payment record.
-  //
 
   if (!payment) {
     return (
@@ -178,15 +186,6 @@ export default async function PaymentCallback({ searchParams }: Props) {
   // ============================================================
   // 11. GET ALL SUCCESSFUL PAYMENTS FOR THIS PARTICIPANT
   // ============================================================
-  //
-  // We use this to determine whether the payment currently being
-  // viewed is the participant's FIRST successful payment.
-  //
-  // created_at is used as the primary ordering field because
-  // every payment gets its own database creation timestamp.
-  //
-  // id is used as a secondary deterministic ordering field.
-  //
 
   const { data: successfulPayments, error: successfulPaymentsError } =
     await supabase
@@ -226,11 +225,6 @@ export default async function PaymentCallback({ searchParams }: Props) {
   // ============================================================
   // 13. DETERMINE IF THIS IS THE FIRST PAYMENT
   // ============================================================
-  //
-  // If the current payment is the first successful payment in
-  // chronological order, then this is the participant's first
-  // payment.
-  //
 
   const firstSuccessfulPayment = successfulPayments[0];
 
@@ -287,5 +281,22 @@ export default async function PaymentCallback({ searchParams }: Props) {
       isFirstPayment={isFirstPayment}
       isFullyPaid={isFullyPaid}
     />
+  );
+}
+
+// ============================================================
+// SKELETON
+// ============================================================
+
+function PaymentCallbackSkeleton() {
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-black">
+      <div className="w-full max-w-md rounded-3xl border border-neutral-800 bg-neutral-900/40 p-8 animate-pulse">
+        <div className="h-8 w-48 bg-neutral-800 rounded-lg mb-4" />
+        <div className="h-4 w-full bg-neutral-800 rounded mb-2" />
+        <div className="h-4 w-3/4 bg-neutral-800 rounded mb-8" />
+        <div className="h-12 w-full bg-neutral-800 rounded-xl" />
+      </div>
+    </div>
   );
 }
