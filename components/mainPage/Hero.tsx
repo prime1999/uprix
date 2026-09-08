@@ -232,7 +232,9 @@ export default function HeroSection() {
 
       <div className="relative max-w-5xl mx-auto px-6 pt-48 pb-28 text-center">
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-[1.08] tracking-tight">
-          <span className="block font-heading">Growth demands</span>
+          <span className="block font-heading tracking-tighter">
+            Growth demands
+          </span>
           <span className="flex flex-col justify-center items-center gap-2 lg:gap-4 md:flex-row font-heading md:mt-4">
             <em className="italic font-medium">the right</em>{" "}
             <span className="max-w-[400px] font-extrabold font-heading bg-gradient-to-t from-secondary-blue to-primary-blue text-center py-1 px-4 rounded-lg">
