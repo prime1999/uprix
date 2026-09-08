@@ -161,7 +161,10 @@ export default function Testimonials() {
   };
 
   return (
-    <section className="w-full py-14 px-4 select-none overflow-hidden">
+    <section
+      id="testimonials"
+      className="w-full py-14 px-4 select-none overflow-hidden"
+    >
       <h2 className="text-center text-3xl md:text-4xl font-extrabold text-secondary-blue mb-1 tracking-tight">
         Testimonials
       </h2>
