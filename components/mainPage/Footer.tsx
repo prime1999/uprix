@@ -3,7 +3,7 @@ import Link from "next/link";
 const Footer = () => {
   return (
     <footer className="mt-12 mb-6">
-      <h1 className="font-embrace text-secondary-blue text-[170px] tracking-widest font-bold text-center">
+      <h1 className="font-embrace text-secondary-blue text-[75px] md:text-[120px] lg:text-[170px] tracking-widest font-bold text-center">
         UPRIX
       </h1>
       <div className="w-11/12 md:w-8/12 lg:w-1/2 mx-auto flex items-center justify-between">

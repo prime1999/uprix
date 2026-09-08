@@ -38,7 +38,7 @@
   }
 
   .dark {
-    --background: 0 0% 3.9%;
+    --background: 0 0% 0%;
     --foreground: 0 0% 98%;
     --card: 0 0% 3.9%;
     --card-foreground: 0 0% 98%;
@@ -95,6 +95,14 @@
       100% 100%,
       64px 64px,
       64px 64px;
+  }
+
+  .dark body {
+    background-color: #000;
+    background-image:
+      radial-gradient(circle at top, rgba(37, 99, 235, 0.18), transparent 32%),
+      linear-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.1) 1px, transparent 1px);
   }
 
   h1,
