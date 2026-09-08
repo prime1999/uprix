@@ -11,19 +11,19 @@ const Footer = () => {
         <div className="flex gap-2 items-center z-50">
           {" "}
           <Link
-            href="/x-growth"
+            href="#x-growth"
             className="text-sm text-gray-500 cursor-pointer duration-500 transition hover:text-gray-700"
           >
             X-Growth
           </Link>
           <Link
-            href="/x-growth"
+            href="#uprixtunity"
             className="text-sm text-gray-500 cursor-pointer duration-500 transition hover:text-gray-700"
           >
             Upritunity
           </Link>
           <Link
-            href="/x-growth"
+            href="#result-room"
             className="text-sm text-gray-500 cursor-pointer duration-500 transition hover:text-gray-700"
           >
             Result-room

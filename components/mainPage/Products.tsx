@@ -41,8 +41,8 @@ const products: ProductItem[] = [
       "Strict execution check-ins",
       "Capped membership for high impact",
     ],
-    ctaText: "Check Availability",
-    ctaLink: "#result-room",
+    ctaText: "Join the Room",
+    ctaLink: "/result-room",
     imageSrc:
       "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80",
   },
@@ -68,18 +68,18 @@ export default function Products() {
   return (
     <section
       id="products"
-      className="py-24 font-body bg-background text-foreground overflow-hidden"
+      className="w-10/12 mx-auto py-24 font-body text-foreground"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="max-w-2xl mx-auto text-center mb-20">
-          <span className="inline-block text-xs font-semibold uppercase tracking-widest text-primary-blue bg-primary-blue/10 border border-primary-blue/20 rounded-full px-4 py-1.5 mb-4">
+        <div className="max-w-2xl mx-auto text-center mb-16">
+          <h1 className="inline-block font-semibold capitalize text-2xl text-secondary-blue">
             Uprix Products & Services
-          </span>
-          <h2 className="text-3xl sm:text-5xl font-extrabold font-heading tracking-tight leading-tight">
+          </h1>
+          <h2 className="text-lg mt-2 font-extrabold font-heading tracking-tight leading-tight">
             Engineered for Action and Results.
           </h2>
-          <p className="mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed">
+          <p className="mt-4 text-sm text-muted-foreground leading-relaxed">
             Move past just learning and start doing. Our core programs are built
             to give you the exact frameworks, resources, and strict
             accountability you need to succeed.
@@ -118,7 +118,7 @@ export default function Products() {
                     {item.badge}
                   </div>
 
-                  <h3 className="text-2xl sm:text-4xl font-bold font-heading tracking-tight text-foreground">
+                  <h3 className="text-2xl sm:text-4xl font-bold font-heading tracking-tight text-secondary-blue">
                     {item.title}
                   </h3>
 
@@ -141,7 +141,7 @@ export default function Products() {
                   <div className="pt-4">
                     <Link
                       href={item.ctaLink}
-                      className="inline-flex items-center gap-2 rounded-xl bg-primary-blue text-white font-semibold text-sm px-6 py-3 shadow-md transition-all hover:bg-primary-blue/90 hover:gap-3"
+                      className="inline-flex items-center z-50 gap-2 rounded-xl bg-primary-blue text-white font-semibold text-sm px-6 py-3 shadow-md cursor-pointer transition-all hover:bg-primary-blue/90 hover:gap-3"
                     >
                       <span>{item.ctaText}</span>
                       <ArrowRight className="h-4 w-4" />

@@ -65,7 +65,7 @@ const Navbar = () => {
         </div>
 
         <Link
-          href="/signUp"
+          href="/auth/sign-up"
           className="hidden rounded-full bg-primary-blue px-4 py-2 text-xs font-bold text-white shadow-md shadow-primary-blue transition duration-500 hover:bg-secondary-blue hover:shadow-secondary-blue lg:block"
         >
           Become an Uprizer
@@ -115,7 +115,7 @@ const Navbar = () => {
                 FAQs
               </Link>
               <Link
-                href="/signUp"
+                href="/auth/sign-up"
                 className="absolute bottom-5 rounded-lg w-11/12 mx-auto text-center bg-primary-blue px-4 py-2 text-xs font-bold text-white transition shadow-md shadow-primary-blue duration-500 hover:bg-secondary-blue lg:block"
               >
                 Become an Uprizer

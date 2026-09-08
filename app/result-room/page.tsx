@@ -6,7 +6,7 @@ export default async function Room() {
   const status = await checkResultRoomPaymentStatus();
 
   if (!status.isAuthenticated) {
-    redirect("/sign-up");
+    redirect("/auth/sign-up");
   }
 
   return <ResultRoom status={status} />;

@@ -201,6 +201,7 @@
 // }
 
 import { ArrowUpRight } from "lucide-react";
+import Link from "next/link";
 
 /* ---------------------------------------------------------
    Hero section — static (no animations, no navbar).
@@ -231,10 +232,12 @@ export default function HeroSection() {
 
       <div className="relative max-w-5xl mx-auto px-6 pt-48 pb-28 text-center">
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-[1.08] tracking-tight">
-          <span className="block tracking-wide">Growth demands</span>
+          <span className="block tracking-wide font-heading">
+            Growth demands
+          </span>
           <span className="block mt-8">
             <em className="font-serif italic font-medium">the right</em>{" "}
-            <span className="font-extrabold bg-gradient-to-t from-secondary-blue to-primary-blue text-center py-1 px-4 rounded-lg">
+            <span className="font-extrabold font-heading bg-gradient-to-t from-secondary-blue to-primary-blue text-center py-1 px-4 rounded-lg">
               environment.
             </span>
           </span>
@@ -272,13 +275,13 @@ export default function HeroSection() {
             />
           </svg>
 
-          <button
-            type="button"
+          <Link
+            href="/auth/sign-up"
             className="inline-flex items-center gap-2 bg-white text-slate-900 font-semibold text-sm px-5 py-3 rounded-full shadow-lg hover:shadow-xl active:scale-95 transition"
           >
-            Let's Contact
+            Take the step
             <ArrowUpRight size={16} />
-          </button>
+          </Link>
         </div>
       </div>
     </section>

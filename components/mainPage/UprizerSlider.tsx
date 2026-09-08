@@ -254,7 +254,7 @@ const UprizerSlider = () => {
             <span className="text-4xl font-deep font-bold">700+</span> Bonafied Uprizers
           </h6>
           <Link
-            href="/signUp"
+            href="/auth/sign-up"
             className="rounded-full bg-primary-blue px-4 py-2 text-xs font-bold text-white shadow-md shadow-primary-blue transition duration-500 hover:bg-secondary-blue"
           >
             Become an Uprizer
