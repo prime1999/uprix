@@ -20,16 +20,17 @@ import t6 from "@/app/assets/images/uprix-testimonial/6.jpg";
 import t7 from "@/app/assets/images/uprix-testimonial/7.jpg";
 import t8 from "@/app/assets/images/uprix-testimonial/8.jpg";
 
-const TESTIMONIAL_IMAGES: { id: number; src: StaticImageData; alt: string }[] = [
-  { id: 1, src: t1, alt: "Uprix Testimonial 1" },
-  { id: 2, src: t2, alt: "Uprix Testimonial 2" },
-  { id: 3, src: t3, alt: "Uprix Testimonial 3" },
-  { id: 4, src: t4, alt: "Uprix Testimonial 4" },
-  { id: 5, src: t5, alt: "Uprix Testimonial 5" },
-  { id: 6, src: t6, alt: "Uprix Testimonial 6" },
-  { id: 7, src: t7, alt: "Uprix Testimonial 7" },
-  { id: 8, src: t8, alt: "Uprix Testimonial 8" },
-];
+const TESTIMONIAL_IMAGES: { id: number; src: StaticImageData; alt: string }[] =
+  [
+    { id: 1, src: t1, alt: "Uprix Testimonial 1" },
+    { id: 2, src: t2, alt: "Uprix Testimonial 2" },
+    { id: 3, src: t3, alt: "Uprix Testimonial 3" },
+    { id: 4, src: t4, alt: "Uprix Testimonial 4" },
+    { id: 5, src: t5, alt: "Uprix Testimonial 5" },
+    { id: 6, src: t6, alt: "Uprix Testimonial 6" },
+    { id: 7, src: t7, alt: "Uprix Testimonial 7" },
+    { id: 8, src: t8, alt: "Uprix Testimonial 8" },
+  ];
 
 const TOTAL = TESTIMONIAL_IMAGES.length;
 const AUTOPLAY_MS = 3200;
@@ -61,7 +62,7 @@ function TestimonialCard({
         alt={item.alt}
         fill
         sizes="(max-width: 768px) 280px, 340px"
-        className="object-contain rounded-2xl"
+        className="object-cover rounded-2xl"
         priority
       />
     </div>
