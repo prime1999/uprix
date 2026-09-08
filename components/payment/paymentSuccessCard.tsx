@@ -407,7 +407,7 @@ Thank you!`;
               className="mb-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 py-3.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 active:scale-[0.99]"
             >
               <MessageCircle size={17} />
-              Message Uprix on WhatsApp
+              Click to book your call!
             </a>
           )}
 

@@ -59,7 +59,7 @@ export default function MemberCard() {
 
   return (
     <div
-      className="relative h-[350px] w-full max-w-[550px] overflow-hidden rounded-[32px] bg-cover bg-center"
+      className="relative h-[370px] w-11/12 md:w-full max-w-[550px] overflow-hidden rounded-[32px] bg-cover bg-center"
       style={{
         backgroundImage:
           "url(https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200&q=80)",
@@ -117,27 +117,29 @@ export default function MemberCard() {
                 {profile.ninety_day_goal}
               </p>
             </div>
-
-            <button className="rounded-full bg-black px-3 py-1.5 text-white text-sm transition hover:bg-zinc-800">
-              Connect with an uprizer
-            </button>
           </div>
           {/* Footer */}
           <div className="absolute bottom-5">
             <Dialog>
-              <DialogTrigger asChild>
-                <button
-                  type="button"
-                  className="flex items-center gap-2 bg-white text-secondary-blue py-1.5 px-3 rounded-full text-xs font-semibold font-heading duration-500 transition hover:bg-white/90"
-                >
-                  <span
-                    ref={resultRoomDotRef}
-                    aria-hidden="true"
-                    className="h-2 w-2 shrink-0 rounded-full bg-secondary-blue"
-                  />
-                  Join the Result Room
+              <div className="flex items-center justify-between w-full">
+                {" "}
+                <DialogTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 bg-white text-secondary-blue py-1.5 px-3 rounded-full text-xs font-semibold font-heading duration-500 transition hover:bg-white/90"
+                  >
+                    <span
+                      ref={resultRoomDotRef}
+                      aria-hidden="true"
+                      className="h-2 w-2 shrink-0 rounded-full bg-secondary-blue"
+                    />
+                    Join the Result Room
+                  </button>
+                </DialogTrigger>
+                <button className="rounded-full bg-black px-3 py-1.5 text-white text-sm transition hover:bg-zinc-800">
+                  Connect with an uprizer
                 </button>
-              </DialogTrigger>
+              </div>
               <DialogContent className="w-[400px]">
                 <PaymentModal />
               </DialogContent>
