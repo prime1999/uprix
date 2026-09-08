@@ -33,6 +33,13 @@ const Footer = () => {
       <p className="text-center text-gray-500 mt-2 text-sm">
         &copy; UPRIX. All rights reserved.
       </p>
+      <Link
+        href="https://priime-portfolio.vercel.app"
+        target="_blank"
+        className="flex items-center justify-center text-center text-secondary-blue mt-2 text-sm font-bold"
+      >
+        @priime
+      </Link>
     </footer>
   );
 };
