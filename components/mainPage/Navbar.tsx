@@ -7,7 +7,7 @@ import { Menu } from "lucide-react";
 
 const Navbar = () => {
   return (
-    <header className="fixed top-0 z-50 w-full pt-2">
+    <header className="fixed top-0 z-[500] w-full pt-2">
       <nav className="mx-auto flex h-12 w-[calc(100%-1rem)] items-center justify-between rounded-2xl border border-white/10 bg-white/40 p-2 backdrop-blur-xl md:w-11/12">
         <Image
           src={logo}
@@ -50,12 +50,12 @@ const Navbar = () => {
           >
             Uprixtunity
           </Link>
-         <Link
-  href="/#testimonials"
-  className="cursor-pointer text-sm font-semibold transition duration-500 hover:text-primary-blue"
->
-  Testimonials
-</Link>
+          <Link
+            href="/#testimonials"
+            className="cursor-pointer text-sm font-semibold transition duration-500 hover:text-primary-blue"
+          >
+            Testimonials
+          </Link>
           <Link
             href="#faqs"
             className="cursor-pointer text-sm font-semibold transition duration-500 hover:text-primary-blue"
