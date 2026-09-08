@@ -214,7 +214,7 @@ export default function HeroSection() {
       className="relative w-full overflow-hidden"
       style={{
         background:
-          "radial-gradient(140% 85% at 50% 0%, #030614 0%, #071235 16%, #0d2266 30%, #1a3aa0 44%, #3a52d6 58%, #8b7ce8 72%, #d3c4f5 86%, transparent 100%)",
+          "radial-gradient(140% 85% at 50% 0%, #020817 0%, #071235 16%, #0d2266 30%, #1a3aa0 44%, #3a52d6 58%, #6f65d9 72%, rgba(111, 101, 217, 0.15) 86%, transparent 100%)",
       }}
     >
       {/* right-side vertical stripe pattern */}
@@ -232,12 +232,10 @@ export default function HeroSection() {
 
       <div className="relative max-w-5xl mx-auto px-6 pt-48 pb-28 text-center">
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-[1.08] tracking-tight">
-          <span className="block tracking-wide font-heading">
-            Growth demands
-          </span>
-          <span className="block mt-8">
-            <em className="font-serif italic font-medium">the right</em>{" "}
-            <span className="font-extrabold font-heading bg-gradient-to-t from-secondary-blue to-primary-blue text-center py-1 px-4 rounded-lg">
+          <span className="block font-heading">Growth demands</span>
+          <span className="flex flex-col justify-center items-center gap-2 lg:gap-4 md:flex-row font-heading md:mt-4">
+            <em className="italic font-medium">the right</em>{" "}
+            <span className="max-w-[400px] font-extrabold font-heading bg-gradient-to-t from-secondary-blue to-primary-blue text-center py-1 px-4 rounded-lg">
               environment.
             </span>
           </span>
@@ -256,7 +254,7 @@ export default function HeroSection() {
             height="46"
             viewBox="0 0 70 46"
             fill="none"
-            className="hidden sm:block text-white/85 -mr-2 mt-3"
+            className="text-white/85 -mr-2 mt-3"
           >
             <path
               d="M4 4C10 22 28 34 58 34"
@@ -279,7 +277,7 @@ export default function HeroSection() {
             href="/auth/sign-up"
             className="inline-flex items-center gap-2 bg-white text-slate-900 font-semibold text-sm px-5 py-3 rounded-full shadow-lg hover:shadow-xl active:scale-95 transition"
           >
-            Take the step
+            Join Us
             <ArrowUpRight size={16} />
           </Link>
         </div>
