@@ -4,8 +4,16 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import logo from "@/app/assets/images/logo.png";
 import mobileLogo from "@/app/assets/images/mobileLogo.png";
 import { Menu } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { LogoutButton } from "../logout-button";
 
-const Navbar = () => {
+const Navbar = async () => {
+  const supabase = await createClient();
+
+  // You can also use getUser() which will be slower.
+  const { data } = await supabase.auth.getClaims();
+
+  const user = data?.claims;
   return (
     <header className="fixed top-0 z-[500] w-full pt-2">
       <nav className="mx-auto flex h-12 w-[calc(100%-1rem)] items-center justify-between rounded-2xl border border-white/10 bg-white/40 p-2 backdrop-blur-xl md:w-11/12">
@@ -64,12 +72,24 @@ const Navbar = () => {
           </Link>
         </div>
 
-        <Link
-          href="/auth/sign-up"
-          className="hidden rounded-full bg-primary-blue px-4 py-2 text-xs font-bold text-white shadow-md shadow-primary-blue transition duration-500 hover:bg-secondary-blue hover:shadow-secondary-blue lg:block"
-        >
-          Become an Uprizer
-        </Link>
+        {user ? (
+          <div className="hidden md:flex gap-2 items-center">
+            <p className="font-semibold text-sm text-white"> Hey, Uprizer 👋</p>
+            <Link
+              href="/protected"
+              className="hidden rounded-full bg-primary-blue px-4 py-2 text-xs font-bold text-white shadow-md shadow-primary-blue transition duration-500 hover:bg-secondary-blue hover:shadow-secondary-blue lg:block"
+            >
+              View Profile
+            </Link>
+          </div>
+        ) : (
+          <Link
+            href="/auth/sign-up"
+            className="hidden rounded-full bg-primary-blue px-4 py-2 text-xs font-bold text-white shadow-md shadow-primary-blue transition duration-500 hover:bg-secondary-blue hover:shadow-secondary-blue lg:block"
+          >
+            Become an Uprizer
+          </Link>
+        )}
 
         <Sheet>
           <SheetTrigger className="p-3 lg:hidden" aria-label="Open menu">
@@ -114,12 +134,24 @@ const Navbar = () => {
               >
                 FAQs
               </Link>
-              <Link
-                href="/auth/sign-up"
-                className="absolute bottom-5 rounded-lg w-11/12 mx-auto text-center bg-primary-blue px-4 py-2 text-xs font-bold text-white transition shadow-md shadow-primary-blue duration-500 hover:bg-secondary-blue lg:block"
-              >
-                Become an Uprizer
-              </Link>
+              {user ? (
+                <div className="md:hidden absolute bottom-5 w-full flex flex-col gap-2 items-center justify-center">
+                  <p> Hey, Uprizer 👋</p>
+                  <Link
+                    href="/protected"
+                    className="rounded-full w-9/12 mx-auto text-center bg-primary-blue px-4 py-2 text-xs font-bold text-white shadow-md shadow-primary-blue transition duration-500 hover:bg-secondary-blue hover:shadow-secondary-blue lg:block"
+                  >
+                    View Profile
+                  </Link>
+                </div>
+              ) : (
+                <Link
+                  href="/auth/sign-up"
+                  className="md:hidden rounded-full bg-primary-blue px-4 py-2 text-xs font-bold text-white shadow-md shadow-primary-blue transition duration-500 hover:bg-secondary-blue hover:shadow-secondary-blue lg:block"
+                >
+                  Become an Uprizer
+                </Link>
+              )}
             </div>
           </SheetContent>
         </Sheet>
