@@ -10,8 +10,8 @@ const defaultUrl = process.env.VERCEL_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
-  title: "Next.js and Supabase Starter Kit",
-  description: "The fastest way to build apps with Next.js and Supabase",
+  title: "Uprix",
+  description: "Evolve Upward",
 };
 
 const bricolage = Bricolage_Grotesque({
@@ -54,12 +54,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-  <html lang="en" className="scroll-smooth" suppressHydrationWarning>
-  <body
-    className={`${bricolage.variable} ${lato.variable} ${myCustomFont.variable} ${myDeepFont.variable} antialiased`}
-  >
-    <ToastProvider>{children}</ToastProvider>
-  </body>
-</html>
+    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
+      <body
+        className={`${bricolage.variable} ${lato.variable} ${myCustomFont.variable} ${myDeepFont.variable} antialiased`}
+      >
+        <ToastProvider>{children}</ToastProvider>
+      </body>
+    </html>
   );
 }

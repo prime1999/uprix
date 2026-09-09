@@ -53,6 +53,7 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname !== "/" &&
     request.nextUrl.pathname !== "/profile" &&
     request.nextUrl.pathname !== "/profile/create" &&
+    request.nextUrl.pathname !== "/api/admin/bulk-import" &&
     !user &&
     !request.nextUrl.pathname.startsWith("/login") &&
     !request.nextUrl.pathname.startsWith("/auth")
