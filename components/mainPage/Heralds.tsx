@@ -1,6 +1,9 @@
 export default function Heralds() {
   return (
     <section id="heralds" className="relative w-full py-16 sm:py-24 font-body">
+      <h1 className="text-center text-3xl font-bold text-secondary-blue tracking-tighter mb-4">
+        Uprix Heralds
+      </h1>
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Parallax Container */}
         <div className="relative rounded-3xl overflow-hidden shadow-xl border border-border p-4 sm:p-10 flex items-center justify-start min-h-[350px]">

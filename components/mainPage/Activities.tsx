@@ -22,10 +22,10 @@ export default function Activities() {
 
           <div className="z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 overflow-visible">
             <div className="max-w-lg z-50 text-secondary-blue">
-              <h2 className="text-3xl font-bold tracking-tight mb-2">
+              <h2 className="text-3xl font-bold tracking-tight mb-4">
                 Daily Affirmation
               </h2>
-              <p className="text-slate-600 leading-relaxed text-sm md:text-base">
+              <p className="text-slate-600 text-sm/5 md:text-base/5">
                 Start every morning with clarity. We share positive words and
                 focused thoughts each day to help you build a winning mindset
                 and stay intentional about your goals
@@ -56,7 +56,7 @@ export default function Activities() {
             className="absolute -left-10 -bottom-12 -mb-4"
           />
           <div className="relative z-50 bg-[rgba(255,255,255,0.90)] rounded-2xl p-4">
-            <p className="text-slate-600 text-sm leading-relaxed">
+            <p className="text-slate-600 text-sm/5">
               Once a month, we go below the surface. X-Deep is a free,
               high-impact virtual session where we invite experts to teach on
               deep topics like purpose discovery, execution, and career growth.
@@ -73,7 +73,7 @@ export default function Activities() {
             <h3 className="text-2xl font-bold mb-3 text-white">
               Uprix Game Night
             </h3>
-            <p className="text-blue-100 text-sm leading-relaxed max-w-md">
+            <p className="text-blue-100 text-sm/5 max-w-md">
               Hard work deserves good fun. Twice a month (on the 2nd and last
               Sunday), we take a break to unwind. Join us to play exciting
               games, win cash prizes, and bond with fellow Uprizers in a

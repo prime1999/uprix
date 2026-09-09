@@ -16,7 +16,7 @@ import {
    raised elements read as "pressed out" and active ones as
    "pressed in", all against the same background color.
 --------------------------------------------------------- */
-const BG = "#e7edf6";
+const BG = "#ffff";
 const RAISED = "7px 7px 15px #c3cddb, -7px -7px 15px #ffffff";
 const RAISED_SM = "4px 4px 9px #c3cddb, -4px -4px 9px #ffffff";
 const PRESSED = "inset 5px 5px 10px #c3cddb, inset -5px -5px 10px #ffffff";

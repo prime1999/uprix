@@ -7,6 +7,7 @@ import { getProfile } from "@/lib/supabase/action";
 import logo from "@/app/assets/images/mobileLogo.png";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import PaymentModal from "@/components/payment/paymentModal";
+import profileBg from "@/app/assets/images/profileBg.jpeg";
 
 function formatLabel(value: string | null | undefined) {
   return value
@@ -61,8 +62,7 @@ export default function MemberCard() {
     <div
       className="relative h-[370px] w-11/12 md:w-full max-w-[550px] overflow-hidden rounded-[32px] bg-cover bg-center"
       style={{
-        backgroundImage:
-          "url(https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200&q=80)",
+        backgroundImage: `url(${profileBg.src})`,
       }}
     >
       {/* Background Image */}

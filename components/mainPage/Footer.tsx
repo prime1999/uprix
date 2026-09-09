@@ -1,4 +1,6 @@
 import Link from "next/link";
+import Image from "next/image";
+import logo from "@/app/assets/images/logo.png";
 
 const Footer = () => {
   return (
@@ -6,6 +8,9 @@ const Footer = () => {
       <h1 className="font-embrace text-secondary-blue text-[75px] md:text-[120px] lg:text-[170px] tracking-widest font-bold text-center">
         UPRIX
       </h1>
+      {/* <div className="w-full flex items-center justify-center mb-4 w-[600px] ">
+        <Image src={logo} alt="Uprix Logo" width={400} height={100} />
+      </div> */}
       <div className="w-11/12 md:w-8/12 lg:w-1/2 mx-auto flex items-center justify-between">
         <h6>Products:</h6>
         <div className="flex gap-2 items-center z-50">

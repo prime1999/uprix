@@ -62,7 +62,7 @@ function TestimonialCard({
         alt={item.alt}
         fill
         sizes="(max-width: 768px) 280px, 340px"
-        className="object-cover rounded-2xl"
+        className="object-contain rounded-2xl"
         priority
       />
     </div>

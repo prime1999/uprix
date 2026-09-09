@@ -198,8 +198,8 @@ const UprizerSlider = () => {
   }, [next, pauseAndScheduleResume, prev]);
 
   return (
-    <section className="w-full px-4 py-16 select-none mt-24">
-      <h2 className="mb-2 text-center text-xl font-extrabold tracking-tight text-secondary-blue md:text-2xl">
+    <section className="w-full px-4 py-16 select-none -mt-8">
+      <h2 className="mb-2 text-center text-xl font-extrabold tracking-tighter text-secondary-blue md:text-2xl">
         You're not growing alone.
       </h2>
       <p className="mb-6 text-center text-sm text-slate-600 md:text-base">
@@ -251,11 +251,12 @@ const UprizerSlider = () => {
 
         <div className="mt-8 flex flex-col items-center justify-center">
           <h6 className="flex items-end gap-1 mb-8 text-secondary-blue">
-            <span className="text-4xl font-deep font-bold">700+</span> Bonafied Uprizers
+            <span className="text-4xl font-deep font-bold">700+</span> Bonafied
+            Uprizers
           </h6>
           <Link
             href="/auth/sign-up"
-            className="rounded-full bg-primary-blue px-4 py-2 text-xs font-bold text-white shadow-md shadow-primary-blue transition duration-500 hover:bg-secondary-blue"
+            className="rounded-full bg-primary-blue px-6 py-3 mt-8 text-xs font-bold text-white shadow-md shadow-primary-blue transition duration-500 hover:bg-secondary-blue"
           >
             Become an Uprizer
           </Link>

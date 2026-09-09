@@ -256,7 +256,7 @@ export default function HeroSection() {
             height="46"
             viewBox="0 0 70 46"
             fill="none"
-            className="-ml-16 text-white/85 -mr-2 mt-3"
+            className="-ml-16 text-white/85 -mr-2 -mt-8"
           >
             <path
               d="M4 4C10 22 28 34 58 34"
