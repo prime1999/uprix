@@ -61,11 +61,6 @@ export function SignUpForm({
         },
       });
       if (error) throw error;
-      toast({
-        title: "Account created",
-        description: "Welcome to Uprix. Your profile is ready to complete.",
-        variant: "success",
-      });
       router.push("/profile/create");
     } catch (error: unknown) {
       toast({

@@ -8,6 +8,7 @@ type ToastVariant = "default" | "success" | "info" | "destructive";
 type ToastProps = {
   title?: React.ReactNode;
   description?: React.ReactNode;
+  action?: React.ReactNode;
   variant?: ToastVariant;
 };
 
@@ -64,6 +65,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               {item.description && (
                 <p className="mt-1 text-sm opacity-80">{item.description}</p>
               )}
+              {item.action && <div className="mt-3">{item.action}</div>}
               <button
                 type="button"
                 aria-label="Dismiss notification"

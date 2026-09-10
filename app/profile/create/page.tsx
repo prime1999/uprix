@@ -42,6 +42,7 @@ import type {
   SingleChipFieldKey,
 } from "@/lib/types";
 import { createProfile } from "@/lib/supabase/action";
+import { useToast } from "@/components/ui/toast";
 
 /* ===========================================================
    ENUMS — mirrors the provided TypeScript enums as plain
@@ -299,6 +300,7 @@ export default function ProfileCollectionForm() {
   >("idle");
   const [submitError, setSubmitError] = useState("");
   const router = useRouter();
+  const { toast } = useToast();
 
   const setField = useCallback(
     <Key extends keyof ProfileFormData>(
@@ -363,6 +365,29 @@ export default function ProfileCollectionForm() {
       setLoadingStage("saving");
       console.log({ form });
       await createProfile(form);
+      const whatsappMessage = encodeURIComponent(
+        `I just joined Uprix through Uprix website. 
+
+I'm here to finalise my identity as an Uprizer, kindly save this contact.
+
+My name is ${form.fullName}.`,
+      );
+      toast({
+        title: "Profile created",
+        description:
+          "Welcome to Uprix. Your profile is complete. Have questions? Message Taifaq on WhatsApp.",
+        action: (
+          <a
+            href={`https://wa.me/2347025120945?text=${whatsappMessage}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-8 items-center rounded-md bg-green-600 px-3 text-xs font-semibold text-white transition-colors hover:bg-green-700"
+          >
+            Message Taifaq on WhatsApp
+          </a>
+        ),
+        variant: "success",
+      });
       setLoadingStage("complete");
       await new Promise((resolve) => setTimeout(resolve, 500));
       router.push("/protected");
