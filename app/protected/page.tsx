@@ -69,21 +69,6 @@ My name is ${profile.full_name}.`,
 
   return (
     <main className="w-full h-full flex flex-col items-center justify-center">
-      <div className="w-11/12 md:w-full max-w-[550px] flex items-center justify-between mb-4 px-8">
-        <div>
-          <h6 className="text-xs text-zinc-800 mb-2">
-            Yet to finalize your Identity here? 👇
-          </h6>
-          <Link
-            href={`https://wa.me/2347025120945?text=${whatsappMessage}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-white bg-green-700 px-4 py-2 rounded-full mt-2 duration-500 transition hover:bg-green-800"
-          >
-            Message Taifaq on WhatsApp
-          </Link>
-        </div>
-      </div>
       <div
         className="relative max-h-[400px] w-11/12 md:w-full max-w-[550px] overflow-hidden rounded-[32px] bg-cover bg-center"
         style={{
@@ -179,6 +164,21 @@ My name is ${profile.full_name}.`,
               </Dialog>
             </div>
           </div>
+        </div>
+      </div>
+      <div className="w-11/12 md:w-full max-w-[550px] flex items-center justify-end my-4 px-8">
+        <div>
+          <h6 className="text-xs text-zinc-800 mb-2">
+            Yet to finalize your Identity? 👇
+          </h6>
+          <Link
+            href={`https://wa.me/2347025120945?text=${whatsappMessage}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-white bg-green-700 px-4 py-2 rounded-full mt-2 shadow-md shadow-green-800 duration-500 transition hover:bg-green-800"
+          >
+            Message Taifaq on WhatsApp
+          </Link>
         </div>
       </div>
     </main>
