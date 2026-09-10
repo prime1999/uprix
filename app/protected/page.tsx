@@ -100,7 +100,7 @@ export default function MemberCard() {
 
           {/* Tags */}
           <div className="mt-4 flex flex-wrap gap-2">
-            {profile.current_focus.map((focus: string) => (
+            {profile.current_focus.slice(0, 2).map((focus: string) => (
               <span
                 key={focus}
                 className="rounded-full bg-white/80 px-3 py-1 text-xs backdrop-blur"
@@ -108,12 +108,18 @@ export default function MemberCard() {
                 {formatLabel(focus)}
               </span>
             ))}
+
+            {profile.current_focus.length > 2 && (
+              <span className="rounded-full bg-white/60 px-3 py-1 text-xs backdrop-blur">
+                +{profile.current_focus.length - 2} more
+              </span>
+            )}
           </div>
 
           <div className="mt-6 flex items-start justify-between">
             <div className="flex items-center gap-2 flex-wrap w-72">
               <p className="text-sm text-white">90-Days Goal:</p>
-              <p className="max-w-[220px] truncate font-bold text-white capitalize">
+              <p className="max-w-[220px] text-xs truncate font-bold text-white capitalize">
                 {profile.ninety_day_goal}
               </p>
             </div>
