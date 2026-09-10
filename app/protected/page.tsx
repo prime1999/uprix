@@ -77,8 +77,8 @@ export default function MemberCard() {
             <Image
               src={logo}
               alt="Logo"
-              width={40}
-              height={40}
+              width={30}
+              height={30}
               className="w-full h-full object-cover flex items-center justify-center"
             />
           </div>
