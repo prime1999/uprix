@@ -84,7 +84,7 @@ export function LoginForm({
                     Forgot your password?
                   </Link>
                 </div>
-                <div classname="relative">
+                <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
@@ -98,7 +98,7 @@ export function LoginForm({
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-800 hover:text-gray-900"
                   >
-                    {showPassword ? <EyeOff /> : <Eye />}
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>

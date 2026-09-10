@@ -119,20 +119,20 @@ export default function MemberCard() {
           <div className="mt-6 flex items-start justify-between">
             <div className="flex items-center gap-2 flex-wrap w-72">
               <p className="text-sm text-white">90-Days Goal:</p>
-              <p className="max-w-[220px] text-xs truncate font-bold text-white capitalize">
+              <p className="max-w-[220px] text-xs font-bold text-white capitalize line-clamp-2">
                 {profile.ninety_day_goal}
               </p>
             </div>
           </div>
           {/* Footer */}
-          <div className="absolute bottom-5">
+          <div className="w-full absolute bottom-5">
             <Dialog>
-              <div className="flex items-center justify-between w-full">
+              <div className="flex flex-col gap-2 items-start justify-center w-full">
                 {" "}
                 <DialogTrigger asChild>
                   <button
                     type="button"
-                    className="flex items-center gap-2 bg-white text-secondary-blue py-1.5 px-3 rounded-full text-xs font-semibold font-heading duration-500 transition hover:bg-white/90"
+                    className="flex items-center flex-wrap gap-2 bg-white text-secondary-blue py-1.5 px-3 rounded-full text-xs/6 font-semibold font-heading duration-500 transition hover:bg-white/90"
                   >
                     <span
                       ref={resultRoomDotRef}
@@ -142,9 +142,9 @@ export default function MemberCard() {
                     Join the Result Room
                   </button>
                 </DialogTrigger>
-                <button className="rounded-full bg-black px-3 py-1.5 text-white text-sm transition hover:bg-zinc-800">
+                {/* <button className="w-11/12 mx-auto rounded-full bg-black px-3 py-1.5 text-white text-sm transition hover:bg-zinc-800">
                   Connect with an uprizer
-                </button>
+                </button> */}
               </div>
               <DialogContent className="w-[400px]">
                 <PaymentModal />
