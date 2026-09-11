@@ -5,8 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { getProfile } from "@/lib/supabase/action";
 import logo from "@/app/assets/images/mobileLogo.png";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import PaymentModal from "@/components/payment/paymentModal";
 import profileBg from "@/app/assets/images/profileBg.jpeg";
 import Link from "next/dist/client/link";
 
@@ -138,30 +136,19 @@ My name is ${profile.full_name}.`,
             </div>
             {/* Footer */}
             <div className="w-full mt-4">
-              <Dialog>
-                <div className="flex flex-col gap-2 items-start justify-center w-full">
-                  {" "}
-                  <DialogTrigger asChild>
-                    <button
-                      type="button"
-                      className="flex items-center flex-wrap gap-2 bg-white text-secondary-blue py-1.5 px-3 rounded-full text-xs/6 font-semibold font-heading duration-500 transition hover:bg-white/90"
-                    >
-                      <span
-                        ref={resultRoomDotRef}
-                        aria-hidden="true"
-                        className="h-2 w-2 shrink-0 rounded-full bg-secondary-blue"
-                      />
-                      Join the Result Room
-                    </button>
-                  </DialogTrigger>
-                  {/* <button className="w-11/12 mx-auto rounded-full bg-black px-3 py-1.5 text-white text-sm transition hover:bg-zinc-800">
-                  Connect with an uprizer
-                </button> */}
-                </div>
-                <DialogContent className="w-[400px]">
-                  <PaymentModal />
-                </DialogContent>
-              </Dialog>
+              <div className="flex flex-col gap-2 items-start justify-center w-full">
+                <Link
+                  href="/result-room"
+                  className="flex items-center flex-wrap gap-2 bg-white text-secondary-blue py-1 px-3 rounded-full text-xs/6 font-semibold font-heading duration-500 transition hover:bg-white/90"
+                >
+                  <span
+                    ref={resultRoomDotRef}
+                    aria-hidden="true"
+                    className="h-2 w-2 shrink-0 rounded-full bg-secondary-blue"
+                  />
+                  The Result Room
+                </Link>
+              </div>
             </div>
           </div>
         </div>

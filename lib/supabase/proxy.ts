@@ -57,7 +57,8 @@ export async function updateSession(request: NextRequest) {
   const isPublicRoute =
     pathname === "/" ||
     pathname.startsWith("/login") ||
-    pathname.startsWith("/auth");
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/api/admin");
 
   // If there is no authenticated user, send them to login.
   if (error || !user) {
