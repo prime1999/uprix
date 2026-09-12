@@ -388,6 +388,12 @@ My name is ${form.fullName}.`,
         ),
         variant: "success",
       });
+
+      window.open(
+        `https://wa.me/2347025120945?text=${whatsappMessage}`,
+        "_blank",
+        "noopener,noreferrer",
+      );
       setLoadingStage("complete");
       await new Promise((resolve) => setTimeout(resolve, 500));
       router.push("/protected");
