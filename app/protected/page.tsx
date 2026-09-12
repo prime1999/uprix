@@ -146,7 +146,7 @@ My name is ${profile.full_name}.`,
                     aria-hidden="true"
                     className="h-2 w-2 shrink-0 rounded-full bg-secondary-blue"
                   />
-                  The Result Room
+                  Join Result Room
                 </Link>
               </div>
             </div>
