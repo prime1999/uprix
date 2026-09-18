@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { ChevronRight, Check, Link } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, Check } from "lucide-react";
 
 import logo from "@/app/assets/images/mobileLogo.png";
 

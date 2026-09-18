@@ -6,8 +6,8 @@ import gsap from "gsap";
 import { getProfile } from "@/lib/supabase/action";
 import logo from "@/app/assets/images/mobileLogo.png";
 import profileBg from "@/app/assets/images/profileBg.jpeg";
-import Link from "next/dist/client/link";
-import { LogoutButton } from "@/components/logout-button";
+import Link from "next/link";
+import { createIcons, PenTool } from "lucide";
 
 function formatLabel(value: string | null | undefined) {
   return value
