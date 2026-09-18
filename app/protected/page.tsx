@@ -7,6 +7,7 @@ import { getProfile } from "@/lib/supabase/action";
 import logo from "@/app/assets/images/mobileLogo.png";
 import profileBg from "@/app/assets/images/profileBg.jpeg";
 import Link from "next/dist/client/link";
+import { LogoutButton } from "@/components/logout-button";
 
 function formatLabel(value: string | null | undefined) {
   return value
@@ -153,7 +154,8 @@ My name is ${profile.full_name}.`,
           </div>
         </div>
       </div>
-      <div className="w-11/12 md:w-full max-w-[550px] flex items-center justify-end my-4 px-8">
+      <div className="w-11/12 md:w-full max-w-[550px] flex items-center justify-between my-4 px-8">
+        <LogoutButton />
         <div>
           <h6 className="text-xs text-zinc-800 mb-2">
             Yet to finalize your Identity? 👇
