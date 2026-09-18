@@ -1,6 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-
 import { hasEnvVars } from "../utils";
 
 export async function updateSession(request: NextRequest) {
@@ -53,14 +52,15 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  // Public routes
+  // Public routes.
   const isPublicRoute =
     pathname === "/" ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/api/admin");
 
-  // If there is no authenticated user, send them to login.
+  // If there is no authenticated user, send them to login
+  // when they try to access a protected route.
   if (error || !user) {
     if (!isPublicRoute) {
       const url = request.nextUrl.clone();
@@ -73,7 +73,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // User is authenticated.
-  // Check whether they have created/completed their profile.
+  // Check whether they have completed their profile.
   const { data: profile, error: profileError } = await supabase
     .from("user_profiles")
     .select("completed")
@@ -89,6 +89,31 @@ export async function updateSession(request: NextRequest) {
 
   const profileCompleted = profile?.completed === true;
 
+  // --------------------------------------------------
+  // LOGGED-IN USER VISITS LOGIN PAGE
+  // --------------------------------------------------
+  // If their profile is complete, send them home.
+  // If their profile is incomplete, send them to profile creation.
+  if (pathname === "/auth/login") {
+    const url = request.nextUrl.clone();
+
+    if (profileCompleted) {
+      url.pathname = "/";
+    } else {
+      url.pathname = "/profile/create";
+    }
+
+    return NextResponse.redirect(url);
+  }
+
+  // --------------------------------------------------
+  // INCOMPLETE PROFILE
+  // --------------------------------------------------
+  // Prevent users with incomplete profiles from accessing
+  // normal protected pages.
+  //
+  // They are allowed to remain inside /auth and on the
+  // profile creation page itself.
   if (
     !profileCompleted &&
     pathname !== "/profile/create" &&
@@ -99,4 +124,7 @@ export async function updateSession(request: NextRequest) {
 
     return NextResponse.redirect(url);
   }
+
+  // User is authenticated and has completed their profile.
+  return supabaseResponse;
 }

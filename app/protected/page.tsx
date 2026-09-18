@@ -154,8 +154,7 @@ My name is ${profile.full_name}.`,
           </div>
         </div>
       </div>
-      <div className="w-11/12 md:w-full max-w-[550px] flex items-center justify-between my-4 px-8">
-        <LogoutButton />
+      <div className="w-11/12 md:w-full max-w-[550px] flex items-center justify-end mt-4 px-8">
         <div>
           <h6 className="text-xs text-zinc-800 mb-2">
             Yet to finalize your Identity? 👇
