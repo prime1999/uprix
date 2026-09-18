@@ -51,7 +51,6 @@ export const createProfile = async (formData: ProfileFormData) => {
     .from("user_profiles")
     .insert({
       user_id: user.id,
-
       // Demographics
       full_name: formData.fullName,
       age_group: formData.ageGroup,

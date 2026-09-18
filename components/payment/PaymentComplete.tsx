@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronRight, Check } from "lucide-react";
 
 import logo from "@/app/assets/images/mobileLogo.png";
+import { ResultRoomStatus } from "@/lib/supabase/result-room";
 
 type Participant = {
   full_name: string;
@@ -14,7 +15,7 @@ type Participant = {
 };
 
 type PaymentCompletedCardProps = {
-  participant: Participant;
+  status: ResultRoomStatus;
 };
 
 function formatNaira(kobo: number) {
@@ -22,14 +23,15 @@ function formatNaira(kobo: number) {
 }
 
 export default function PaymentCompletedCard({
-  participant,
+  status,
 }: PaymentCompletedCardProps) {
   const whatsappNumber = "2347025120945";
   const whatsappMessage = `Hello Taifaq 👋
 
-My name is ${participant.full_name ?? ""}. I have completed my full payment for The Result Room 2.0.
+My name is ${status.participant?.full_name ?? ""}. I have made my payment for The Result Room 2.0.
 
-*Seat Number: ${participant.seat_number?.toString().padStart(3, "0") ?? "Not assigned yet"}*
+*Seat Number: ${status.participant?.seat_number?.toString().padStart(3, "0") ?? "Not assigned yet"}*
+*Email: ${status.email ?? ""}*
 
 I'm excited to be part of the room and get started!
 
@@ -64,7 +66,7 @@ Thank you!`;
             <span className="text-[12px] text-neutral-500">Participant</span>
 
             <span className="text-[13px] font-semibold text-neutral-900">
-              {participant.full_name}
+              {status.participant?.full_name}
             </span>
           </div>
 
@@ -72,7 +74,7 @@ Thank you!`;
             <span className="text-[12px] text-neutral-500">Amount paid</span>
 
             <span className="text-[13px] font-semibold text-neutral-900">
-              {formatNaira(participant.total_paid)}
+              {formatNaira(status.participant?.total_paid || 0)}
             </span>
           </div>
 
@@ -82,8 +84,8 @@ Thank you!`;
             <span className="text-[12px] text-neutral-500">Seat</span>
 
             <span className="text-[13px] font-bold text-secondary-blue">
-              {participant.seat_number
-                ? `#${participant.seat_number}`
+              {status.participant?.seat_number
+                ? `#${status.participant?.seat_number}`
                 : "Assigned"}
             </span>
           </div>
@@ -102,7 +104,7 @@ Thank you!`;
             href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`}
             className="w-full mb-2 flex items-center justify-center gap-1 bg-green-800 text-white text-[13px] font-semibold rounded-full px-5 py-2.5 hover:bg-green-900 active:scale-95 transition"
           >
-            Yet to join the Antechamber?
+            Yet to book your Call?
             <ChevronRight size={14} />
           </Link>
           <button

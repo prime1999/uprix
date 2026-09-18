@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 import { ChevronRight } from "lucide-react";
-
 import logo from "@/app/assets/images/mobileLogo.png";
+import { ResultRoomStatus } from "@/lib/supabase/result-room";
 
 type Participant = {
   id: string;
@@ -16,7 +17,7 @@ type Participant = {
 };
 
 type ContinuePaymentModalProps = {
-  participant: Participant;
+  status: ResultRoomStatus;
 };
 
 function formatNaira(kobo: number) {
@@ -36,8 +37,9 @@ function getPaymentOptions(balance: number) {
 }
 
 export default function ContinuePaymentModal({
-  participant,
+  status,
 }: ContinuePaymentModalProps) {
+  const participant = status.participant!;
   const options = getPaymentOptions(participant.balance);
 
   const [selectedAmount, setSelectedAmount] = useState(options[0]);
@@ -69,6 +71,17 @@ export default function ContinuePaymentModal({
       console.error("Payment failed:", error);
     }
   };
+
+  const whatsappNumber = "2347025120945";
+  const whatsappMessage = `Hello Taifaq 👋
+
+My name is ${participant.full_name ?? ""}. I just made my first payment for The Result Room 2.0.
+
+*Email: ${status.email ?? ""}*
+
+I'm excited to get started and continue with the program.
+
+Thank you!`;
 
   return (
     <div className="w-full flex items-center justify-center px-4 h-[500px] overflow-y-auto">
@@ -164,6 +177,13 @@ export default function ContinuePaymentModal({
 
         {/* Action */}
         <div className="w-full mt-4">
+          <Link
+            href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`}
+            className="w-full mb-2 flex items-center justify-center gap-1 bg-green-800 text-white text-[13px] font-semibold rounded-full px-5 py-2.5 hover:bg-green-900 active:scale-95 transition"
+          >
+            Yet to book your Call?
+            <ChevronRight size={14} />
+          </Link>
           <button
             type="button"
             onClick={handlePayment}

@@ -61,9 +61,9 @@ export default function ResultRoom({ status }: { status: ResultRoomStatus }) {
                 {!status.startedPayment ? (
                   <PaymentModal />
                 ) : !status.hasPaid ? (
-                  <ContinuePaymentModal participant={status.participant!} />
+                  <ContinuePaymentModal status={status} />
                 ) : (
-                  <PaymentCompletedCard participant={status.participant!} />
+                  <PaymentCompletedCard status={status} />
                 )}
               </DialogContent>
             </Dialog>

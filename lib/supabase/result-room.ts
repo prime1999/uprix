@@ -15,6 +15,7 @@ export type ResultRoomStatus = {
   hasPaid: boolean;
   isAuthenticated: boolean;
   roomAvailable: boolean;
+  email?: string | null;
 };
 
 export async function checkResultRoomPaymentStatus(): Promise<ResultRoomStatus> {
@@ -74,5 +75,6 @@ export async function checkResultRoomPaymentStatus(): Promise<ResultRoomStatus> 
     hasPaid: participant.status === "FULLY_PAID",
     isAuthenticated: true,
     roomAvailable: true,
+    email: user.email,
   };
 }
