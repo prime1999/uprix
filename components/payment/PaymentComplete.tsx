@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ChevronRight, Check } from "lucide-react";
+import { ChevronRight, Check, Link } from "lucide-react";
 
 import logo from "@/app/assets/images/mobileLogo.png";
 
@@ -23,6 +23,16 @@ function formatNaira(kobo: number) {
 export default function PaymentCompletedCard({
   participant,
 }: PaymentCompletedCardProps) {
+  const whatsappNumber = "2347025120945";
+  const whatsappMessage = `Hello Taifaq 👋
+
+My name is ${participant.full_name ?? ""}. I have completed my full payment for The Result Room 2.0.
+
+*Seat Number: ${participant.seat_number?.toString().padStart(3, "0") ?? "Not assigned yet"}*
+
+I'm excited to be part of the room and get started!
+
+Thank you!`;
   return (
     <div className="w-full flex items-center justify-center px-4">
       <div className="w-full relative">
@@ -87,6 +97,13 @@ export default function PaymentCompletedCard({
 
         {/* CTA */}
         <div className="w-full mt-4">
+          <Link
+            href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`}
+            className="w-full mb-2 inline-flex items-center justify-center gap-1 bg-green-800 text-white text-[13px] font-semibold rounded-full px-5 py-2.5 hover:bg-green-900 active:scale-95 transition"
+          >
+            Yet to join the Antechamber?
+            <ChevronRight size={14} />
+          </Link>
           <button
             type="button"
             className="w-full inline-flex items-center justify-center gap-1 bg-blue-800 text-white text-[13px] font-semibold rounded-full px-5 py-2.5 hover:bg-blue-900 active:scale-95 transition"
