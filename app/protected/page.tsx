@@ -1,13 +1,22 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { getProfile } from "@/lib/supabase/action";
 import logo from "@/app/assets/images/mobileLogo.png";
 import profileBg from "@/app/assets/images/profileBg.jpeg";
-import Link from "next/link";
-import { createIcons, PenTool } from "lucide";
+import { PenTool, Notebook } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import XRead from "@/components/library/XRead";
 
 function formatLabel(value: string | null | undefined) {
   return value
@@ -69,7 +78,7 @@ My name is ${profile.full_name}.`,
   return (
     <main className="w-full h-full flex flex-col items-center justify-center">
       <div
-        className="relative max-h-[400px] w-11/12 md:w-full max-w-[550px] overflow-hidden rounded-[32px] bg-cover bg-center"
+        className="relative max-h-[420px] w-11/12 md:w-full max-w-[550px] overflow-hidden rounded-[32px] bg-cover bg-center"
         style={{
           backgroundImage: `url(${profileBg.src})`,
         }}
@@ -93,7 +102,6 @@ My name is ${profile.full_name}.`,
             </div>
           </div>
 
-          {/* Bottom Content */}
           <div>
             {/* Avatar */}
             <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-secondary-blue text-xl font-bold text-white">
@@ -148,6 +156,40 @@ My name is ${profile.full_name}.`,
                     className="h-2 w-2 shrink-0 rounded-full bg-secondary-blue"
                   />
                   Join Result Room
+                </Link>
+              </div>
+              <div className="w-full flex items-center gap-2 mt-4">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 text-secondary-blue bg-white rounded-full px-6 py-3 text-xs"
+                    >
+                      <Notebook size={14} />
+                      <span className="font-deep">X</span>-Read
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-[350px]">
+                    <DialogHeader>
+                      <DialogTitle className="font-deep  text-secondary-blue">
+                        X-Read
+                        <h6 className="my-4 text-lg font-semibold">
+                          Build a solid foundation on books
+                        </h6>
+                      </DialogTitle>
+                      <DialogDescription>
+                        <XRead />
+                      </DialogDescription>
+                    </DialogHeader>
+                  </DialogContent>
+                </Dialog>
+                <Link
+                  href="https://drive.google.com/drive/folders/1O4LabXKqkuJOdq1zPvw8G72WyioFP7yS"
+                  target="_blank"
+                  className="flex items-center gap-1 text-secondary-blue bg-white rounded-full px-6 py-3 text-xs"
+                >
+                  <PenTool size={14} />
+                  <span className="font-deep">X</span>-Theme
                 </Link>
               </div>
             </div>
