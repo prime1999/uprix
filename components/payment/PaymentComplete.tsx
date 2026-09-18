@@ -99,7 +99,7 @@ Thank you!`;
         <div className="w-full mt-4">
           <Link
             href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`}
-            className="w-full mb-2 inline-flex items-center justify-center gap-1 bg-green-800 text-white text-[13px] font-semibold rounded-full px-5 py-2.5 hover:bg-green-900 active:scale-95 transition"
+            className="w-full mb-2 flex items-center justify-center gap-1 bg-green-800 text-white text-[13px] font-semibold rounded-full px-5 py-2.5 hover:bg-green-900 active:scale-95 transition"
           >
             Yet to join the Antechamber?
             <ChevronRight size={14} />
