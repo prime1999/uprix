@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { grantResultRoomDriveAccess } from "@/lib/result-room/access";
 import { sendResultRoomWelcomeEmail } from "@/lib/result-room/email";
+import { sendHangoutTicketEmail } from "@/lib/hangout/sendTicketEmail";
 
 export async function POST(req: Request) {
   try {
@@ -159,6 +160,294 @@ export async function POST(req: Request) {
       return NextResponse.json({
         received: true,
         processed: false,
+      });
+    }
+
+    // ============================================================
+    // HANGOUT PAYMENT FLOW
+    // ============================================================
+    //
+    // Hangout payments are completely separate from Result Room.
+    //
+    // Hangout transactions are identified by:
+    //
+    // metadata.payment_type === "hangout"
+    //
+    // IMPORTANT:
+    // We return from this block after processing the Hangout payment.
+    // This means none of the Result Room payment logic below runs
+    // for a Hangout transaction.
+    //
+    if (metadata?.payment_type === "hangout") {
+      console.log("Processing Hangout payment");
+
+      // ----------------------------------------------------------
+      // Get registration ID
+      // ----------------------------------------------------------
+      //
+      // The registration ID was attached when the Paystack
+      // transaction was initialized.
+      //
+      const registrationId = metadata.registration_id;
+
+      if (!registrationId) {
+        console.error("Hangout payment is missing registration_id");
+
+        return NextResponse.json(
+          {
+            error: "Missing registration id",
+          },
+          {
+            status: 400,
+          },
+        );
+      }
+
+      // ----------------------------------------------------------
+      // Create Supabase admin client
+      // ----------------------------------------------------------
+      //
+      // Hangout buyers can be guests, so there is no authenticated
+      // Supabase user session to use here.
+      //
+      const supabase = createAdminClient();
+
+      // ----------------------------------------------------------
+      // Find registration
+      // ----------------------------------------------------------
+      const { data: registration, error: registrationError } = await supabase
+        .from("hangout_registrations")
+        .select("*")
+        .eq("id", registrationId)
+        .maybeSingle();
+
+      if (registrationError || !registration) {
+        console.error("Hangout registration lookup error:", registrationError);
+
+        return NextResponse.json(
+          {
+            error: "Registration not found",
+          },
+          {
+            status: 404,
+          },
+        );
+      }
+
+      // ----------------------------------------------------------
+      // Prevent duplicate processing
+      // ----------------------------------------------------------
+      //
+      // Paystack can retry a webhook.
+      //
+      // If this registration has already been marked as paid,
+      // there is nothing else to do.
+      //
+      if (registration.payment_status === "paid") {
+        console.log("Hangout payment already processed:", registrationId);
+
+        return NextResponse.json({
+          received: true,
+          processed: true,
+          paymentType: "hangout",
+        });
+      }
+
+      // ----------------------------------------------------------
+      // Validate payment amount
+      // ----------------------------------------------------------
+      //
+      // Hangout has two possible prices:
+      //
+      // Regular price:
+      // ₦7,000 = 700,000 kobo
+      //
+      // Coupon price:
+      // ₦6,000 = 600,000 kobo
+      //
+      // The registration already contains the amount that was
+      // expected when the payment was initialized.
+      //
+      // We compare Paystack's actual amount against that value.
+      //
+      if (
+        !Number.isInteger(amount) ||
+        amount <= 0 ||
+        amount !== registration.amount_paid
+      ) {
+        console.error("Invalid Hangout payment amount:", {
+          reference,
+          paystackAmount: amount,
+          expectedAmount: registration.amount_paid,
+          registrationId,
+        });
+
+        return NextResponse.json(
+          {
+            error: "Invalid Hangout payment amount",
+          },
+          {
+            status: 400,
+          },
+        );
+      }
+
+      // ----------------------------------------------------------
+      // Get next available seat
+      // ----------------------------------------------------------
+      //
+      // The first 15 seats are reserved.
+      //
+      // Therefore the first Hangout participant gets:
+      //
+      // 16
+      //
+      // Then:
+      //
+      // 17
+      // 18
+      // 19
+      // ...
+      //
+      const { data: lastSeat, error: lastSeatError } = await supabase
+        .from("hangout_registrations")
+        .select("seat_number")
+        .not("seat_number", "is", null)
+        .order("seat_number", {
+          ascending: false,
+        })
+        .limit(1)
+        .maybeSingle();
+
+      if (lastSeatError) {
+        console.error("Failed to find last Hangout seat:", lastSeatError);
+
+        return NextResponse.json(
+          {
+            error: "Failed to assign Hangout seat",
+          },
+          {
+            status: 500,
+          },
+        );
+      }
+
+      const nextSeatNumber =
+        lastSeat?.seat_number != null ? lastSeat.seat_number + 1 : 16;
+
+      // ----------------------------------------------------------
+      // Generate ticket number
+      // ----------------------------------------------------------
+      //
+      // Example:
+      //
+      // Seat 16 -> UH-0016
+      // Seat 17 -> UH-0017
+      //
+      const ticketNumber = `UH-${String(nextSeatNumber).padStart(4, "0")}`;
+
+      // ----------------------------------------------------------
+      // Mark registration as paid
+      // ----------------------------------------------------------
+      //
+      // Only after Paystack confirms a successful transaction do
+      // we mark the registration as paid.
+      //
+      const { error: updateError } = await supabase
+        .from("hangout_registrations")
+        .update({
+          payment_status: "paid",
+          payment_reference: reference,
+          amount_paid: amount,
+          paid_at: paid_at ?? new Date().toISOString(),
+          seat_number: nextSeatNumber,
+          ticket_number: ticketNumber,
+        })
+        .eq("id", registrationId);
+
+      if (updateError) {
+        console.error("Hangout registration update error:", updateError);
+
+        return NextResponse.json(
+          {
+            error: "Failed to update registration",
+          },
+          {
+            status: 500,
+          },
+        );
+      }
+
+      // ----------------------------------------------------------
+      // Hangout ticket email
+      // ----------------------------------------------------------
+      //
+      // We will add the Hangout email here once the email function
+      // is ready.
+      //
+      // IMPORTANT:
+      // Result Room email logic is NOT used here.
+      //
+
+      console.log("Hangout payment processed successfully:", {
+        registrationId,
+        reference,
+        fullName: registration.full_name,
+        email: registration.email,
+        seatNumber: nextSeatNumber,
+        ticketNumber,
+        amountPaid: amount,
+      });
+      if (!registration.email_sent) {
+        try {
+          await sendHangoutTicketEmail({
+            email: registration.email,
+            fullName: registration.full_name,
+            seatNumber: nextSeatNumber,
+            ticketNumber,
+          });
+
+          // Only mark the email as sent after the email provider
+          // successfully accepts the email.
+          const { error: emailStatusError } = await supabase
+            .from("hangout_registrations")
+            .update({
+              email_sent: true,
+            })
+            .eq("id", registrationId);
+
+          if (emailStatusError) {
+            console.error(
+              "Failed to update Hangout email_sent status:",
+              emailStatusError,
+            );
+          }
+        } catch (emailError) {
+          console.error("Failed to send Hangout ticket email:", emailError);
+
+          // IMPORTANT:
+          // Do not mark email_sent as true if sending failed.
+          //
+          // The registration/payment remains successful.
+          // We can retry the email separately.
+        }
+      }
+
+      // ----------------------------------------------------------
+      // Finish Hangout webhook processing
+      // ----------------------------------------------------------
+      // Returning here is important.
+      //
+      // It prevents this Hangout transaction from continuing into
+      // the Result Room logic below.
+      //
+      return NextResponse.json({
+        received: true,
+        processed: true,
+        paymentType: "hangout",
+        registrationId,
+        seatNumber: nextSeatNumber,
+        ticketNumber,
       });
     }
 

@@ -7,13 +7,6 @@ import { ChevronRight, Check } from "lucide-react";
 import logo from "@/app/assets/images/mobileLogo.png";
 import { ResultRoomStatus } from "@/lib/supabase/result-room";
 
-type Participant = {
-  full_name: string;
-  total_paid: number;
-  balance: number;
-  seat_number: number | null;
-};
-
 type PaymentCompletedCardProps = {
   status: ResultRoomStatus;
 };
