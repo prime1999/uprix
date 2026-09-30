@@ -8,6 +8,7 @@ import Activities from "@/components/mainPage/Activities";
 import Faq from "@/components/mainPage/Faq";
 import Heralds from "@/components/mainPage/Heralds";
 import Footer from "@/components/mainPage/Footer";
+import CustomerCareChat from "@/components/mainPage/CustomerCareChat";
 
 const Home = () => {
   return (
@@ -23,6 +24,7 @@ const Home = () => {
       <Testimonials />
       <Faq />
       <Heralds />
+      <CustomerCareChat />
       <Footer />
     </main>
   );

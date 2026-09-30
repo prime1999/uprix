@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=DM+Sans:wght@400;500&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -137,5 +139,93 @@
 
   .font-deep {
     font-family: var(--font-deep), sans-serif;
+  }
+}
+
+.cc-root {
+  font-family: "DM Sans", system-ui, sans-serif;
+}
+
+.cc-display {
+  font-family: "Bricolage Grotesque", "DM Sans", system-ui, sans-serif;
+}
+
+@keyframes cc-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.85);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes cc-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  80%,
+  100% {
+    transform: scale(1.75);
+    opacity: 0;
+  }
+}
+
+@keyframes cc-msg {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cc-dot {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.cc-tip {
+  animation: cc-pop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.cc-ring {
+  animation: cc-ring 2.2s ease-out infinite;
+}
+
+.cc-msg {
+  animation: cc-msg 0.28s ease-out both;
+}
+
+.cc-dot {
+  animation: cc-dot 1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cc-tip,
+  .cc-ring,
+  .cc-msg,
+  .cc-dot {
+    animation: none !important;
+  }
+
+  .cc-root * {
+    transition-duration: 0.01ms !important;
   }
 }
