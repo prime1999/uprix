@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+
 import {
   CircleDollarSign,
-  ClipboardList,
   FileCheck,
   Headset,
   LayoutDashboard,
-  Menu,
   ShieldCheck,
   Target,
   TrendingUp,
@@ -28,6 +26,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+
+import { useResultRoomStore } from "@/lib/stores/result-room-store";
 
 /* ==========================================================================
    Types
@@ -48,6 +48,18 @@ interface NavSection {
    Navigation
    ========================================================================== */
 
+/**
+ * Result Room participant navigation.
+ *
+ * IMPORTANT:
+ *
+ * Result Room does not assign tasks.
+ *
+ * Participants decide what they want to work on and submit evidence
+ * of what they worked on.
+ *
+ * Therefore "Daily Submission" is used instead of "Daily Tasks".
+ */
 const NAVIGATION: NavSection[] = [
   {
     label: "Workspace",
@@ -59,23 +71,16 @@ const NAVIGATION: NavSection[] = [
       },
     ],
   },
-
   {
     label: "Execution",
     items: [
       {
-        title: "Daily Tasks",
-        url: "/result-room/dashboard/tasks",
-        icon: ClipboardList,
-      },
-      {
-        title: "Submissions",
+        title: "Daily Submission",
         url: "/result-room/dashboard/submissions",
         icon: FileCheck,
       },
     ],
   },
-
   {
     label: "Accountability",
     items: [
@@ -96,18 +101,10 @@ const NAVIGATION: NavSection[] = [
       },
     ],
   },
-
   {
     label: "Progress",
-    items: [
-      {
-        title: "Streaks",
-        url: "/result-room/dashboard/streaks",
-        icon: TrendingUp,
-      },
-    ],
+    items: [],
   },
-
   {
     label: "Support",
     items: [
@@ -126,13 +123,22 @@ const NAVIGATION: NavSection[] = [
 
 const OVERVIEW_URL = "/result-room/dashboard";
 
+/**
+ * Determines whether a navigation item is currently active.
+ *
+ * Dashboard requires an exact match.
+ *
+ * Otherwise:
+ *
+ * /result-room/dashboard/submissions
+ *
+ * would also cause:
+ *
+ * /result-room/dashboard
+ *
+ * to appear active.
+ */
 function isItemActive(url: string, pathname: string) {
-  /*
-   * Dashboard needs an exact match.
-   *
-   * Without this check, /result-room/dashboard would also be considered
-   * active when the user visits /tasks, /partner, etc.
-   */
   if (url === OVERVIEW_URL) {
     return pathname === url;
   }
@@ -151,11 +157,11 @@ function SectionLabel({
   title: string;
   collapsed: boolean;
 }) {
-  /*
-   * Section labels disappear completely in collapsed mode.
+  /**
+   * In collapsed mode, section names disappear.
    *
-   * This keeps the icon rail clean rather than leaving tiny pieces of text
-   * that do not have enough space.
+   * Small separators are used instead so the icon rail still
+   * has visual grouping.
    */
   if (collapsed) {
     return <div aria-hidden className="mx-3 my-2 h-px bg-sidebar-border" />;
@@ -194,51 +200,50 @@ function NavigationItem({
         isActive={active}
         tooltip={collapsed ? item.title : undefined}
         className={[
-          /*
-           * Base dimensions
+          /**
+           * Base dimensions.
            */
           "relative h-10 rounded-xl",
 
-          /*
-           * Typography
+          /**
+           * Typography.
            */
-          "font-medium text-sm",
+          "text-sm font-medium",
 
-          /*
-           * Smooth but restrained interaction.
+          /**
+           * Smooth interaction.
            */
           "transition-colors duration-200",
 
-          /*
+          /**
            * Normal state.
            */
           "text-muted-foreground",
 
-          /*
-           * Hover.
+          /**
+           * Hover state.
            */
           "hover:bg-sidebar-accent",
           "hover:text-sidebar-foreground",
 
-          /*
+          /**
            * Active state.
            *
-           * Notice that this is NOT a solid blue pill.
-           * The softer background makes the sidebar feel more like a
-           * modern SaaS dashboard.
+           * We intentionally use a soft primary background rather
+           * than a heavy filled pill.
            */
           "data-[active=true]:bg-primary/10",
-          "data-[active=true]:text-primary",
           "data-[active=true]:font-semibold",
+          "data-[active=true]:text-primary",
 
-          /*
-           * Keep active state stable on hover.
+          /**
+           * Prevent active item from changing appearance on hover.
            */
           "data-[active=true]:hover:bg-primary/10",
           "data-[active=true]:hover:text-primary",
 
-          /*
-           * Collapsed mode.
+          /**
+           * Collapsed layout.
            */
           collapsed ? "justify-center px-0" : "justify-start px-3",
         ].join(" ")}
@@ -248,7 +253,7 @@ function NavigationItem({
           onClick={onNavigate}
           className="flex h-full w-full items-center gap-3"
         >
-          {/* Icon */}
+          {/* Navigation icon */}
           <item.icon
             className={[
               "size-[18px] shrink-0",
@@ -258,7 +263,7 @@ function NavigationItem({
             ].join(" ")}
           />
 
-          {/* Label */}
+          {/* Navigation label */}
           {!collapsed && <span className="truncate">{item.title}</span>}
 
           {/* Small active indicator */}
@@ -275,20 +280,33 @@ function NavigationItem({
 }
 
 /* ==========================================================================
-   Streak / Progress Card
+   Progress Card
    ========================================================================== */
 
+/**
+ * Displays the participant's current streak.
+ *
+ * The streak comes from Zustand rather than being hardcoded.
+ *
+ * IMPORTANT:
+ *
+ * Zustand is not storing the participant's entire server record.
+ * It only exposes the derived presentation value that the sidebar
+ * needs.
+ */
 function ProgressCard({ collapsed }: { collapsed: boolean }) {
-  /*
-   * In collapsed mode we only show the icon.
+  const currentStreak = useResultRoomStore((state) => state.currentStreak);
+
+  /**
+   * Collapsed sidebar:
    *
-   * The full card appears when the sidebar is expanded.
+   * Only show the progress icon.
    */
   if (collapsed) {
     return (
       <Link
-        href="/result-room/dashboard/streaks"
-        aria-label="View streak progress"
+        href="/result-room/dashboard"
+        aria-label={`Current streak: ${currentStreak} days`}
         className="mx-auto flex size-10 items-center justify-center rounded-xl border border-sidebar-border bg-sidebar-accent text-primary transition-colors duration-200 hover:bg-primary/10"
       >
         <TrendingUp className="size-[18px]" />
@@ -296,13 +314,19 @@ function ProgressCard({ collapsed }: { collapsed: boolean }) {
     );
   }
 
+  /**
+   * Expanded sidebar:
+   *
+   * Show the complete streak card.
+   */
   return (
     <Link
-      href="/result-room/dashboard/streaks"
+      href="/result-room/dashboard"
       className="group block rounded-2xl border border-sidebar-border bg-sidebar-accent/60 p-3.5 transition-colors duration-200 hover:bg-sidebar-accent"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
+          {/* Card heading */}
           <div className="flex items-center gap-2">
             <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10">
               <TrendingUp className="size-3.5 text-primary" />
@@ -313,20 +337,27 @@ function ProgressCard({ collapsed }: { collapsed: boolean }) {
             </p>
           </div>
 
+          {/* Streak value */}
           <div className="mt-3 flex items-baseline gap-1.5">
             <span className="text-2xl font-bold tracking-tight text-sidebar-foreground">
-              12
+              {currentStreak}
             </span>
 
-            <span className="text-xs text-muted-foreground">days</span>
+            <span className="text-xs text-muted-foreground">
+              {currentStreak === 1 ? "day" : "days"}
+            </span>
           </div>
 
+          {/* Supporting message */}
           <p className="mt-0.5 text-[11px] text-muted-foreground">
-            Keep showing up every day.
+            {currentStreak > 0
+              ? "Keep showing up every day."
+              : "Submit your first day of work."}
           </p>
         </div>
       </div>
 
+      {/* Navigation to progress */}
       <div className="mt-3 flex items-center justify-between text-xs font-medium text-primary">
         <span>View progress</span>
 
@@ -347,19 +378,20 @@ export default function ResultRoomSidebar() {
 
   const { state, isMobile, setOpenMobile, toggleSidebar } = useSidebar();
 
-  /*
-   * The sidebar can collapse into an icon rail on desktop.
+  /**
+   * The sidebar is considered collapsed only on desktop.
    *
-   * Mobile should always behave as a normal drawer.
+   * On mobile it behaves as a drawer, regardless of its desktop
+   * collapsed state.
    */
   const collapsed = state === "collapsed" && !isMobile;
 
+  /**
+   * Close the mobile sidebar after navigating.
+   *
+   * Desktop navigation does nothing here.
+   */
   const handleNavigation = () => {
-    /*
-     * Close the mobile drawer after selecting a page.
-     *
-     * Desktop does nothing.
-     */
     if (isMobile) {
       setOpenMobile(false);
     }
@@ -395,7 +427,7 @@ export default function ResultRoomSidebar() {
                 collapsed ? "justify-center" : "gap-3",
               ].join(" ")}
             >
-              {/* Brand mark */}
+              {/* Result Room brand mark */}
               <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary shadow-sm transition-transform duration-200 group-hover:scale-[1.03]">
                 <Target
                   className="size-5 text-primary-foreground"
@@ -429,7 +461,7 @@ export default function ResultRoomSidebar() {
               </button>
             )}
 
-            {/* Expand button while collapsed */}
+            {/* Desktop expand button */}
             {!isMobile && collapsed && (
               <button
                 type="button"
@@ -449,28 +481,41 @@ export default function ResultRoomSidebar() {
 
         <SidebarContent className="min-h-0">
           <div className="px-2.5 py-4">
-            {NAVIGATION.map((section) => (
-              <div key={section.label}>
-                <SectionLabel title={section.label} collapsed={collapsed} />
+            {NAVIGATION.map((section) => {
+              /**
+               * We don't render empty sections.
+               *
+               * "Progress" currently has no navigation item because
+               * the streak is already represented by the progress
+               * card in the sidebar.
+               */
+              if (section.items.length === 0) {
+                return null;
+              }
 
-                <SidebarMenu className="gap-1">
-                  {section.items.map((item) => (
-                    <NavigationItem
-                      key={item.url}
-                      item={item}
-                      pathname={pathname}
-                      collapsed={collapsed}
-                      onNavigate={handleNavigation}
-                    />
-                  ))}
-                </SidebarMenu>
-              </div>
-            ))}
+              return (
+                <div key={section.label}>
+                  <SectionLabel title={section.label} collapsed={collapsed} />
+
+                  <SidebarMenu className="gap-1">
+                    {section.items.map((item) => (
+                      <NavigationItem
+                        key={item.url}
+                        item={item}
+                        pathname={pathname}
+                        collapsed={collapsed}
+                        onNavigate={handleNavigation}
+                      />
+                    ))}
+                  </SidebarMenu>
+                </div>
+              );
+            })}
           </div>
         </SidebarContent>
 
         {/* ================================================================
-            Footer
+            Footer / Progress
             ================================================================ */}
 
         <SidebarFooter

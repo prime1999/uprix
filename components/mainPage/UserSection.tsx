@@ -19,7 +19,7 @@ export default async function UserSection() {
   }
 
   return (
-    <div className="w-full flex flex-col md:flex-row gap-2 items-center justify-center">
+    <div className="w-full flex flex-col md:flex-row gap-2 items-center justify-center z-[500]">
       <p className="font-semibold text-sm">Hey, Uprizer 👋</p>
       <Link
         href="/protected"
