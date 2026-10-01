@@ -45,7 +45,7 @@ type QuickAction = {
 };
 
 // Country code + number, digits only (no "+", spaces or dashes).
-const WHATSAPP_NUMBER = "2348012345678";
+const WHATSAPP_NUMBER = "2349137480951";
 
 const waLink = (text: string): string =>
   `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
