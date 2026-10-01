@@ -165,21 +165,8 @@ export default function CustomerCareChat() {
   const hasUserMessage = messages.some((m) => m.from === "user");
 
   return (
-    <div className="cc-root min-h-screen bg-slate-50">
-      {/* Demo page content (delete in your app) */}
-      <main className="mx-auto max-w-xl px-6 py-24 text-slate-600">
-        <h1
-          className="cc-display text-3xl font-bold"
-          style={{ color: BRAND.ink }}
-        >
-          Your app goes here
-        </h1>
-        <p className="mt-3 leading-relaxed">
-          The support widget sits in the bottom-right corner. Hover the button
-          to see the tooltip again, or click it to start a chat.
-        </p>
-      </main>
-      <div className="fixed bottom-5 right-5 z-[9999] flex flex-col items-end gap-3">
+    <div className="cc-root pointer-events-none">
+      <div className="pointer-events-auto fixed bottom-5 right-5 z-[9999] flex flex-col items-end gap-3">
         {/* Chat panel */}
         <section
           aria-label="Customer care chat"

@@ -3,6 +3,7 @@ import { Bricolage_Grotesque, Lato } from "next/font/google";
 import localFont from "next/font/local";
 import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
+import Providers from "./providers";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -58,7 +59,9 @@ export default function RootLayout({
       <body
         className={`${bricolage.variable} ${lato.variable} ${myCustomFont.variable} ${myDeepFont.variable} antialiased`}
       >
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <Providers>{children}</Providers>
+        </ToastProvider>
       </body>
     </html>
   );
