@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+
 import { hasEnvVars } from "../utils";
 
 export async function updateSession(request: NextRequest) {
@@ -92,16 +93,20 @@ export async function updateSession(request: NextRequest) {
 
   /*
    * --------------------------------------------------
+   * REQUEST PATH
+   * --------------------------------------------------
+   */
+  const pathname = request.nextUrl.pathname;
+
+  /*
+   * --------------------------------------------------
    * AUTHENTICATION
    * --------------------------------------------------
    *
    * Get the authenticated Supabase user.
    */
   const { data, error } = await supabase.auth.getClaims();
-
   const user = data?.claims;
-
-  const pathname = request.nextUrl.pathname;
 
   /*
    * --------------------------------------------------
@@ -109,12 +114,21 @@ export async function updateSession(request: NextRequest) {
    * --------------------------------------------------
    *
    * These routes can be accessed without authentication.
+   *
+   * IMPORTANT:
+   * /result-room is intentionally NOT treated as a
+   * protected Result Room route.
+   *
+   * The Result Room landing page is allowed to be viewed
+   * by both authenticated and unauthenticated visitors.
    */
   const isPublicRoute =
     pathname === "/" ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth") ||
-    pathname.startsWith("/api/admin");
+    pathname.startsWith("/api/admin") ||
+    pathname === "/result-room" ||
+    pathname === "/result-room/";
 
   /*
    * --------------------------------------------------
@@ -123,11 +137,12 @@ export async function updateSession(request: NextRequest) {
    *
    * If there is no authenticated user, protected routes
    * redirect to the login page.
+   *
+   * The Result Room landing page remains accessible.
    */
   if (error || !user) {
     if (!isPublicRoute) {
       const url = request.nextUrl.clone();
-
       url.pathname = "/auth/login";
 
       return NextResponse.redirect(url);
@@ -191,14 +206,17 @@ export async function updateSession(request: NextRequest) {
    * Users with incomplete profiles can access the
    * profile creation page and auth-related routes,
    * but cannot access the rest of the application.
+   *
+   * The Result Room landing page remains public.
    */
   if (
     !profileCompleted &&
     pathname !== "/profile/create" &&
-    !pathname.startsWith("/auth")
+    !pathname.startsWith("/auth") &&
+    pathname !== "/result-room" &&
+    pathname !== "/result-room/"
   ) {
     const url = request.nextUrl.clone();
-
     url.pathname = "/profile/create";
 
     return NextResponse.redirect(url);
@@ -206,21 +224,30 @@ export async function updateSession(request: NextRequest) {
 
   /*
    * --------------------------------------------------
-   * RESULT ROOM ROUTING
+   * RESULT ROOM DASHBOARD ROUTING
    * --------------------------------------------------
    *
-   * Result Room is only one product inside Uprix.
+   * IMPORTANT:
    *
-   * Therefore, we ONLY perform Result Room participant
-   * checks when the requested URL starts with:
+   * We intentionally DO NOT check every /result-room
+   * route here.
    *
-   * /result-room
+   * /result-room is the public Result Room landing page.
    *
-   * Normal Uprix users are not affected by these checks.
+   * Participant authorization only starts when the user
+   * enters:
+   *
+   *   /result-room/dashboard
+   *
+   * or one of its nested dashboard routes:
+   *
+   *   /result-room/dashboard/anything
    */
-  const isResultRoomRoute = pathname.startsWith("/result-room");
+  const isResultRoomDashboardRoute =
+    pathname === "/result-room/dashboard" ||
+    pathname.startsWith("/result-room/dashboard/");
 
-  if (isResultRoomRoute) {
+  if (isResultRoomDashboardRoute) {
     /*
      * ------------------------------------------------
      * FIND RESULT ROOM PARTICIPANT
@@ -266,7 +293,6 @@ export async function updateSession(request: NextRequest) {
      */
     if (!participant) {
       const url = request.nextUrl.clone();
-
       url.pathname = "/";
 
       return NextResponse.redirect(url);
@@ -279,28 +305,14 @@ export async function updateSession(request: NextRequest) {
      *
      * Admins have their own Result Room workspace.
      *
-     * If an admin visits the generic Result Room route
-     * or attempts to enter the participant dashboard,
+     * If an admin visits the participant dashboard,
      * send them to the admin dashboard instead.
      */
     if (participant.is_admin) {
-      if (
-        pathname === "/result-room" ||
-        pathname === "/result-room/" ||
-        pathname.startsWith("/result-room/dashboard")
-      ) {
-        const url = request.nextUrl.clone();
+      const url = request.nextUrl.clone();
+      url.pathname = "/result-room/admin";
 
-        url.pathname = "/result-room/admin";
-
-        return NextResponse.redirect(url);
-      }
-
-      /*
-       * Admin is allowed to continue to other
-       * Result Room admin routes.
-       */
-      return supabaseResponse;
+      return NextResponse.redirect(url);
     }
 
     /*
@@ -323,23 +335,10 @@ export async function updateSession(request: NextRequest) {
      * Pending, locked, and evicted participants cannot
      * enter the normal Result Room dashboard.
      *
-     * Instead of silently sending them back home, we
-     * send them to an access page that can explain their
-     * current Result Room status.
-     *
-     * Example:
-     *
-     * pending
-     *   → "Your participation is awaiting activation."
-     *
-     * locked
-     *   → "Your dashboard has been temporarily locked."
-     *
-     * evicted
-     *   → "Your participation in Result Room has ended."
+     * Instead, send them to the access page where we can
+     * explain their current Result Room status.
      */
     const url = request.nextUrl.clone();
-
     url.pathname = "/result-room/access";
 
     return NextResponse.redirect(url);
@@ -350,11 +349,8 @@ export async function updateSession(request: NextRequest) {
    * NORMAL UPRIX ROUTES
    * --------------------------------------------------
    *
-   * If the request isn't for Result Room, no Result
-   * Room-specific logic is applied.
-   *
-   * The user simply continues through the normal Uprix
-   * application.
+   * If the request isn't the Result Room dashboard,
+   * no Result Room participant-specific logic is applied.
    */
   return supabaseResponse;
 }
