@@ -8,6 +8,7 @@ import {
 
 import ResultRoomSidebar from "@/components/result-room/dashboard/result-room-sidebar";
 import { Bell, Settings } from "lucide-react";
+import { ResultRoomStoreHydrator } from "@/components/result-room/result-room-store-hydrator";
 
 export default function ResultRoomDashboardLayout({
   children,
@@ -28,7 +29,10 @@ export default function ResultRoomDashboardLayout({
             </div>
           </div>
         </header>
-        <div className="flex-1 min-h-0 p-2">{children}</div>
+        <div className="flex-1 min-h-0 p-2">
+          <ResultRoomStoreHydrator />
+          {children}
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -1,15 +1,7 @@
 import { z } from "zod";
 
 /**
- * ---------------------------------------------------------
- * RESULT ROOM STATUS
- * ---------------------------------------------------------
- *
- * These values must match the `participants.room_status`
- * values in Supabase.
- *
- * We use z.enum() instead of a plain string so Zod will
- * reject unexpected values at runtime.
+ * Participant access status inside a Result Room.
  */
 export const resultRoomStatusSchema = z.enum([
   "pending",
@@ -19,209 +11,97 @@ export const resultRoomStatusSchema = z.enum([
 ]);
 
 /**
- * ---------------------------------------------------------
- * USER PROFILE
- * ---------------------------------------------------------
- *
- * Represents the profile information returned to the
- * Result Room dashboard.
+ * Basic authenticated user's profile information.
  */
 export const resultRoomProfileSchema = z.object({
-  /**
-   * Supabase user/profile ID.
-   */
   id: z.string().uuid(),
-
-  /**
-   * Authenticated user's email address.
-   */
-  email: z.string().email(),
-
-  /**
-   * User's display name.
-   *
-   * Nullable because a profile may not have a name yet.
-   */
+  email: z.string().email().nullable(),
   name: z.string().nullable(),
-
-  /**
-   * Profile avatar URL.
-   *
-   * Nullable because users don't necessarily have an avatar.
-   */
-  avatar: z.string().nullable(),
 });
 
 /**
- * ---------------------------------------------------------
- * RESULT ROOM PARTICIPANT
- * ---------------------------------------------------------
- *
- * Represents the user's participation in the current
- * Result Room.
+ * Participant-specific information.
  */
 export const resultRoomParticipantSchema = z.object({
-  /**
-   * Participant record ID.
-   */
   id: z.string().uuid(),
-
-  /**
-   * Current Result Room access state.
-   *
-   * IMPORTANT:
-   * This is `roomStatus`, not a generic `status`.
-   */
   roomStatus: resultRoomStatusSchema,
-
-  /**
-   * Whether this participant is an administrator.
-   */
   isAdmin: z.boolean(),
-
-  /**
-   * Administrator role, if applicable.
-   *
-   * Normal participants will have null here.
-   */
   adminRole: z.string().nullable(),
-
-  /**
-   * Explanation for a locked/evicted/pending state.
-   *
-   * Normally null for active participants.
-   */
   statusReason: z.string().nullable(),
-
-  /**
-   * When the participant's room status last changed.
-   */
   statusChangedAt: z.string().nullable(),
 });
 
 /**
- * ---------------------------------------------------------
- * RESULT ROOM
- * ---------------------------------------------------------
+ * Raw room information returned by the API.
  *
- * Represents the current Result Room itself.
+ * IMPORTANT:
+ * The API does NOT calculate:
+ * - totalDays
+ * - currentDay
+ * - progressPercentage
+ * - hasStarted
+ * - hasEnded
  *
- * The room dates come from the existing `rooms` table.
+ * Those are calculated on the client by
+ * calculate-dashboard-state.ts using the participant's
+ * local calendar date.
  */
 export const resultRoomSchema = z.object({
-  /**
-   * Room ID.
-   */
   id: z.string().uuid(),
-
-  /**
-   * Room name.
-   */
   name: z.string(),
-
-  /**
-   * Optional room description.
-   */
   description: z.string().nullable(),
-
-  /**
-   * Room lifecycle status.
-   *
-   * This is deliberately separate from participant.roomStatus.
-   *
-   * `rooms.status` describes the ROOM.
-   * `participants.room_status` describes the PARTICIPANT.
-   */
   status: z.string(),
-
-  /**
-   * Room start date.
-   *
-   * Example:
-   * "2026-10-18"
-   */
   startDate: z.string(),
-
-  /**
-   * Room end date.
-   *
-   * Example:
-   * "2027-01-16"
-   */
   endDate: z.string(),
+});
 
-  /**
-   * Number of calendar days in the room.
-   *
-   * Result Room 2.0 = 90 days.
-   */
-  totalDays: z.number().int().nonnegative(),
-
-  /**
-   * Current day according to the room timeline.
-   *
-   * IMPORTANT:
-   * This is NOT the participant's personal streak.
-   */
-  currentDay: z.number().int().nonnegative(),
-
-  /**
-   * Percentage of the room timeline that has elapsed.
-   */
-  progressPercentage: z.number().min(0).max(100),
+export const resultRoomTodaySchema = z.object({
+  date: z.string(),
+  submissionCompleted: z.boolean(),
+  partnerReviewSubmitted: z.boolean(),
 });
 
 /**
- * ---------------------------------------------------------
- * COMPLETE DASHBOARD RESPONSE
- * ---------------------------------------------------------
+ * Only submission dates are returned for the dashboard heatmap.
  *
- * Instead of defining the profile, participant and room
- * fields again, we compose the schemas above.
+ * We intentionally do not return the complete submission records here.
+ */
+export const resultRoomSubmissionActivitySchema = z.object({
+  dates: z.array(z.string()),
+});
+
+export const resultRoomAccountabilitySchema = z.object({
+  hasViolation: z.boolean(),
+  hasPendingFine: z.boolean(),
+  hasOverdueFine: z.boolean(),
+});
+
+/**
+ * Raw dashboard response from the API.
  *
- * This gives us one source of truth.
+ * This is server state.
+ *
+ * Timeline/derived state is calculated separately on the client.
  */
 export const resultRoomDashboardSchema = z.object({
-  /**
-   * Allows us to confirm that this is a successful API
-   * response.
-   */
   success: z.literal(true),
-
-  /**
-   * Profile may be null if the API doesn't find one.
-   */
   profile: resultRoomProfileSchema.nullable(),
-
-  /**
-   * Participant may be null for a normal Uprix user who
-   * isn't a Result Room participant.
-   */
   participant: resultRoomParticipantSchema.nullable(),
-
-  /**
-   * Room may be null if there is currently no room.
-   */
   room: resultRoomSchema.nullable(),
+  today: resultRoomTodaySchema,
+  submissionActivity: resultRoomSubmissionActivitySchema,
+  accountability: resultRoomAccountabilitySchema,
 });
 
-/**
- * ---------------------------------------------------------
- * TYPES
- * ---------------------------------------------------------
- *
- * Zod can generate TypeScript types from our schemas.
- *
- * This means we don't need to maintain separate interfaces
- * for the same API objects.
- */
-
 export type ResultRoomStatus = z.infer<typeof resultRoomStatusSchema>;
-
 export type ResultRoomProfile = z.infer<typeof resultRoomProfileSchema>;
-
 export type ResultRoomParticipant = z.infer<typeof resultRoomParticipantSchema>;
-
 export type ResultRoom = z.infer<typeof resultRoomSchema>;
-
+export type ResultRoomToday = z.infer<typeof resultRoomTodaySchema>;
+export type ResultRoomSubmissionActivity = z.infer<
+  typeof resultRoomSubmissionActivitySchema
+>;
+export type ResultRoomAccountability = z.infer<
+  typeof resultRoomAccountabilitySchema
+>;
 export type ResultRoomDashboard = z.infer<typeof resultRoomDashboardSchema>;

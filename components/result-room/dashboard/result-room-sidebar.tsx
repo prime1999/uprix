@@ -5,14 +5,13 @@ import { usePathname } from "next/navigation";
 
 import {
   CircleDollarSign,
+  ChevronsLeft,
   FileCheck,
   Headset,
   LayoutDashboard,
   ShieldCheck,
   Target,
-  TrendingUp,
   Users,
-  ChevronsLeft,
   type LucideIcon,
 } from "lucide-react";
 
@@ -28,15 +27,29 @@ import {
 } from "@/components/ui/sidebar";
 
 import { useResultRoomStore } from "@/lib/stores/result-room-store";
+import { useResultRoomDashboard } from "@/lib/queries/result-room";
 
-/* ==========================================================================
-   Types
-   ========================================================================== */
+/**
+ * ==========================================================================
+ * TYPES
+ * ==========================================================================
+ */
 
 interface NavItem {
   title: string;
   url: string;
   icon: LucideIcon;
+
+  /**
+   * Indicates that the user currently has an action
+   * or issue that needs their attention.
+   */
+  attention?: boolean;
+
+  /**
+   * Accessible description for the attention indicator.
+   */
+  attentionLabel?: string;
 }
 
 interface NavSection {
@@ -44,101 +57,133 @@ interface NavSection {
   items: NavItem[];
 }
 
-/* ==========================================================================
-   Navigation
-   ========================================================================== */
-
 /**
+ * ==========================================================================
+ * NAVIGATION
+ * ==========================================================================
+ *
  * Result Room participant navigation.
  *
  * IMPORTANT:
  *
  * Result Room does not assign tasks.
  *
- * Participants decide what they want to work on and submit evidence
- * of what they worked on.
+ * Participants decide what they want to work on and submit
+ * evidence of what they worked on.
  *
- * Therefore "Daily Submission" is used instead of "Daily Tasks".
+ * Therefore:
+ *
+ * - "Daily Submission" is used instead of "Daily Tasks".
+ * - Attention indicators come from React Query server data.
+ * - Room progress comes from Zustand's client-derived state.
+ * - Zustand is NOT used as a copy of the dashboard API response.
  */
-const NAVIGATION: NavSection[] = [
-  {
-    label: "Workspace",
-    items: [
-      {
-        title: "Dashboard",
-        url: "/result-room/dashboard",
-        icon: LayoutDashboard,
-      },
-    ],
-  },
-  {
-    label: "Execution",
-    items: [
-      {
-        title: "Daily Submission",
-        url: "/result-room/dashboard/submissions",
-        icon: FileCheck,
-      },
-    ],
-  },
-  {
-    label: "Accountability",
-    items: [
-      {
-        title: "Partner",
-        url: "/result-room/dashboard/partner",
-        icon: Users,
-      },
-      {
-        title: "Reports",
-        url: "/result-room/dashboard/reports",
-        icon: ShieldCheck,
-      },
-      {
-        title: "Fines",
-        url: "/result-room/dashboard/fines",
-        icon: CircleDollarSign,
-      },
-    ],
-  },
-  {
-    label: "Progress",
-    items: [],
-  },
-  {
-    label: "Support",
-    items: [
-      {
-        title: "Help Center",
-        url: "/result-room/dashboard/help",
-        icon: Headset,
-      },
-    ],
-  },
-];
+function getNavigation({
+  needsSubmission,
+  needsReport,
+  hasOutstandingFine,
+}: {
+  needsSubmission: boolean;
+  needsReport: boolean;
+  hasOutstandingFine: boolean;
+}): NavSection[] {
+  return [
+    {
+      label: "Workspace",
 
-/* ==========================================================================
-   Helpers
-   ========================================================================== */
+      items: [
+        {
+          title: "Dashboard",
+          url: "/result-room/dashboard",
+          icon: LayoutDashboard,
+        },
+      ],
+    },
+
+    {
+      label: "Execution",
+
+      items: [
+        {
+          title: "Daily Submission",
+          url: "/result-room/dashboard/submissions",
+          icon: FileCheck,
+          attention: needsSubmission,
+          attentionLabel: "Today's submission is required",
+        },
+      ],
+    },
+
+    {
+      label: "Accountability",
+
+      items: [
+        {
+          title: "Partner",
+          url: "/result-room/dashboard/partner",
+          icon: Users,
+        },
+
+        {
+          title: "Reports",
+          url: "/result-room/dashboard/reports",
+          icon: ShieldCheck,
+          attention: needsReport,
+          attentionLabel: "Partner report requires attention",
+        },
+
+        {
+          title: "Fines",
+          url: "/result-room/dashboard/fines",
+          icon: CircleDollarSign,
+          attention: hasOutstandingFine,
+          attentionLabel: "You have an outstanding fine",
+        },
+      ],
+    },
+
+    {
+      label: "Support",
+
+      items: [
+        {
+          title: "Help Center",
+          url: "/result-room/dashboard/help",
+          icon: Headset,
+        },
+
+        {
+          title: "Complaints",
+          url: "/result-room/dashboard/complain",
+          icon: Headset,
+        },
+      ],
+    },
+  ];
+}
+
+/**
+ * ==========================================================================
+ * HELPERS
+ * ==========================================================================
+ */
 
 const OVERVIEW_URL = "/result-room/dashboard";
 
 /**
  * Determines whether a navigation item is currently active.
  *
- * Dashboard requires an exact match.
- *
- * Otherwise:
+ * Dashboard requires an exact match so:
  *
  * /result-room/dashboard/submissions
  *
- * would also cause:
+ * does not make:
  *
  * /result-room/dashboard
  *
- * to appear active.
+ * appear active.
  */
-function isItemActive(url: string, pathname: string) {
+function isItemActive(url: string, pathname: string): boolean {
   if (url === OVERVIEW_URL) {
     return pathname === url;
   }
@@ -146,9 +191,11 @@ function isItemActive(url: string, pathname: string) {
   return pathname.startsWith(url);
 }
 
-/* ==========================================================================
-   Sidebar Section Label
-   ========================================================================== */
+/**
+ * ==========================================================================
+ * SIDEBAR SECTION LABEL
+ * ==========================================================================
+ */
 
 function SectionLabel({
   title,
@@ -160,8 +207,8 @@ function SectionLabel({
   /**
    * In collapsed mode, section names disappear.
    *
-   * Small separators are used instead so the icon rail still
-   * has visual grouping.
+   * Small separators are used instead so the icon rail
+   * still has visual grouping.
    */
   if (collapsed) {
     return <div aria-hidden className="mx-3 my-2 h-px bg-sidebar-border" />;
@@ -176,9 +223,27 @@ function SectionLabel({
   );
 }
 
-/* ==========================================================================
-   Navigation Item
-   ========================================================================== */
+/**
+ * ==========================================================================
+ * ATTENTION INDICATOR
+ * ==========================================================================
+ */
+
+function AttentionIndicator({ label }: { label?: string }) {
+  return (
+    <span
+      aria-label={label}
+      title={label}
+      className="ml-auto size-2 shrink-0 rounded-full bg-primary"
+    />
+  );
+}
+
+/**
+ * ==========================================================================
+ * NAVIGATION ITEM
+ * ==========================================================================
+ */
 
 function NavigationItem({
   item,
@@ -228,16 +293,14 @@ function NavigationItem({
 
           /**
            * Active state.
-           *
-           * We intentionally use a soft primary background rather
-           * than a heavy filled pill.
            */
           "data-[active=true]:bg-primary/10",
           "data-[active=true]:font-semibold",
           "data-[active=true]:text-primary",
 
           /**
-           * Prevent active item from changing appearance on hover.
+           * Prevent active item from changing appearance
+           * on hover.
            */
           "data-[active=true]:hover:bg-primary/10",
           "data-[active=true]:hover:text-primary",
@@ -266,8 +329,11 @@ function NavigationItem({
           {/* Navigation label */}
           {!collapsed && <span className="truncate">{item.title}</span>}
 
-          {/* Small active indicator */}
-          {!collapsed && active && (
+          {/* Attention indicator */}
+          {item.attention && <AttentionIndicator label={item.attentionLabel} />}
+
+          {/* Active indicator */}
+          {!collapsed && active && !item.attention && (
             <span
               aria-hidden
               className="ml-auto size-1.5 shrink-0 rounded-full bg-primary"
@@ -279,99 +345,124 @@ function NavigationItem({
   );
 }
 
-/* ==========================================================================
-   Progress Card
-   ========================================================================== */
-
 /**
- * Displays the participant's current streak.
- *
- * The streak comes from Zustand rather than being hardcoded.
+ * ==========================================================================
+ * PROGRESS CARD
+ * ==========================================================================
  *
  * IMPORTANT:
  *
- * Zustand is not storing the participant's entire server record.
- * It only exposes the derived presentation value that the sidebar
- * needs.
+ * The sidebar does NOT calculate room progress.
+ *
+ * calculateDashboardState()
+ *          ↓
+ * Zustand
+ *          ↓
+ * ProgressCard
+ *
+ * This keeps the sidebar purely presentational.
  */
 function ProgressCard({ collapsed }: { collapsed: boolean }) {
-  const currentStreak = useResultRoomStore((state) => state.currentStreak);
+  /**
+   * Read only the calculated room progress from Zustand.
+   */
+  const roomProgress = useResultRoomStore((state) => state.roomProgress);
 
   /**
-   * Collapsed sidebar:
-   *
-   * Only show the progress icon.
+   * Safe fallback while the dashboard data is
+   * still loading.
    */
+  const currentDay = roomProgress?.currentDay ?? 0;
+
+  const totalDays = roomProgress?.totalDays ?? 90;
+
+  const progressPercentage = roomProgress?.roomProgress ?? 0;
+
+  const daysRemaining = roomProgress?.daysRemaining ?? 0;
+
+  /**
+   * ------------------------------------------------------------------------
+   * COLLAPSED
+   * ------------------------------------------------------------------------
+   */
+
   if (collapsed) {
     return (
-      <Link
-        href="/result-room/dashboard"
-        aria-label={`Current streak: ${currentStreak} days`}
-        className="mx-auto flex size-10 items-center justify-center rounded-xl border border-sidebar-border bg-sidebar-accent text-primary transition-colors duration-200 hover:bg-primary/10"
+      <div
+        aria-label={`Room progress: Day ${currentDay} of ${totalDays}`}
+        title={`Day ${currentDay} of ${totalDays}`}
+        className="mx-auto flex size-10 items-center justify-center rounded-xl border border-sidebar-border bg-sidebar-accent text-primary"
       >
-        <TrendingUp className="size-[18px]" />
-      </Link>
+        <Target className="size-[18px]" />
+      </div>
     );
   }
 
   /**
-   * Expanded sidebar:
-   *
-   * Show the complete streak card.
+   * ------------------------------------------------------------------------
+   * EXPANDED
+   * ------------------------------------------------------------------------
    */
+
   return (
-    <Link
-      href="/result-room/dashboard"
-      className="group block rounded-2xl border border-sidebar-border bg-sidebar-accent/60 p-3.5 transition-colors duration-200 hover:bg-sidebar-accent"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          {/* Card heading */}
-          <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10">
-              <TrendingUp className="size-3.5 text-primary" />
+    <div className="rounded-2xl border border-sidebar-border bg-sidebar-accent/60 p-3.5">
+      <div className="flex items-start gap-3">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+          <Target className="size-3.5 text-primary" />
+        </span>
+
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-sidebar-foreground">
+            Room Progress
+          </p>
+
+          <div className="mt-2 flex items-baseline gap-1.5">
+            <span className="text-xl font-bold tracking-tight text-sidebar-foreground">
+              Day {currentDay}
             </span>
 
-            <p className="text-xs font-semibold text-sidebar-foreground">
-              Current Streak
-            </p>
+            <span className="text-xs text-muted-foreground">/ {totalDays}</span>
           </div>
 
-          {/* Streak value */}
-          <div className="mt-3 flex items-baseline gap-1.5">
-            <span className="text-2xl font-bold tracking-tight text-sidebar-foreground">
-              {currentStreak}
-            </span>
-
-            <span className="text-xs text-muted-foreground">
-              {currentStreak === 1 ? "day" : "days"}
-            </span>
-          </div>
-
-          {/* Supporting message */}
           <p className="mt-0.5 text-[11px] text-muted-foreground">
-            {currentStreak > 0
-              ? "Keep showing up every day."
-              : "Submit your first day of work."}
+            {daysRemaining > 0
+              ? `${daysRemaining} ${
+                  daysRemaining === 1 ? "day" : "days"
+                } remaining`
+              : "Result Room complete"}
           </p>
         </div>
       </div>
 
-      {/* Navigation to progress */}
-      <div className="mt-3 flex items-center justify-between text-xs font-medium text-primary">
-        <span>View progress</span>
+      <div className="mt-4">
+        <div className="mb-1.5 flex items-center justify-between">
+          <span className="text-[10px] font-medium text-muted-foreground">
+            {totalDays}-day progress
+          </span>
 
-        <span className="transition-transform duration-200 group-hover:translate-x-0.5">
-          →
-        </span>
+          <span className="text-[10px] font-semibold text-sidebar-foreground">
+            {Math.round(progressPercentage)}%
+          </span>
+        </div>
+
+        <div className="h-1.5 overflow-hidden rounded-full bg-sidebar-border">
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-500"
+            style={{
+              width: `${Math.min(100, Math.max(0, progressPercentage))}%`,
+            }}
+          />
+        </div>
       </div>
-    </Link>
+    </div>
   );
 }
 
-/* ==========================================================================
-   Sidebar
-   ========================================================================== */
+/**
+ * ==========================================================================
+ * SIDEBAR
+ * ==========================================================================
+ */
 
 export default function ResultRoomSidebar() {
   const pathname = usePathname();
@@ -379,17 +470,67 @@ export default function ResultRoomSidebar() {
   const { state, isMobile, setOpenMobile, toggleSidebar } = useSidebar();
 
   /**
-   * The sidebar is considered collapsed only on desktop.
+   * ------------------------------------------------------------------------
+   * RESULT ROOM DASHBOARD QUERY
+   * ------------------------------------------------------------------------
    *
-   * On mobile it behaves as a drawer, regardless of its desktop
-   * collapsed state.
+   * React Query remains the source of truth for server data.
+   *
+   * The sidebar uses this for attention indicators only.
    */
+  const { data: dashboardData } = useResultRoomDashboard();
+
+  /**
+   * ------------------------------------------------------------------------
+   * ATTENTION STATE
+   * ------------------------------------------------------------------------
+   */
+
+  /**
+   * Participant has not submitted today's work.
+   */
+  const needsSubmission = dashboardData?.today?.submissionCompleted === false;
+
+  /**
+   * Partner report/review is needed only after
+   * today's submission has been completed.
+   */
+  const needsReport =
+    dashboardData?.today?.submissionCompleted === true &&
+    dashboardData?.today?.partnerReviewSubmitted === false;
+
+  /**
+   * A fine requires attention when it is either:
+   *
+   * - pending
+   * - overdue
+   */
+  const hasOutstandingFine =
+    dashboardData?.accountability?.hasPendingFine === true ||
+    dashboardData?.accountability?.hasOverdueFine === true;
+
+  /**
+   * ------------------------------------------------------------------------
+   * NAVIGATION
+   * ------------------------------------------------------------------------
+   */
+
+  const navigation = getNavigation({
+    needsSubmission,
+    needsReport,
+    hasOutstandingFine,
+  });
+
+  /**
+   * ------------------------------------------------------------------------
+   * SIDEBAR STATE
+   * ------------------------------------------------------------------------
+   */
+
   const collapsed = state === "collapsed" && !isMobile;
 
   /**
-   * Close the mobile sidebar after navigating.
-   *
-   * Desktop navigation does nothing here.
+   * Close mobile sidebar after navigation.
    */
   const handleNavigation = () => {
     if (isMobile) {
@@ -404,7 +545,7 @@ export default function ResultRoomSidebar() {
     >
       <div className="flex h-full min-h-0 flex-col bg-sidebar">
         {/* ================================================================
-            Header
+            HEADER
             ================================================================ */}
 
         <SidebarHeader
@@ -476,18 +617,14 @@ export default function ResultRoomSidebar() {
         </SidebarHeader>
 
         {/* ================================================================
-            Main Navigation
+            MAIN NAVIGATION
             ================================================================ */}
 
         <SidebarContent className="min-h-0">
           <div className="px-2.5 py-4">
-            {NAVIGATION.map((section) => {
+            {navigation.map((section) => {
               /**
-               * We don't render empty sections.
-               *
-               * "Progress" currently has no navigation item because
-               * the streak is already represented by the progress
-               * card in the sidebar.
+               * Don't render empty sections.
                */
               if (section.items.length === 0) {
                 return null;
@@ -515,7 +652,7 @@ export default function ResultRoomSidebar() {
         </SidebarContent>
 
         {/* ================================================================
-            Footer / Progress
+            FOOTER / ROOM PROGRESS
             ================================================================ */}
 
         <SidebarFooter
