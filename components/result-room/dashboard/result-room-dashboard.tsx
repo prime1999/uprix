@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useResultRoomDashboard } from "@/lib/queries/result-room";
+import { ResultRoomHeatmap } from "./Streak";
 
 /*
  * --------------------------------------------------
@@ -40,6 +42,7 @@ type ParticipantResponse = {
  */
 
 const ResultRoomDashboard = () => {
+  const { data: dashboardData } = useResultRoomDashboard();
   /*
    * The participant starts as null because we haven't
    * received the API response yet.
@@ -218,8 +221,21 @@ const ResultRoomDashboard = () => {
    * We'll progressively replace this content with the
    * real Result Room workspace.
    */
+
+  if (!dashboardData) {
+    return <p>Loading!!!</p>;
+  }
   return (
     <main className="min-h-screen">
+      {dashboardData.room !== null ? (
+        <ResultRoomHeatmap
+          startDate={dashboardData.room.startDate}
+          endDate={dashboardData.room.endDate}
+          submissionDates={dashboardData.submissionActivity.dates}
+        />
+      ) : (
+        <p>Loading!!!</p>
+      )}
       <div className="mx-auto max-w-7xl px-4 py-8">
         <header>
           <p className="text-sm text-muted-foreground">Result Room</p>
@@ -228,6 +244,7 @@ const ResultRoomDashboard = () => {
             Manage your daily Result Room activities from here.
           </p>
         </header>
+
         <section className="mt-8">
           <div className="rounded-xl border p-6">
             <h2 className="text-lg font-semibold">Welcome to Result Room</h2>

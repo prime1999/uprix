@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 import {
@@ -25,6 +26,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import logo from "@/app/assets/images/mobileLogo.png";
 
 import { useResultRoomStore } from "@/lib/stores/result-room-store";
 import { useResultRoomDashboard } from "@/lib/queries/result-room";
@@ -234,7 +236,7 @@ function AttentionIndicator({ label }: { label?: string }) {
     <span
       aria-label={label}
       title={label}
-      className="ml-auto size-2 shrink-0 rounded-full bg-primary"
+      className="size-2 shrink-0 rounded-full bg-red-500 animate-pulse"
     />
   );
 }
@@ -268,12 +270,7 @@ function NavigationItem({
           /**
            * Base dimensions.
            */
-          "relative h-10 rounded-xl",
-
-          /**
-           * Typography.
-           */
-          "text-sm font-medium",
+          "relative h-10 rounded-xl text-sm font-medium",
 
           /**
            * Smooth interaction.
@@ -302,7 +299,7 @@ function NavigationItem({
            * Prevent active item from changing appearance
            * on hover.
            */
-          "data-[active=true]:hover:bg-primary/10",
+          "hover:backdrop-blur-3xl",
           "data-[active=true]:hover:text-primary",
 
           /**
@@ -314,7 +311,7 @@ function NavigationItem({
         <Link
           href={item.url}
           onClick={onNavigate}
-          className="flex h-full w-full items-center gap-3"
+          className={`flex ${collapsed ? "flex-col" : "flex-row"} h-full w-full items-center gap-3`}
         >
           {/* Navigation icon */}
           <item.icon
@@ -336,7 +333,7 @@ function NavigationItem({
           {!collapsed && active && !item.attention && (
             <span
               aria-hidden
-              className="ml-auto size-1.5 shrink-0 rounded-full bg-primary"
+              className="ml-auto size-1.5 shrink-0 rounded-full bg-secondary-blue"
             />
           )}
         </Link>
@@ -405,33 +402,23 @@ function ProgressCard({ collapsed }: { collapsed: boolean }) {
    */
 
   return (
-    <div className="rounded-2xl border border-sidebar-border bg-sidebar-accent/60 p-3.5">
-      <div className="flex items-start gap-3">
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <Target className="size-3.5 text-primary" />
-        </span>
+    <div className="p-3">
+      <div className="min-w-0">
+        <div className="mt-2 flex items-baseline gap-1.5">
+          <span className="text-xl font-bold tracking-tight text-sidebar-foreground">
+            Day {currentDay}
+          </span>
 
-        <div className="min-w-0">
-          <p className="text-xs font-semibold text-sidebar-foreground">
-            Room Progress
-          </p>
-
-          <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="text-xl font-bold tracking-tight text-sidebar-foreground">
-              Day {currentDay}
-            </span>
-
-            <span className="text-xs text-muted-foreground">/ {totalDays}</span>
-          </div>
-
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
-            {daysRemaining > 0
-              ? `${daysRemaining} ${
-                  daysRemaining === 1 ? "day" : "days"
-                } remaining`
-              : "Result Room complete"}
-          </p>
+          <span className="text-xs text-muted-foreground">/ {totalDays}</span>
         </div>
+
+        <p className="mt-0.5 text-[11px] text-muted-foreground">
+          {daysRemaining > 0
+            ? `${daysRemaining} ${
+                daysRemaining === 1 ? "day" : "days"
+              } remaining`
+            : "Result Room complete"}
+        </p>
       </div>
 
       <div className="mt-4">
@@ -445,9 +432,9 @@ function ProgressCard({ collapsed }: { collapsed: boolean }) {
           </span>
         </div>
 
-        <div className="h-1.5 overflow-hidden rounded-full bg-sidebar-border">
+        <div className="h-2 overflow-hidden rounded-full bg-sidebar-border bg-blue-300">
           <div
-            className="h-full rounded-full bg-primary transition-all duration-500"
+            className="h-full rounded-full bg-secondary-blue transition-all duration-500"
             style={{
               width: `${Math.min(100, Math.max(0, progressPercentage))}%`,
             }}
@@ -541,9 +528,9 @@ export default function ResultRoomSidebar() {
   return (
     <Sidebar
       collapsible="icon"
-      className="border-r border-sidebar-border bg-white"
+      className="m-2 rounded-lg border-3 border-white bg-white/20 shadow-xl backdrop-blur-xl backdrop-saturate-150"
     >
-      <div className="flex h-full min-h-0 flex-col bg-sidebar">
+      <div className="flex h-full min-h-0 flex-col bg-transparent">
         {/* ================================================================
             HEADER
             ================================================================ */}
@@ -564,22 +551,17 @@ export default function ResultRoomSidebar() {
               href="/result-room/dashboard"
               onClick={handleNavigation}
               className={[
-                "group flex min-w-0 items-center",
+                "group flex min-w-0 items-start",
                 collapsed ? "justify-center" : "gap-3",
               ].join(" ")}
             >
               {/* Result Room brand mark */}
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary shadow-sm transition-transform duration-200 group-hover:scale-[1.03]">
-                <Target
-                  className="size-5 text-primary-foreground"
-                  strokeWidth={2.2}
-                />
-              </span>
+              <Image src={logo} alt="Logo" className="size-6" />
 
               {/* Brand text */}
               {!collapsed && (
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-bold tracking-tight text-sidebar-foreground">
+                  <span className="block truncate text-md font-bold text-secondary-blue tracking-tight text-sidebar-foreground">
                     Result Room
                   </span>
 

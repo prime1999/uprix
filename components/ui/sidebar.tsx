@@ -180,7 +180,7 @@ function Sidebar({
           data-sidebar="sidebar"
           data-slot="sidebar"
           data-mobile="true"
-          className="w-[var(--sidebar-width,18rem)] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+          className="w-[var(--sidebar-width,18rem)] border-white/50 bg-white/75 p-0 text-sidebar-foreground shadow-2xl backdrop-blur-2xl backdrop-saturate-150 [&>button]:hidden"
           style={
             {
               "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
