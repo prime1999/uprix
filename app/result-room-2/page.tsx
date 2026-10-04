@@ -1,29 +1,64 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
-import {
-  ArrowUpRight,
-  CheckCircle2,
-  Calendar,
-  Users,
-} from "lucide-react";
+import Image from "next/image";
+import { ArrowUpRight, CheckCircle2, Calendar, Users } from "lucide-react";
+import logo from "@/app/assets/images/logo.png";
+import mobileLogo from "@/app/assets/images/mobileLogo.png";
+import trophy from "@/app/assets/images/handTrophy.png";
+import TextMarquee from "@/components/result-room/MarqueeText";
+import MechanismsSectionAnimated from "@/components/result-room/Mechanism";
 
 export default function ResultRoom2Page() {
   const checkoutUrl = "/payment";
 
-  const marqueeItems = [
-    "SHOW UP EVERY DAY",
-    "ONE GOAL",
-    "90 DAYS",
-    "NO HIDING",
-    "CONSEQUENCES MATTER",
-    "EXECUTION OVER MOTIVATION",
-    "EVIDENCE OVER EXPLANATIONS",
-    "ZERO GHOSTING",
+  const INK = "#1C2B20";
+  const GREEN = "#A8D86A";
+
+  const PILLARS = [
+    {
+      title: "Structure",
+      body: "A clear 90-day path, so you always know the next move.",
+    },
+    {
+      title: "Accountability",
+      body: "Real people watching the work, so skipping isn’t invisible.",
+    },
+    {
+      title: "Consequences",
+      body: "Missing a day costs you something, so showing up matters.",
+    },
   ];
 
+  // Marker-style underline that follows the text across line breaks
+  function Highlight({ children }: { children: ReactNode }) {
+    return (
+      <span
+        className="box-decoration-clone"
+        style={{
+          backgroundImage: `linear-gradient(to top, #ffdd00 0.13em, transparent 0.13em)`,
+        }}
+      >
+        {children}
+      </span>
+    );
+  }
+
+  function Dot() {
+    return (
+      <span
+        className="block size-2 rounded-full ring-4"
+        style={{
+          backgroundColor: "#ffdd00",
+          ["--tw-ring-color" as string]: "rgba(255,221,0,0.3)",
+        }}
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#FDFCF7] text-slate-900 font-body selection:bg-primary-yellow selection:text-slate-950 overflow-x-hidden">
+    <div className="relative min-h-screen text-slate-900 font-body selection:bg-primary-yellow selection:text-slate-950 overflow-x-hidden">
       {/* Self-contained CSS animation for the slow moving banner */}
       <style jsx global>{`
         @keyframes rrMarquee {
@@ -46,22 +81,33 @@ export default function ResultRoom2Page() {
 
       {/* Floating Pill Navigation */}
       <header className="fixed top-4 left-0 right-0 z-50 px-4">
-        <nav className="max-w-5xl mx-auto bg-white/90 backdrop-blur-md border border-slate-200/80 shadow-sm rounded-full px-5 py-2.5 flex items-center justify-between">
+        <nav className="mx-auto flex h-12 max-w-8/12 items-center justify-between rounded-md border p-2 backdrop-blur-xl md:w-6/12">
           <div className="flex items-center gap-3">
-            <span className="font-heading font-black text-xl text-[#0D1322] tracking-tight">
+            {/* <span className="font-heading font-black text-xl text-[#0D1322] tracking-tight">
               Upri<span className="text-secondary-blue">x</span>
-            </span>
-            <span className="hidden sm:inline text-[11px] font-bold uppercase tracking-wider text-slate-400 border-l border-slate-200 pl-3">
-              The Result Room 2.0
-            </span>
+            </span> */}
+            <Image
+              src={logo}
+              alt="Logo"
+              width={130}
+              height={130}
+              className="hidden object-cover lg:block"
+            />
+            <Image
+              src={mobileLogo}
+              alt="Mobile Logo"
+              width={40}
+              height={40}
+              className="object-cover lg:hidden"
+            />
           </div>
 
           <Link
             href={checkoutUrl}
-            className="inline-flex items-center gap-2 rounded-full bg-primary-yellow hover:brightness-95 text-slate-950 font-bold px-4 py-2 text-xs sm:text-sm transition-all shadow-sm"
+            className="inline-flex items-center gap-2 rounded-md bg-primary-blue hover:brightness-95 text-white font-bold p-2 text-xs sm:text-sm transition-all shadow-sm"
           >
             <span>Save my seat</span>
-            <span className="w-5 h-5 rounded-full bg-slate-950 text-white flex items-center justify-center">
+            <span className="w-5 h-5 rounded-sm bg-primary-yellow text-primary-blue flex items-center justify-center">
               <ArrowUpRight size={13} />
             </span>
           </Link>
@@ -69,8 +115,12 @@ export default function ResultRoom2Page() {
       </header>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-16 md:pt-40 md:pb-24 px-4 max-w-5xl mx-auto">
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 mb-6">
+      <section className="relative pt-32 pb-16 md:pt-40 md:pb-24 px-4 pr-0 lg:pr-0 mx-auto overflow-x-clip">
+        <h1 className="absolute top-5 left-10 text-center font-extrabold text-[180px] text-gray-300 -z-30 pointer-events-none select-none">
+          RESULT ROOM
+        </h1>
+
+        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 mt-16 z-50 ml-4 md:ml-8 lg:ml-24">
           <span className="w-2 h-2 rounded-full bg-primary-yellow inline-block animate-pulse" />
           <span>COHORT 2.0</span>
           <span className="text-slate-300">•</span>
@@ -80,21 +130,21 @@ export default function ResultRoom2Page() {
         </div>
 
         <div className="grid lg:grid-cols-12 gap-10 items-center">
-          <div className="lg:col-span-8">
+          <div className="lg:col-span-7 ml-4 md:ml-8 lg:ml-24">
             <h1 className="font-heading font-black text-4xl sm:text-6xl md:text-7xl text-[#0D1322] tracking-tight leading-[1.05] uppercase mb-6">
               90 days from now, you’ll either have the result... <br />
-              <span className="bg-primary-yellow text-slate-950 px-2.5 py-0.5 inline-block mt-1">
+              <span className="bg-primary-yellow text-slate-950 px-2.5 py-0.5 inline-block mt-1 rounded-lg tracking-widest">
                 or another explanation.
               </span>
             </h1>
 
-            <p className="text-base sm:text-lg text-slate-700 max-w-xl leading-relaxed mb-4 font-medium">
-              You already know what you want. The business. The skill. The grades.
-              The project. The body of work. The version of yourself you keep
-              saying you're becoming.
+            <p className="text-lg text-slate-700 max-w-xl leading-relaxed mb-4 font-medium">
+              You already know what you want. The business. The skill. The
+              grades. The project. The body of work. The version of yourself you
+              keep saying you're becoming.
             </p>
 
-            <p className="text-sm sm:text-base text-slate-500 max-w-lg mb-8">
+            <p className="text-xs text-slate-500 max-w-lg mb-8">
               You don’t need another goal. You need an environment that makes it
               harder to keep abandoning the one you already have.
             </p>
@@ -102,11 +152,11 @@ export default function ResultRoom2Page() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
               <Link
                 href={checkoutUrl}
-                className="inline-flex items-center gap-3 rounded-full bg-primary-yellow hover:brightness-95 text-slate-950 font-bold px-7 py-3.5 text-sm sm:text-base shadow-md transition-transform hover:scale-[1.02]"
+                className="inline-flex items-center gap-2 rounded-md bg-primary-blue hover:brightness-95 text-white font-bold p-2 text-xs sm:text-sm transition-all shadow-sm"
               >
-                <span>ENTER THE RESULT ROOM</span>
-                <span className="w-6 h-6 rounded-full bg-slate-950 text-white flex items-center justify-center">
-                  <ArrowUpRight size={15} />
+                <span>Save my seat</span>
+                <span className="w-5 h-5 rounded-sm bg-primary-yellow text-primary-blue flex items-center justify-center">
+                  <ArrowUpRight size={13} />
                 </span>
               </Link>
             </div>
@@ -128,185 +178,93 @@ export default function ResultRoom2Page() {
             </div>
           </div>
 
-          {/* Quick Target Board Card */}
-          <div className="lg:col-span-4 flex justify-center">
-            <div className="w-full max-w-xs bg-white rounded-3xl p-6 border border-slate-200/90 shadow-xl space-y-5 text-center">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-[#FFF9E6] border border-primary-yellow/50 flex items-center justify-center text-3xl shadow-sm">
-                🎯
-              </div>
-              <div>
-                <p className="text-[11px] uppercase tracking-wider font-extrabold text-slate-400">
-                  Target Outcome
-                </p>
-                <h3 className="font-heading font-extrabold text-2xl text-[#0D1322] mt-0.5">
-                  1 Priority Result
-                </h3>
-              </div>
-              <div className="bg-[#FAF9F5] rounded-2xl p-4 text-left text-xs space-y-2.5 border border-slate-100 font-medium">
-                <div className="flex items-center justify-between text-slate-600">
-                  <span>Execution Window</span>
-                  <span className="font-bold text-slate-950">90 Days</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-600">
-                  <span>Emergency Excuse</span>
-                  <span className="font-bold text-slate-950">5 Slots</span>
-                </div>
-                <div className="flex items-center justify-between text-slate-600">
-                  <span>Ghosting Rule</span>
-                  <span className="font-bold text-rose-600">Eviction</span>
-                </div>
-              </div>
+          {/* Trophy container extending past right margin */}
+          <div className="relative lg:col-span-5 -mr-4 sm:-mr-8 md:-mr-12 lg:-mr-24 pointer-events-none">
+            <div className="absolute inset-0 hidden lg:block">
+              <div className="absolute -left-10 top-10 h-28 w-28 rounded-full bg-primary-yellow/25 blur-3xl" />
+              <div className="absolute right-0 bottom-4 h-24 w-24 rounded-full bg-secondary-blue/20 blur-3xl" />
+            </div>
+
+            <div className="relative z-10 flex items-center justify-end">
+              <Image
+                src={trophy}
+                alt="Hand Trophy"
+                width={620}
+                height={620}
+                priority
+                className="h-auto w-[360px] sm:w-[480px] lg:w-[560px] max-w-none object-contain drop-shadow-[0_25px_45px_rgba(15,23,42,0.18)] translate-x-10 sm:translate-x-16 lg:translate-x-20 lg:translate-y-4"
+              />
             </div>
           </div>
         </div>
       </section>
 
       {/* Self-contained Smooth Infinite Marquee Banner */}
-      <div className="border-y border-slate-200 bg-white py-3.5 overflow-hidden">
-        <div className="rr-ticker items-center gap-8 text-xs sm:text-sm font-heading font-black tracking-widest text-slate-400 uppercase select-none">
-          {marqueeItems.concat(marqueeItems).map((text, idx) => (
-            <div key={idx} className="flex items-center gap-8 shrink-0">
-              <span className="hover:text-slate-950 transition-colors">{text}</span>
-              <span className="text-primary-yellow font-black">•</span>
-            </div>
-          ))}
-        </div>
-      </div>
+
+      <TextMarquee />
 
       {/* Section 01: The Pattern */}
-      <section className="py-20 px-4 max-w-4xl mx-auto">
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-          <span className="text-secondary-blue font-extrabold">01</span>
-          <span>The Pattern</span>
-        </div>
-        <h2 className="font-heading font-black text-3xl sm:text-5xl text-[#0D1322] tracking-tight uppercase mb-8">
-          You've said it before.
-        </h2>
+      <section className="px-5 py-24 sm:px-10 sm:py-32">
+        <div className="mx-auto max-w-6xl">
+          {/* Eyebrow */}
+          <div className="mb-8 flex items-center gap-3 text-xs">
+            <Dot />
+            <span className="tracking-wide text-[#8A8A82]">
+              01 · The Pattern
+            </span>
+          </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
-          {[
-            "“I’ll start next month.”",
-            "“I’ll be more consistent.”",
-            "“I’ll get serious soon.”",
-            "“This time, I’ll actually stick with it.”",
-          ].map((quote, idx) => (
-            <div
-              key={idx}
-              className="bg-white border border-slate-200/90 rounded-2xl p-5 font-semibold text-slate-800 text-center shadow-sm text-sm sm:text-base"
-            >
-              {quote}
-            </div>
-          ))}
-        </div>
+          {/* Big statement */}
+          <p className="max-w-4xl text-3xl font-normal leading-[1.15] tracking-tight sm:text-5xl font-heading">
+            <Highlight>You&apos;ve said it before.</Highlight>{" "}
+            <span className="text-[#8A8A82]">
+              “I’ll start next month.” “I’ll be more consistent.” “I’ll get
+              serious soon.” “This time, I’ll actually stick with it.”
+            </span>{" "}
+            And you probably meant it. But life happened, and{" "}
+            <Highlight>another month disappeared</Highlight> without the result.
+          </p>
 
-        <div className="bg-[#FAF9F5] border border-slate-200 rounded-3xl p-6 sm:p-9 space-y-4 text-slate-700 text-sm sm:text-base leading-relaxed">
-          <p>
-            And you probably meant it. But then life happened. Motivation dropped.
-            You missed one day. Then another. And somehow... another month
-            disappeared without the result.
+          {/* Pivot line */}
+          <p className="mt-12 max-w-2xl text-base leading-relaxed text-[#8A8A82] sm:text-lg">
+            <span style={{ color: INK }}>
+              That’s the cycle The Result Room was built to interrupt.
+            </span>{" "}
+            Not with another motivational speech, another productivity PDF, or
+            another group where everybody disappears after week two.
           </p>
-          <p className="font-bold text-slate-950 text-base sm:text-lg">
-            That’s the cycle The Result Room was built to interrupt.
-          </p>
-          <p className="text-slate-600">
-            Not with another motivational speech. Not with another productivity PDF.
-            Not with another group where everybody disappears after week two.
-          </p>
-          <div className="pt-2 font-heading font-black text-base sm:text-xl text-secondary-blue">
-            With structure. Accountability. Consequences. And 90 days where one
-            result becomes the priority.
+
+          {/* Three pillars */}
+          <div className="mt-20 grid gap-10 md:grid-cols-3 md:gap-8">
+            {PILLARS.map((p, i) => (
+              <div key={p.title} className="border-t border-[#D9D4CA] pt-6">
+                <div className="flex items-center gap-3 text-xs text-[#8A8A82]">
+                  <Dot />
+                  <span>{String(i + 1).padStart(2, "0")}</span>
+                </div>
+                <h3 className="mt-8 text-xl font-medium tracking-tight">
+                  {p.title}
+                </h3>
+                <p className="mt-3 max-w-[17rem] text-sm leading-relaxed text-[#8A8A82]">
+                  {p.body}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Closing line */}
+          <div className="mt-14 flex items-center gap-3 border-t border-[#D9D4CA] pt-6 text-lg sm:text-2xl">
+            <Dot />
+            <p className="font-normal tracking-tight">
+              And <Highlight>90 days</Highlight> where one result becomes the
+              priority.
+            </p>
           </div>
         </div>
       </section>
 
       {/* Section 02: The Mechanisms */}
-      <section className="py-20 px-4 bg-[#FAF9F5] border-y border-slate-200/80">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-            <span className="text-secondary-blue font-extrabold">02</span>
-            <span>The Mechanisms</span>
-          </div>
-          <h2 className="font-heading font-black text-3xl sm:text-5xl text-[#0D1322] tracking-tight uppercase mb-4">
-            Why this room is completely different.
-          </h2>
-          <p className="text-slate-600 text-sm sm:text-base max-w-2xl mb-12">
-            The problem isn't that you don't want it badly enough. The problem is
-            that when motivation disappears, most systems have no friction.
-          </p>
-
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Mechanism 01 */}
-            <div className="bg-white border border-slate-200 rounded-3xl p-7 sm:p-8 shadow-sm flex flex-col justify-between">
-              <div>
-                <span className="text-xs font-black uppercase tracking-wider text-secondary-blue bg-blue-50 px-3 py-1 rounded-full">
-                  Mechanism 01
-                </span>
-                <h3 className="font-heading font-black text-2xl text-[#0D1322] mt-4 mb-3 uppercase">
-                  Pick One Thing. Then Give It 90 Days.
-                </h3>
-                <p className="text-slate-600 text-sm leading-relaxed mb-6">
-                  Not seven goals. Not “I just want to improve myself.” One clear
-                  result that actually matters to you.
-                </p>
-                <div className="bg-[#FDFCF7] border border-slate-200 rounded-2xl p-5 space-y-2.5 text-xs sm:text-sm mb-6">
-                  <p className="font-bold text-slate-900">
-                    Goal Consultation with Taifaq:
-                  </p>
-                  <ul className="space-y-2 text-slate-600">
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
-                      What exactly are you trying to achieve?
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
-                      What actions actually move you there?
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
-                      A clear, daily 90-day execution system
-                    </li>
-                  </ul>
-                </div>
-              </div>
-              <p className="text-xs font-semibold text-slate-400 italic">
-                You leave that conversation with zero guessing. You know the result,
-                you know the work, then you execute.
-              </p>
-            </div>
-
-            {/* Mechanism 02 */}
-            <div className="bg-white border border-slate-200 rounded-3xl p-7 sm:p-8 shadow-sm flex flex-col justify-between">
-              <div>
-                <span className="text-xs font-black uppercase tracking-wider text-secondary-blue bg-blue-50 px-3 py-1 rounded-full">
-                  Mechanism 02
-                </span>
-                <h3 className="font-heading font-black text-2xl text-[#0D1322] mt-4 mb-3 uppercase">
-                  Someone Will Notice When You Don’t Show Up.
-                </h3>
-                <p className="text-slate-600 text-sm leading-relaxed mb-6">
-                  Most accountability systems depend solely on you. When you skip
-                  or disappear, nobody notices. In Result Room, disappearing has
-                  friction.
-                </p>
-                <div className="bg-[#FDFCF7] border border-slate-200 rounded-2xl p-5 space-y-2.5 text-xs sm:text-sm mb-6">
-                  <p className="font-bold text-slate-900">
-                    Your 1-on-1 Accountability Partner:
-                  </p>
-                  <p className="text-slate-600 leading-relaxed">
-                    Paired with one person inside the room for the full 90 days.
-                    You track progress together, report the work, and ensure
-                    neither of you slips into hiding.
-                  </p>
-                </div>
-              </div>
-              <p className="text-xs font-semibold text-slate-400 italic">
-                You don’t need another lesson on discipline. You need to know that
-                disappearing will be noticed.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <MechanismsSectionAnimated />
 
       {/* Section 03: Rules of The Room */}
       <section className="py-20 px-4 max-w-4xl mx-auto">
@@ -330,8 +288,8 @@ export default function ResultRoom2Page() {
               Xcuse Slots
             </h4>
             <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-              Life happens. Emergencies happen. You get exactly five excuse slots
-              for the entire 90 days. Use them wisely.
+              Life happens. Emergencies happen. You get exactly five excuse
+              slots for the entire 90 days. Use them wisely.
             </p>
           </div>
 
@@ -399,7 +357,9 @@ export default function ResultRoom2Page() {
               <span className="font-heading font-black text-5xl text-[#0D1322]">
                 ₦10,600
               </span>
-              <span className="text-slate-500 text-sm font-medium">/ 90 days</span>
+              <span className="text-slate-500 text-sm font-medium">
+                / 90 days
+              </span>
             </div>
 
             <p className="mt-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 py-1.5 px-3 rounded-full inline-block">
@@ -426,13 +386,20 @@ export default function ResultRoom2Page() {
                 val: "₦15,000 value",
               },
               {
-                title: "The Accountability System (Xcuse Slots, Penalties, Eviction)",
+                title:
+                  "The Accountability System (Xcuse Slots, Penalties, Eviction)",
                 val: "Zero Disappearing",
               },
             ].map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between gap-3 text-slate-800">
+              <div
+                key={idx}
+                className="flex items-center justify-between gap-3 text-slate-800"
+              >
                 <div className="flex items-center gap-2.5">
-                  <CheckCircle2 size={16} className="text-secondary-blue shrink-0" />
+                  <CheckCircle2
+                    size={16}
+                    className="text-secondary-blue shrink-0"
+                  />
                   <span className="font-medium">{item.title}</span>
                 </div>
                 <span className="text-[11px] font-semibold text-slate-400 whitespace-nowrap hidden sm:inline">
