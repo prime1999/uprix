@@ -35,7 +35,7 @@ const Navbar = () => {
           </Link>
           {/* Assigned Product Links */}
           <Link
-            href="#result-room"
+            href="/result-room"
             className="cursor-pointer text-sm font-semibold transition duration-500 hover:text-primary-blue"
           >
             Result Room
@@ -53,7 +53,7 @@ const Navbar = () => {
             Uprixtunity
           </Link>
           <Link
-            href="/#testimonials"
+            href="#testimonials"
             className="cursor-pointer text-sm font-semibold transition duration-500 hover:text-primary-blue"
           >
             Testimonials
@@ -92,7 +92,7 @@ const Navbar = () => {
               </Link>
               {/* Assigned Product Mobile Links */}
               <Link
-                href="#result-room"
+                href="/result-room"
                 className="cursor-pointer text-lg font-semibold uppercase transition duration-500 hover:text-primary-blue"
               >
                 Result Room
