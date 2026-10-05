@@ -9,6 +9,7 @@ import uprix1 from "@/app/assets/images/uprix-headshots/Uprix1.png";
 import uprix2 from "@/app/assets/images/uprix-headshots/uprix2.jpg";
 import uprix3 from "@/app/assets/images/uprix-headshots/uprix3.png";
 import uprix4 from "@/app/assets/images/uprix-headshots/uprix4.png";
+import uprix5 from "@/app/assets/images/uprix-headshots/uprix5.jpeg";
 
 type Member = {
   id: number;
@@ -21,10 +22,10 @@ const MEMBERS: Member[] = [
   { id: 2, name: "Uprizer 2", photo: uprix2 },
   { id: 3, name: "Uprizer 3", photo: uprix3 },
   { id: 4, name: "Uprizer 4", photo: uprix4 },
-  { id: 5, name: "Uprizer 5", photo: uprix1 },
-  { id: 6, name: "Uprizer 6", photo: uprix2 },
-  { id: 7, name: "Uprizer 7", photo: uprix3 },
-  { id: 8, name: "Uprizer 8", photo: uprix4 },
+  { id: 5, name: "Uprizer 5", photo: uprix5 },
+  { id: 6, name: "Uprizer 6", photo: uprix1 },
+  { id: 7, name: "Uprizer 7", photo: uprix2 },
+  { id: 8, name: "Uprizer 8", photo: uprix3 },
 ];
 
 const TOTAL = MEMBERS.length;
