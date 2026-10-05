@@ -80,14 +80,13 @@ export function ResultRoomHeatmap({
 
   return (
     <div className="w-full overflow-x-auto">
-      <div className="min-w-[680px]">
+      <div className="w-full">
         {/* Month labels */}
         <div className="mb-3 flex">
           {/* Space for weekday labels */}
           <div className="w-7 shrink-0" />
 
-          {/* 72% → 73% on large screens */}
-          <div className="w-[72%] lg:w-[73%]">
+          <div className="w-full">
             <div className="grid grid-flow-col auto-cols-fr gap-1.5">
               {weeks.map((_, weekIndex) => (
                 <div
@@ -116,7 +115,7 @@ export function ResultRoomHeatmap({
           </div>
 
           {/* Heatmap grid */}
-          <div className="w-[70%] lg:w-[65%]">
+          <div className="w-full">
             <div className="grid grid-flow-col auto-cols-fr gap-1.5">
               {weeks.map((week, weekIndex) => (
                 <div key={weekIndex} className="flex flex-col gap-1.5">

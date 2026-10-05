@@ -401,8 +401,10 @@ function ProgressCard({ collapsed }: { collapsed: boolean }) {
    * ------------------------------------------------------------------------
    */
 
+  // add above your return
+  const clampedProgress = Math.min(100, Math.max(0, progressPercentage));
   return (
-    <div className="p-3">
+    <div className="">
       <div className="min-w-0">
         <div className="mt-2 flex items-baseline gap-1.5">
           <span className="text-xl font-bold tracking-tight text-sidebar-foreground">
@@ -422,23 +424,42 @@ function ProgressCard({ collapsed }: { collapsed: boolean }) {
       </div>
 
       <div className="mt-4">
-        <div className="mb-1.5 flex items-center justify-between">
+        <div className="mb-2 flex items-center justify-between">
           <span className="text-[10px] font-medium text-muted-foreground">
             {totalDays}-day progress
           </span>
 
-          <span className="text-[10px] font-semibold text-sidebar-foreground">
+          {/* 3D blue percentage pill */}
+          <span className="rounded-full border border-blue-400/80 bg-gradient-to-b from-blue-400 to-blue-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_2px_6px_-1px_rgba(59,130,246,0.5)]">
             {Math.round(progressPercentage)}%
           </span>
         </div>
 
-        <div className="h-2 overflow-hidden rounded-full bg-sidebar-border bg-blue-300">
+        {/* track: a groove pressed into the card */}
+        <div
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(clampedProgress)}
+          aria-label={`${totalDays}-day progress`}
+          className="group/bar h-3 overflow-hidden rounded-full border border-blue-200/80 bg-gradient-to-b from-blue-100 to-blue-50 p-[2px] shadow-[inset_0_2px_4px_rgba(30,64,175,0.22)] dark:border-blue-900 dark:from-blue-950 dark:to-blue-900 dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]"
+        >
+          {/* fill: glossy 3D blue */}
           <div
-            className="h-full rounded-full bg-secondary-blue transition-all duration-500"
-            style={{
-              width: `${Math.min(100, Math.max(0, progressPercentage))}%`,
-            }}
-          />
+            className="relative h-full overflow-hidden rounded-full bg-gradient-to-b from-blue-400 via-blue-500 to-blue-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_2px_6px_rgba(59,130,246,0.55)] transition-all duration-500"
+            style={{ width: `${clampedProgress}%` }}
+          >
+            {/* glossy highlight on the top half */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-1 top-px h-1/2 rounded-full bg-gradient-to-b from-white/60 to-transparent"
+            />
+            {/* light sweep on hover */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 left-0 w-1/3 -translate-x-full -skew-x-12 bg-white/40 transition-transform duration-700 group-hover/bar:translate-x-[400%]"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -479,12 +500,9 @@ export default function ResultRoomSidebar() {
   const needsSubmission = dashboardData?.today?.submissionCompleted === false;
 
   /**
-   * Partner report/review is needed only after
-   * today's submission has been completed.
+   * Partner report/review is needed
    */
-  const needsReport =
-    dashboardData?.today?.submissionCompleted === true &&
-    dashboardData?.today?.partnerReviewSubmitted === false;
+  const needsReport = dashboardData?.today?.partnerReviewSubmitted === false;
 
   /**
    * A fine requires attention when it is either:
