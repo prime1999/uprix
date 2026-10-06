@@ -44,8 +44,7 @@ const products: ProductItem[] = [
     ctaText: "Join the Room",
     ctaLink: "/result-room",
     imageSrc:
-      "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80",
-  },
+"components/mainPage/Products.tsx"  },
   {
     id: "uprixtunity",
     badge: "Talent & Brand Spotlight",
