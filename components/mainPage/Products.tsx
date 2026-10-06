@@ -1,6 +1,7 @@
-import React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
+import resultRoomImage from "@/app/assets/images/resultRoom.jpg";
 
 interface ProductItem {
   id: string;
@@ -43,8 +44,8 @@ const products: ProductItem[] = [
     ],
     ctaText: "Join the Room",
     ctaLink: "/result-room",
-    imageSrc:
-"components/mainPage/Products.tsx"  },
+    imageSrc: resultRoomImage.src,
+  },
   {
     id: "uprixtunity",
     badge: "Talent & Brand Spotlight",
@@ -100,10 +101,12 @@ export default function Products() {
               >
                 {/* Visual Half */}
                 <div className="w-full lg:w-1/2">
-                  <div className="relative aspect-[16/10] w-full rounded-2xl overflow-hidden shadow-2xl border border-border group">
-                    <img
+                  <div className="relative aspect-[12/10] w-full rounded-2xl overflow-hidden shadow-2xl border border-border group">
+                    <Image
                       src={item.imageSrc}
                       alt={item.title}
+                      width={200}
+                      height={200}
                       className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
