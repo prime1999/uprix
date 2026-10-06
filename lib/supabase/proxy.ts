@@ -1,177 +1,122 @@
 import { createServerClient } from "@supabase/ssr";
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
-import { hasEnvVars } from "../utils";
+import { hasEnvVars } from "@/lib/utils";
 
 export async function updateSession(request: NextRequest) {
-  /*
-   * --------------------------------------------------
-   * INITIAL RESPONSE
-   * --------------------------------------------------
-   *
-   * We create the response first because Supabase may
-   * need to refresh authentication cookies during this
-   * request.
-   */
   let supabaseResponse = NextResponse.next({
     request,
   });
 
-  /*
-   * If the Supabase environment variables are not
-   * configured, skip the middleware checks.
-   */
   if (!hasEnvVars) {
     return supabaseResponse;
   }
 
-  /*
-   * --------------------------------------------------
-   * SUPABASE SERVER CLIENT
-   * --------------------------------------------------
-   *
-   * A new Supabase server client is created for every
-   * request.
-   *
-   * This is important when using Fluid Compute because
-   * the client should not be stored globally.
-   */
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
-        /*
-         * Read all cookies from the incoming request.
-         */
         getAll() {
           return request.cookies.getAll();
         },
-
-        /*
-         * Supabase can refresh the user's auth cookies.
-         *
-         * We update both the request and response cookies
-         * so the refreshed session is available throughout
-         * the request lifecycle.
-         */
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => {
-            request.cookies.set(name, value);
-          });
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value),
+          );
 
           supabaseResponse = NextResponse.next({
             request,
           });
 
-          cookiesToSet.forEach(({ name, value, options }) => {
-            supabaseResponse.cookies.set(name, value, options);
-          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options),
+          );
         },
       },
     },
   );
 
-  /*
-   * --------------------------------------------------
-   * PAYSTACK WEBHOOK
-   * --------------------------------------------------
-   *
-   * Paystack calls this endpoint directly.
-   *
-   * There is no Supabase user session when Paystack
-   * sends the webhook, so we must allow the request
-   * through without authentication.
-   *
-   * IMPORTANT:
-   * The webhook route itself must still verify the
-   * Paystack signature before processing payments.
-   */
-  if (request.nextUrl.pathname === "/api/result/webhook") {
-    return supabaseResponse;
-  }
-
-  /*
-   * --------------------------------------------------
-   * REQUEST PATH
-   * --------------------------------------------------
-   */
   const pathname = request.nextUrl.pathname;
 
   /*
-   * --------------------------------------------------
-   * AUTHENTICATION
-   * --------------------------------------------------
-   *
-   * Get the authenticated Supabase user.
-   */
-  const { data, error } = await supabase.auth.getClaims();
-  const user = data?.claims;
-
-  /*
-   * --------------------------------------------------
+   * ---------------------------------------------------------
    * PUBLIC ROUTES
-   * --------------------------------------------------
+   * ---------------------------------------------------------
    *
-   * These routes can be accessed without authentication.
+   * /result-room-2 is public.
    *
-   * IMPORTANT:
-   * /result-room is intentionally NOT treated as a
-   * protected Result Room route.
-   *
-   * The Result Room landing page is allowed to be viewed
-   * by both authenticated and unauthenticated visitors.
+   * /result-room is intentionally NOT public.
    */
   const isPublicRoute =
     pathname === "/" ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/api/admin") ||
-    pathname === "/result-room" ||
-    pathname === "/result-room/";
+    pathname === "/result-room-2" ||
+    pathname === "/result-room-2/";
 
   /*
-   * --------------------------------------------------
-   * NO AUTHENTICATED USER
-   * --------------------------------------------------
+   * ---------------------------------------------------------
+   * PAYSTACK WEBHOOK
+   * ---------------------------------------------------------
    *
-   * If there is no authenticated user, protected routes
-   * redirect to the login page.
-   *
-   * The Result Room landing page remains accessible.
+   * Paystack webhook must be accessible without
+   * authentication.
    */
-  if (error || !user) {
-    if (!isPublicRoute) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/auth/login";
+  const isPaystackWebhook = pathname === "/api/result/webhook";
 
-      return NextResponse.redirect(url);
-    }
-
+  if (isPaystackWebhook) {
     return supabaseResponse;
   }
 
   /*
-   * --------------------------------------------------
-   * USER PROFILE CHECK
-   * --------------------------------------------------
-   *
-   * Every authenticated user must have completed their
-   * main Uprix profile before accessing the rest of
-   * the authenticated application.
+   * ---------------------------------------------------------
+   * AUTHENTICATION
+   * ---------------------------------------------------------
    */
+
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims;
+
+  /*
+   * Unauthenticated users can only access public routes.
+   *
+   * Notice that /result-room is NOT public.
+   */
+  if (!user && !isPublicRoute) {
+    const url = request.nextUrl.clone();
+
+    url.pathname = "/auth/login";
+
+    return NextResponse.redirect(url);
+  }
+
+  /*
+   * If there is no authenticated user and this is a
+   * public route, allow the request to continue.
+   *
+   * This is what allows /result-room-2 to be accessed
+   * without authentication.
+   */
+  if (!user) {
+    return supabaseResponse;
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * USER PROFILE
+   * ---------------------------------------------------------
+   */
+
   const { data: profile, error: profileError } = await supabase
     .from("user_profiles")
     .select("completed")
-    .eq("user_id", user.sub)
+    .eq("id", user.sub)
     .maybeSingle();
 
-  /*
-   * If the database check fails, do not redirect the
-   * user based on uncertain information.
-   */
   if (profileError) {
-    console.error("Error checking user profile:", profileError);
+    console.error("Middleware profile lookup error:", profileError);
 
     return supabaseResponse;
   }
@@ -179,14 +124,40 @@ export async function updateSession(request: NextRequest) {
   const profileCompleted = profile?.completed === true;
 
   /*
-   * --------------------------------------------------
-   * LOGGED-IN USER VISITS LOGIN
-   * --------------------------------------------------
+   * ---------------------------------------------------------
+   * PROFILE COMPLETION GATE
+   * ---------------------------------------------------------
    *
-   * A user who is already authenticated should not
-   * remain on the login page.
+   * Incomplete profiles can access:
+   *
+   * - /auth/*
+   * - /profile/create
+   * - /result-room-2
+   *
+   * They cannot access /result-room until
+   * their profile is complete.
    */
-  if (pathname === "/auth/login") {
+  if (
+    !profileCompleted &&
+    pathname !== "/profile/create" &&
+    !pathname.startsWith("/auth") &&
+    pathname !== "/result-room-2" &&
+    pathname !== "/result-room-2/"
+  ) {
+    const url = request.nextUrl.clone();
+
+    url.pathname = "/profile/create";
+
+    return NextResponse.redirect(url);
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * AUTHENTICATED USER VISITING LOGIN
+   * ---------------------------------------------------------
+   */
+
+  if (pathname === "/auth/login" || pathname === "/login") {
     const url = request.nextUrl.clone();
 
     if (profileCompleted) {
@@ -199,67 +170,22 @@ export async function updateSession(request: NextRequest) {
   }
 
   /*
-   * --------------------------------------------------
-   * INCOMPLETE PROFILE
-   * --------------------------------------------------
+   * ---------------------------------------------------------
+   * RESULT ROOM DASHBOARD
+   * ---------------------------------------------------------
    *
-   * Users with incomplete profiles can access the
-   * profile creation page and auth-related routes,
-   * but cannot access the rest of the application.
+   * Requires:
    *
-   * The Result Room landing page remains public.
-   */
-  if (
-    !profileCompleted &&
-    pathname !== "/profile/create" &&
-    !pathname.startsWith("/auth") &&
-    pathname !== "/result-room" &&
-    pathname !== "/result-room/"
-  ) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/profile/create";
-
-    return NextResponse.redirect(url);
-  }
-
-  /*
-   * --------------------------------------------------
-   * RESULT ROOM DASHBOARD ROUTING
-   * --------------------------------------------------
-   *
-   * IMPORTANT:
-   *
-   * We intentionally DO NOT check every /result-room
-   * route here.
-   *
-   * /result-room is the public Result Room landing page.
-   *
-   * Participant authorization only starts when the user
-   * enters:
-   *
-   *   /result-room/dashboard
-   *
-   * or one of its nested dashboard routes:
-   *
-   *   /result-room/dashboard/anything
+   * 1. Authentication
+   * 2. Completed profile
+   * 3. Participant record
+   * 4. Active room_status
    */
   const isResultRoomDashboardRoute =
     pathname === "/result-room/dashboard" ||
     pathname.startsWith("/result-room/dashboard/");
 
   if (isResultRoomDashboardRoute) {
-    /*
-     * ------------------------------------------------
-     * FIND RESULT ROOM PARTICIPANT
-     * ------------------------------------------------
-     *
-     * We look for the participant record belonging to
-     * the currently authenticated Supabase user.
-     *
-     * This assumes:
-     *
-     * participants.user_id = auth.users.id
-     */
     const { data: participant, error: participantError } = await supabase
       .from("participants")
       .select(
@@ -268,89 +194,59 @@ export async function updateSession(request: NextRequest) {
       .eq("user_id", user.sub)
       .maybeSingle();
 
-    /*
-     * If the participant lookup fails, do not make an
-     * authorization decision from incomplete information.
-     */
     if (participantError) {
-      console.error(
-        "Error checking Result Room participant:",
-        participantError,
-      );
+      console.error("Middleware participant lookup error:", participantError);
 
       return supabaseResponse;
     }
 
     /*
-     * ------------------------------------------------
-     * NOT A RESULT ROOM PARTICIPANT
-     * ------------------------------------------------
-     *
-     * The user is a valid Uprix user, but they do not
-     * have a Result Room participant record.
-     *
-     * They remain a normal Uprix user.
+     * Authenticated user without a participant record
+     * cannot access the Result Room dashboard.
      */
     if (!participant) {
       const url = request.nextUrl.clone();
+
       url.pathname = "/";
 
       return NextResponse.redirect(url);
     }
 
     /*
-     * ------------------------------------------------
-     * RESULT ROOM ADMIN
-     * ------------------------------------------------
-     *
-     * Admins have their own Result Room workspace.
-     *
-     * If an admin visits the participant dashboard,
-     * send them to the admin dashboard instead.
+     * Admins use the admin dashboard.
      */
     if (participant.is_admin) {
       const url = request.nextUrl.clone();
+
       url.pathname = "/result-room/admin";
 
       return NextResponse.redirect(url);
     }
 
     /*
-     * ------------------------------------------------
-     * ACTIVE PARTICIPANT
-     * ------------------------------------------------
-     *
-     * Active participants are allowed into the
-     * Result Room participant workspace.
+     * Only active participants can access the
+     * participant dashboard.
      */
     if (participant.room_status === "active") {
       return supabaseResponse;
     }
 
     /*
-     * ------------------------------------------------
-     * NON-ACTIVE PARTICIPANT
-     * ------------------------------------------------
-     *
-     * Pending, locked, and evicted participants cannot
-     * enter the normal Result Room dashboard.
-     *
-     * Instead, send them to the access page where we can
-     * explain their current Result Room status.
+     * Pending, locked, evicted, etc.
+     * remain authenticated but cannot enter the dashboard.
      */
     const url = request.nextUrl.clone();
+
     url.pathname = "/result-room/access";
 
     return NextResponse.redirect(url);
   }
 
   /*
-   * --------------------------------------------------
-   * NORMAL UPRIX ROUTES
-   * --------------------------------------------------
-   *
-   * If the request isn't the Result Room dashboard,
-   * no Result Room participant-specific logic is applied.
+   * ---------------------------------------------------------
+   * ALL OTHER ROUTES
+   * ---------------------------------------------------------
    */
+
   return supabaseResponse;
 }
