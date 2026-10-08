@@ -1,471 +1,761 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { ArrowUpRight, CheckCircle2, Calendar, Users } from "lucide-react";
-import logo from "@/app/assets/images/logo.png";
-import mobileLogo from "@/app/assets/images/mobileLogo.png";
-import trophy from "@/app/assets/images/handTrophy.png";
-import TextMarquee from "@/components/result-room/MarqueeText";
-import MechanismsSectionAnimated from "@/components/result-room/Mechanism";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
 
-export default function ResultRoom2Page() {
-  const checkoutUrl = "/payment";
+gsap.registerPlugin(ScrollTrigger);
 
-  const INK = "#1C2B20";
-  const GREEN = "#A8D86A";
+const deadline = Date.UTC(2026, 9, 8, 19, 0, 0);
+const commitments = [
+  "Being accountable.",
+  "Being tracked.",
+  "Showing up even when I do not feel like it.",
+  "Focusing on one meaningful goal.",
+  "Being challenged when I disappear.",
+  "Having consequences when excuses run out.",
+  "Giving myself 90 real days instead of another 90 days of soon.",
+];
 
-  const PILLARS = [
-    {
-      title: "Structure",
-      body: "A clear 90-day path, so you always know the next move.",
-    },
-    {
-      title: "Accountability",
-      body: "Real people watching the work, so skipping isn’t invisible.",
-    },
-    {
-      title: "Consequences",
-      body: "Missing a day costs you something, so showing up matters.",
-    },
-  ];
+const faqs = [
+  [
+    "What is the Result Room?",
+    "A 90-day execution and accountability experience built around one goal, a 1-on-1 accountability partner, and real consequences. Capacity is 50 people.",
+  ],
+  [
+    "Who is it for?",
+    "People with one result they have delayed long enough and who want structure, visibility, and consequences. It is not a casual community or a motivational group.",
+  ],
+  [
+    "What happens if I miss a day?",
+    "You get five Xcuse Slots for the full 90 days. After that, each missed daily task attracts a ₦500 penalty, and five unexplained no-show days means eviction.",
+  ],
+  [
+    "How does payment work?",
+    "The investment is ₦10,600. Secure your place with a minimum ₦5,000 deposit and complete the balance without extra charges.",
+  ],
+  [
+    "Will I get a result?",
+    "The room gives you structure, a partner, and consequences. The work, and the result, are yours.",
+  ],
+];
 
-  // Marker-style underline that follows the text across line breaks
-  function Highlight({ children }: { children: ReactNode }) {
-    return (
-      <span
-        className="box-decoration-clone"
-        style={{
-          backgroundImage: `linear-gradient(to top, #ffdd00 0.13em, transparent 0.13em)`,
-        }}
-      >
-        {children}
-      </span>
-    );
-  }
-
-  function Dot() {
-    return (
-      <span
-        className="block size-2 rounded-full ring-4"
-        style={{
-          backgroundColor: "#ffdd00",
-          ["--tw-ring-color" as string]: "rgba(255,221,0,0.3)",
-        }}
-      />
-    );
-  }
-
+function Arrow() {
   return (
-    <div className="relative min-h-screen text-slate-900 font-body selection:bg-primary-yellow selection:text-slate-950 overflow-x-hidden">
-      {/* Self-contained CSS animation for the slow moving banner */}
-      <style jsx global>{`
-        @keyframes rrMarquee {
-          0% {
-            transform: translateX(0%);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
-        }
-        .rr-ticker {
-          display: flex;
-          width: max-content;
-          animation: rrMarquee 28s linear infinite;
-        }
-        .rr-ticker:hover {
-          animation-play-state: paused;
-        }
-      `}</style>
+    <span className="rr-arrow" aria-hidden="true">
+      →
+    </span>
+  );
+}
 
-      {/* Floating Pill Navigation */}
-      <header className="fixed top-4 left-0 right-0 z-50 px-4">
-        <nav className="mx-auto flex h-12 max-w-8/12 items-center justify-between rounded-md border p-2 backdrop-blur-xl md:w-6/12">
-          <div className="flex items-center gap-3">
-            {/* <span className="font-heading font-black text-xl text-[#0D1322] tracking-tight">
-              Upri<span className="text-secondary-blue">x</span>
-            </span> */}
-            <Image
-              src={logo}
-              alt="Logo"
-              width={130}
-              height={130}
-              className="hidden object-cover lg:block"
-            />
-            <Image
-              src={mobileLogo}
-              alt="Mobile Logo"
-              width={40}
-              height={40}
-              className="object-cover lg:hidden"
-            />
-          </div>
+function ButtonLink({
+  children,
+  secondary = false,
+  href = "#offer",
+  onClick,
+}: {
+  children: React.ReactNode;
+  secondary?: boolean;
+  href?: string;
+  onClick?: () => void;
+}) {
+  return (
+    <a
+      className={`rr-btn inline-flex min-h-12 items-center justify-center gap-3 rounded-xl px-3 py-2.5 pl-[22px] text-base font-semibold no-underline transition-transform duration-150 hover:-translate-y-0.5 ${secondary ? "rr-btn-secondary" : ""}`}
+      href={href}
+      onClick={onClick}
+    >
+      {children}
+      <Arrow />
+    </a>
+  );
+}
 
-          <Link
-            href={checkoutUrl}
-            className="inline-flex items-center gap-2 rounded-md bg-primary-blue hover:brightness-95 text-white font-bold p-2 text-xs sm:text-sm transition-all shadow-sm"
+function AppPreview() {
+  return (
+    <div className="rr-card rr-app-preview rr-reveal grid min-h-[430px] text-left lg:grid-cols-[190px_1fr_250px]">
+      <aside className="rr-sidebar">
+        {["My goal", "Check-ins", "Partner", "Rules"].map((item, index) => (
+          <div
+            className={`rr-sidebar-item ${index === 0 ? "active" : ""}`}
+            key={item}
           >
-            <span>Save my seat</span>
-            <span className="w-5 h-5 rounded-sm bg-primary-yellow text-primary-blue flex items-center justify-center">
-              <ArrowUpRight size={13} />
-            </span>
-          </Link>
-        </nav>
-      </header>
-
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-16 md:pt-40 md:pb-24 px-4 pr-0 lg:pr-0 mx-auto overflow-x-clip">
-        <h1 className="absolute top-5 left-10 text-center font-extrabold text-[180px] text-gray-300 -z-30 pointer-events-none select-none">
-          RESULT ROOM
-        </h1>
-
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 mt-16 z-50 ml-4 md:ml-8 lg:ml-24">
-          <span className="w-2 h-2 rounded-full bg-primary-yellow inline-block animate-pulse" />
-          <span>COHORT 2.0</span>
-          <span className="text-slate-300">•</span>
-          <span className="text-secondary-blue font-extrabold">
-            ONE GOAL. 90 DAYS. NO HIDING.
+            <i />
+            {item}
+          </div>
+        ))}
+        <small>Cycle</small>
+        <div className="rr-sidebar-item">
+          <i />
+          Oct 18 → Jan 16
+        </div>
+      </aside>
+      <div className="rr-main-preview">
+        <div className="rr-preview-header">
+          <b>Cycle 1 · Day 23 / 90</b>
+          <span>
+            Progress{" "}
+            <i className="rr-progress">
+              <em />
+            </i>
           </span>
         </div>
+        {[
+          "Design practice · 40 minutes",
+          "Publish one draft video",
+          "Report today's work to partner",
+          "Plan tomorrow's task",
+        ].map((task, index) => (
+          <div className="rr-task-row" key={task}>
+            <code>RR-10{index + 1}</code>
+            <i
+              className={`rr-status ${index < 2 ? "done" : index === 2 ? "progress" : "backlog"}`}
+            />
+            <span>{task}</span>
+            <small>
+              {index < 2 ? "Done" : index === 2 ? "In progress" : "Todo"}
+            </small>
+          </div>
+        ))}
+        <div className="rr-feed">
+          <span className="rr-avatar yellow" /> Partner checked in{" "}
+          <small>· 2m ago</small>
+          <span className="rr-avatar" /> You reported today's work{" "}
+          <small>· just now</small>
+        </div>
+      </div>
+      <aside className="rr-properties">
+        <small>Properties</small>
+        <p>
+          <span>Goal</span>
+          <b>One result</b>
+        </p>
+        <p>
+          <span>Partner</span>
+          <b>1-on-1</b>
+        </p>
+        <p>
+          <span>Xcuse slots</span>
+          <b>● ● ○ ○ ○</b>
+        </p>
+        <p>
+          <span>After slots</span>
+          <b>₦500 / miss</b>
+        </p>
+        <p>
+          <span>5 no-shows</span>
+          <b className="red">Eviction</b>
+        </p>
+      </aside>
+    </div>
+  );
+}
 
-        <div className="grid lg:grid-cols-12 gap-10 items-center">
-          <div className="lg:col-span-7 ml-4 md:ml-8 lg:ml-24">
-            <h1 className="font-heading font-black text-4xl sm:text-6xl md:text-7xl text-[#0D1322] tracking-tight leading-[1.05] uppercase mb-6">
-              90 days from now, you’ll either have the result... <br />
-              <span className="bg-primary-yellow text-slate-950 px-2.5 py-0.5 inline-block mt-1 rounded-lg tracking-widest">
-                or another explanation.
-              </span>
+export default function ResultRoomTwoPage() {
+  const page = useRef<HTMLDivElement>(null);
+  const [remaining, setRemaining] = useState({
+    hours: "--",
+    minutes: "--",
+    seconds: "--",
+  });
+  const [paused, setPaused] = useState(false);
+  const [openFaq, setOpenFaq] = useState(0);
+  const [openInclude, setOpenInclude] = useState(0);
+  const [checked, setChecked] = useState<boolean[]>(() =>
+    commitments.map(() => false),
+  );
+  const [modalOpen, setModalOpen] = useState(false);
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState({
+    name: "",
+    phone: "",
+    goal: "",
+    plan: "",
+  });
+
+  useEffect(() => {
+    const tick = () => {
+      const difference = deadline - Date.now();
+      if (difference <= 0)
+        return setRemaining({ hours: "00", minutes: "00", seconds: "00" });
+      setRemaining({
+        hours: String(Math.floor(difference / 3600000)).padStart(2, "0"),
+        minutes: String(Math.floor((difference % 3600000) / 60000)).padStart(
+          2,
+          "0",
+        ),
+        seconds: String(Math.floor((difference % 60000) / 1000)).padStart(
+          2,
+          "0",
+        ),
+      });
+    };
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useGSAP(
+    () => {
+      gsap.fromTo(
+        ".rr-reveal",
+        { y: 28, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.8,
+          stagger: 0.06,
+          ease: "power3.out",
+          scrollTrigger: { trigger: ".rr-page", start: "top 85%" },
+        },
+      );
+      gsap.utils
+        .toArray<HTMLElement>(".rr-section .rr-reveal")
+        .forEach((element) =>
+          gsap.fromTo(
+            element,
+            { y: 30, opacity: 0 },
+            {
+              y: 0,
+              opacity: 1,
+              duration: 0.75,
+              ease: "power3.out",
+              scrollTrigger: { trigger: element, start: "top 88%", once: true },
+            },
+          ),
+        );
+      gsap.to(".rr-glow", {
+        scale: 1.08,
+        duration: 8,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut",
+      });
+    },
+    { scope: page },
+  );
+
+  const confirmed = checked.filter(Boolean).length;
+  const modalQuestions = [
+    "First, what should we call you?",
+    "What's your WhatsApp number?",
+    "What's the one goal you'll give 90 days?",
+  ];
+  const modalKeys = ["name", "phone", "goal"] as const;
+  const continueModal = () => {
+    if (step < 3 && !answers[modalKeys[step]]) return;
+    setStep((current) => current + 1);
+  };
+
+  return (
+    <div
+      className="rr-page min-h-screen overflow-clip font-body leading-[1.6] text-[#15151a]"
+      ref={page}
+    >
+      <div className="rr-announcement bg-[#15151a] px-3.5 py-2 text-center text-[0.84rem] text-white">
+        Payment closes today at 8:00 PM · closes in{" "}
+        <b className="tabular-nums text-[#ffd60a]">
+          {remaining.hours}:{remaining.minutes}:{remaining.seconds}
+        </b>{" "}
+        · Only 50 seats
+      </div>
+      <nav className="w-8/12 mx-auto sticky top-3 z-10 border-b border-[#e6e3da]/80 bg-[#fbfaf7]/80 backdrop-blur-[14px]">
+        <div className="rr-wrap mx-auto flex h-16 w-[calc(100%-44px)] max-w-[1120px] items-center justify-between gap-3.5">
+          <Link className="rr-logo" href="#top">
+            <b />
+            Result Room
+          </Link>
+          <div className="rr-links flex gap-7 text-[0.94rem] text-[#585862] max-[820px]:hidden">
+            <Link
+              href="#how"
+              className="text-sm duration-500 transition hover:text-black/50"
+            >
+              How it works
+            </Link>
+            <Link
+              href="#rules"
+              className="text-sm duration-500 transition hover:text-black/50"
+            >
+              Rules
+            </Link>
+            <Link
+              href="#offer"
+              className="text-sm duration-500 transition hover:text-black/50"
+            >
+              Offer
+            </Link>
+            <Link
+              href="#faq"
+              className="text-sm duration-500 transition hover:text-black/50"
+            >
+              FAQ
+            </Link>
+          </div>
+          <ButtonLink>Secure my spot</ButtonLink>
+        </div>
+      </nav>
+
+      <main id="top">
+        <header className="mt-24">
+          <div className="rr-glow" />
+          <div className="relative mx-auto w-[calc(100%-44px)] max-w-[1120px] text-center">
+            <Link
+              className="bg-white rounded-full p-3 shadow-sm text-sm"
+              href="#offer"
+            >
+              <b className="bg-primary-yellow rounded-full px-2 py-1">
+                New cohort
+              </b>{" "}
+              Oct 18, 2026 → Jan 16, 2027 →
+            </Link>
+            <h1 className="w-10/12 md:w-8/12 mx-auto pt-8 text-6xl tracking-tighter leading-none">
+              <span className="bg-primary-yellow py-1 px-4 rounded-xl">
+                90 days
+              </span>{" "}
+              from now, you'll either have the result…
             </h1>
-
-            <p className="text-lg text-slate-700 max-w-xl leading-relaxed mb-4 font-medium">
-              You already know what you want. The business. The skill. The
-              grades. The project. The body of work. The version of yourself you
-              keep saying you're becoming.
+            <p className="rr-reveal">
+              …or another explanation for why you still don't.
             </p>
-
-            <p className="text-xs text-slate-500 max-w-lg mb-8">
-              You don’t need another goal. You need an environment that makes it
+            <p className="mx-auto w-10/12 md:w-7/12 mt-4 text-gray-700 text-center">
+              You don't need another goal. You need an environment that makes it
               harder to keep abandoning the one you already have.
             </p>
-
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
-              <Link
-                href={checkoutUrl}
-                className="inline-flex items-center gap-2 rounded-md bg-primary-blue hover:brightness-95 text-white font-bold p-2 text-xs sm:text-sm transition-all shadow-sm"
-              >
-                <span>Save my seat</span>
-                <span className="w-5 h-5 rounded-sm bg-primary-yellow text-primary-blue flex items-center justify-center">
-                  <ArrowUpRight size={13} />
-                </span>
-              </Link>
+            <div className="rr-actions  mt-[34px] flex flex-wrap justify-center gap-3">
+              <ButtonLink>Enter the Result Room</ButtonLink>
+              <ButtonLink secondary href="#rules">
+                See the rules
+              </ButtonLink>
             </div>
+            <p className="rr-note ">
+              <b>Start with a ₦5,000 deposit.</b> Balance later, no extra
+              charges · 1 goal · 90 days · No hiding
+            </p>
+            <AppPreview />
+            <small className="rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
+              Illustrative example of a Result Room cycle
+            </small>
+          </div>
+        </header>
 
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-semibold text-slate-500">
-              <span className="flex items-center gap-1.5">
-                <Calendar size={14} className="text-secondary-blue" />
-                Oct 18, 2026 – Jan 16, 2027
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1.5">
-                <Users size={14} className="text-secondary-blue" />
-                Only 50 seats available
-              </span>
-              <span>•</span>
-              <span className="text-rose-600 font-bold">
-                Deadline: Oct 8, 8:00 PM
-              </span>
+        <div className="rr-ticker">
+          <div className="rr-wrap rr-ticker-head mx-auto mb-2 flex w-[calc(100%-44px)] max-w-[1120px] items-center justify-between gap-3.5">
+            <span className="rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
+              The advice you keep hearing
+            </span>
+            <button onClick={() => setPaused(!paused)}>
+              {paused ? "Play motion" : "Pause motion"}
+            </button>
+          </div>
+          <div
+            className={paused ? "rr-ticker-track paused" : "rr-ticker-track"}
+          >
+            Just keep going　·　Stay consistent　·　Don't stop　·　Show up every
+            day　·　Work harder　·　Keep showing up　·　Just keep going　·　Stay
+            consistent
+          </div>
+        </div>
+
+        <section className="rr-section py-[clamp(70px,10vw,130px)]">
+          <div className="rr-wrap rr-center mx-auto w-[calc(100%-44px)] max-w-[1120px] text-center">
+            <span className="rr-figure rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
+              Fig 0.1 — The room
+            </span>
+            <h2 className="">
+              A new way to finish
+              <br />
+              what you start.
+            </h2>
+            <p className="rr-lead ">
+              Purpose-built to turn intention into visible execution. One goal,
+              one partner, real consequences.
+            </p>
+            <div className="rr-three-col">
+              {[
+                [
+                  "1",
+                  "One goal",
+                  "Not seven goals. One clear result that actually matters to you.",
+                ],
+                [
+                  "1:1",
+                  "One partner",
+                  "Someone inside the room who expects you to do what you said.",
+                ],
+                [
+                  "90",
+                  "90 days",
+                  "A window where your goal gets structure, visibility and consequences.",
+                ],
+              ].map(([number, title, text]) => (
+                <article className="rr-card rr-feature " key={title}>
+                  <strong>{number}</strong>
+                  <h3>{title}</h3>
+                  <p>{text}</p>
+                </article>
+              ))}
             </div>
           </div>
+        </section>
 
-          {/* Trophy container extending past right margin */}
-          <div className="relative lg:col-span-5 -mr-4 sm:-mr-8 md:-mr-12 lg:-mr-24 pointer-events-none">
-            <div className="absolute inset-0 hidden lg:block">
-              <div className="absolute -left-10 top-10 h-28 w-28 rounded-full bg-primary-yellow/25 blur-3xl" />
-              <div className="absolute right-0 bottom-4 h-24 w-24 rounded-full bg-secondary-blue/20 blur-3xl" />
+        <section className="rr-section rr-soft border-y border-[#e6e3da] bg-white py-[clamp(70px,10vw,130px)]">
+          <div className="rr-wrap mx-auto w-[calc(100%-44px)] max-w-[1120px]">
+            <span className="rr-figure rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
+              The pattern
+            </span>
+            <div className="rr-split">
+              <div>
+                <h2 className="">You've said it before.</h2>
+                <p className="rr-lead ">
+                  And you probably meant it. But then life happened. Motivation
+                  dropped. You missed one day. Then another. And somehow…
+                  another month disappeared without the result.
+                </p>
+                <p className="rr-lead ">
+                  <b>
+                    That's the cycle the Result Room was built to interrupt.
+                  </b>{" "}
+                  With structure, accountability, and consequences.
+                </p>
+                <ButtonLink>I&apos;m done postponing</ButtonLink>
+              </div>
+              <div className="rr-card rr-backlog ">
+                <b>Your goals · Backlog</b>
+                {[
+                  "I'll start next month.",
+                  "I'll be more consistent.",
+                  "I'll get serious soon.",
+                  "This time, I'll actually stick with it.",
+                ].map((item) => (
+                  <p key={item}>
+                    <i className="rr-status backlog" />“{item}”{" "}
+                    <small>Backlog</small>
+                  </p>
+                ))}
+              </div>
             </div>
+          </div>
+        </section>
 
-            <div className="relative z-10 flex items-center justify-end">
-              <Image
-                src={trophy}
-                alt="Hand Trophy"
-                width={620}
-                height={620}
-                priority
-                className="h-auto w-[360px] sm:w-[480px] lg:w-[560px] max-w-none object-contain drop-shadow-[0_25px_45px_rgba(15,23,42,0.18)] translate-x-10 sm:translate-x-16 lg:translate-x-20 lg:translate-y-4"
+        <section className="rr-section py-[clamp(70px,10vw,130px)]" id="how">
+          <div className="rr-wrap mx-auto w-[calc(100%-44px)] max-w-[1120px]">
+            <span className="rr-figure rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
+              How the room works
+            </span>
+            <h2 className="">Structure that doesn't negotiate.</h2>
+            <div className="rr-three-col rr-process">
+              <article className="">
+                <span className="rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
+                  01 · Goal
+                </span>
+                <h3>Pick one thing. Then give it 90 days.</h3>
+                <p className="rr-lead">
+                  One clear result that actually matters to you. You leave with
+                  a clear execution system.
+                </p>
+              </article>
+              <article className="">
+                <span className="rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
+                  02 · Partner
+                </span>
+                <h3>Someone will notice when you don't show up.</h3>
+                <p className="rr-lead">
+                  For the full 90 days, you're paired 1-on-1. You track
+                  progress, report the work, and check in.
+                </p>
+              </article>
+              <article className="rr-card rr-rules-card " id="rules">
+                <span className="rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
+                  03 · Rules
+                </span>
+                <h3>This room has rules.</h3>
+                <p>5 Xcuse Slots</p>
+                <p>₦500 penalty after slots</p>
+                <p>5 days no-show = out</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section className="rr-section rr-soft border-y border-[#e6e3da] bg-white py-[clamp(70px,10vw,130px)]">
+          <div className="rr-wrap mx-auto w-[calc(100%-44px)] max-w-[1120px]">
+            <span className="rr-figure rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
+              Qualification
+            </span>
+            <h2 className="">Is this for you?</h2>
+            <div className="rr-two-col">
+              <article className="rr-card ">
+                <h3>Enter if…</h3>
+                {[
+                  "There's one result you've delayed long enough.",
+                  "You're tired of carrying it from month to month.",
+                  "You know you've been capable of more.",
+                  "You want structure, visibility and consequences.",
+                ].map((item) => (
+                  <p key={item} className="rr-list yes">
+                    {item}
+                  </p>
+                ))}
+              </article>
+              <article className="rr-card ">
+                <h3>Don't enter if you want…</h3>
+                {[
+                  "A casual community…",
+                  "A motivational group…",
+                  "Another place to read inspiring messages…",
+                  "A system with no consequences…",
+                ].map((item) => (
+                  <p key={item} className="rr-list no">
+                    {item}
+                  </p>
+                ))}
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section className="rr-section py-[clamp(70px,10vw,130px)]" id="offer">
+          <div className="rr-wrap mx-auto w-[calc(100%-44px)] max-w-[1120px]">
+            <span className="rr-figure rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
+              Urgency · 90 days. That's all you get.
+            </span>
+            <h2 className="">Those days are coming anyway.</h2>
+            <p className="rr-lead ">
+              There is no version where October freezes until you feel ready.
+              Choose one thing and give it a real chance.
+            </p>
+            <div className="rr-offer">
+              <div className="rr-card rr-includes ">
+                {[
+                  "Reframe Your Goal Consultation",
+                  "Your 1-on-1 Accountability Partner",
+                  "The Result Room",
+                  "All Result Conversations",
+                  "The Accountability System",
+                ].map((item, index) => (
+                  <div key={item}>
+                    <button
+                      onClick={() =>
+                        setOpenInclude(openInclude === index ? -1 : index)
+                      }
+                    >
+                      <i>✓</i>
+                      {item}
+                      <span>{openInclude === index ? "−" : "+"}</span>
+                    </button>
+                    {openInclude === index && (
+                      <p>
+                        A structured part of the 90-day execution environment,
+                        built around showing up, tracking progress, and getting
+                        the result.
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="rr-card rr-price ">
+                <span className="rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
+                  The Result Room 2.0 · 90-Day Execution
+                </span>
+                <strong>₦10,600</strong>
+                <em>≈ ₦118 a day for 90 days</em>
+                <div className="rr-countdown">
+                  <b>
+                    {remaining.hours}
+                    <small>HOURS</small>
+                  </b>
+                  <b>
+                    {remaining.minutes}
+                    <small>MINS</small>
+                  </b>
+                  <b>
+                    {remaining.seconds}
+                    <small>SECS</small>
+                  </b>
+                </div>
+                <p>
+                  Start with a ₦5,000 deposit. Complete the balance without
+                  extra charges.
+                </p>
+                <ButtonLink onClick={() => setModalOpen(true)}>
+                  Secure my spot
+                </ButtonLink>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="rr-section rr-soft border-y border-[#e6e3da] bg-white py-[clamp(70px,10vw,130px)]">
+          <div className="rr-wrap rr-center mx-auto w-[calc(100%-44px)] max-w-[1120px] text-center">
+            <span className="rr-figure rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
+              Commitment check
+            </span>
+            <h2 className="">Before you join…</h2>
+            <p className="rr-lead ">
+              Understand what you're saying yes to. If it sounds like exactly
+              what you've been missing, welcome.
+            </p>
+            <div className="rr-checklist">
+              {commitments.map((item, index) => (
+                <button
+                  className={checked[index] ? "selected" : ""}
+                  key={item}
+                  onClick={() =>
+                    setChecked((current) =>
+                      current.map((value, itemIndex) =>
+                        itemIndex === index ? !value : value,
+                      ),
+                    )
+                  }
+                >
+                  <i>✓</i>
+                  {item}
+                </button>
+              ))}
+            </div>
+            <div className="rr-check-progress">
+              <i
+                style={{ width: `${(confirmed / commitments.length) * 100}%` }}
               />
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Self-contained Smooth Infinite Marquee Banner */}
-
-      <TextMarquee />
-
-      {/* Section 01: The Pattern */}
-      <section className="px-5 py-24 sm:px-10 sm:py-32">
-        <div className="mx-auto max-w-6xl">
-          {/* Eyebrow */}
-          <div className="mb-8 flex items-center gap-3 text-xs">
-            <Dot />
-            <span className="tracking-wide text-[#8A8A82]">
-              01 · The Pattern
-            </span>
-          </div>
-
-          {/* Big statement */}
-          <p className="max-w-4xl text-3xl font-normal leading-[1.15] tracking-tight sm:text-5xl font-heading">
-            <Highlight>You&apos;ve said it before.</Highlight>{" "}
-            <span className="text-[#8A8A82]">
-              “I’ll start next month.” “I’ll be more consistent.” “I’ll get
-              serious soon.” “This time, I’ll actually stick with it.”
-            </span>{" "}
-            And you probably meant it. But life happened, and{" "}
-            <Highlight>another month disappeared</Highlight> without the result.
-          </p>
-
-          {/* Pivot line */}
-          <p className="mt-12 max-w-2xl text-base leading-relaxed text-[#8A8A82] sm:text-lg">
-            <span style={{ color: INK }}>
-              That’s the cycle The Result Room was built to interrupt.
-            </span>{" "}
-            Not with another motivational speech, another productivity PDF, or
-            another group where everybody disappears after week two.
-          </p>
-
-          {/* Three pillars */}
-          <div className="mt-20 grid gap-10 md:grid-cols-3 md:gap-8">
-            {PILLARS.map((p, i) => (
-              <div key={p.title} className="border-t border-[#D9D4CA] pt-6">
-                <div className="flex items-center gap-3 text-xs text-[#8A8A82]">
-                  <Dot />
-                  <span>{String(i + 1).padStart(2, "0")}</span>
-                </div>
-                <h3 className="mt-8 text-xl font-medium tracking-tight">
-                  {p.title}
-                </h3>
-                <p className="mt-3 max-w-[17rem] text-sm leading-relaxed text-[#8A8A82]">
-                  {p.body}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* Closing line */}
-          <div className="mt-14 flex items-center gap-3 border-t border-[#D9D4CA] pt-6 text-lg sm:text-2xl">
-            <Dot />
-            <p className="font-normal tracking-tight">
-              And <Highlight>90 days</Highlight> where one result becomes the
-              priority.
+            <p className="rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
+              {confirmed} / 7 confirmed
             </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Section 02: The Mechanisms */}
-      <MechanismsSectionAnimated />
-
-      {/* Section 03: Rules of The Room */}
-      <section className="py-20 px-4 max-w-4xl mx-auto">
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-          <span className="text-secondary-blue font-extrabold">03</span>
-          <span>The Rules</span>
-        </div>
-        <h2 className="font-heading font-black text-3xl sm:text-5xl text-[#0D1322] tracking-tight uppercase mb-2">
-          This Room Has Rules.
-        </h2>
-        <p className="text-slate-500 text-sm mb-12">
-          Because “do your best” is too easy to negotiate with.
-        </p>
-
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm">
-            <span className="font-heading font-black text-4xl text-slate-950 block mb-2">
-              05
-            </span>
-            <h4 className="font-heading font-black text-base text-[#0D1322] mb-2 uppercase">
-              Xcuse Slots
-            </h4>
-            <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-              Life happens. Emergencies happen. You get exactly five excuse
-              slots for the entire 90 days. Use them wisely.
-            </p>
-          </div>
-
-          <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm">
-            <span className="font-heading font-black text-4xl text-rose-600 block mb-2">
-              ₦500
-            </span>
-            <h4 className="font-heading font-black text-base text-[#0D1322] mb-2 uppercase">
-              Missed Penalty
-            </h4>
-            <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-              Run out of excuses? Every missed daily task afterwards attracts a
-              ₦500 penalty.
-            </p>
-          </div>
-
-          <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm">
-            <span className="font-heading font-black text-4xl text-red-600 block mb-2">
-              OUT
-            </span>
-            <h4 className="font-heading font-black text-base text-[#0D1322] mb-2 uppercase">
-              5 Days No-Show
-            </h4>
-            <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-              Five unexplained days without showing up means eviction. A room
-              built around results cannot normalize disappearing.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Section 04: Filter / Qualification */}
-      <section className="py-20 px-4 max-w-3xl mx-auto text-center border-t border-slate-200">
-        <h3 className="font-heading font-black text-2xl sm:text-4xl text-[#0D1322] uppercase mb-4">
-          This is not for everyone.
-        </h3>
-        <p className="text-slate-600 text-sm sm:text-base leading-relaxed mb-6">
-          If you want a casual community, a motivational group, another place to
-          read inspiring messages, or a system with no consequences:{" "}
-          <strong className="text-rose-600">Don’t enter. Seriously.</strong>
-        </p>
-        <p className="text-slate-900 text-sm sm:text-base font-semibold leading-relaxed">
-          But if there’s one thing you’re tired of carrying from month to
-          month... one result you’ve delayed long enough... one area where you
-          know you’ve been capable of more... then keep reading.
-        </p>
-      </section>
-
-      {/* Section 05: The Offer Stack Card */}
-      <section className="py-20 px-4 bg-[#FAF9F5] border-t border-slate-200">
-        <div className="max-w-2xl mx-auto bg-white border border-slate-300 shadow-xl rounded-3xl p-7 sm:p-10 relative">
-          <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-slate-950 text-white text-[11px] font-bold uppercase tracking-wider px-4 py-1 rounded-full shadow-md">
-            All-Inclusive Cohort
-          </div>
-
-          <div className="text-center pb-8 border-b border-slate-200 mt-2">
-            <h3 className="font-heading font-black text-3xl sm:text-4xl text-[#0D1322] uppercase tracking-tight mb-1">
-              Result Room 2.0
-            </h3>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              October 18, 2026 – January 16, 2027
-            </p>
-
-            <div className="mt-6 flex items-baseline justify-center gap-1">
-              <span className="font-heading font-black text-5xl text-[#0D1322]">
-                ₦10,600
-              </span>
-              <span className="text-slate-500 text-sm font-medium">
-                / 90 days
-              </span>
-            </div>
-
-            <p className="mt-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 py-1.5 px-3 rounded-full inline-block">
-              Lock in with a minimum ₦5,000 deposit and balance up later
-            </p>
-          </div>
-
-          <div className="py-8 space-y-4 text-xs sm:text-sm">
-            {[
-              {
-                title: "1-on-1 Goal Consultation with Taifaq",
-                val: "₦8,500 value",
-              },
-              {
-                title: "1-on-1 Accountability Partner for 90 Days",
-                val: "Core System",
-              },
-              {
-                title: "The Result Room Daily Tracking & Execution Hub",
-                val: "Core Environment",
-              },
-              {
-                title: "All Result Conversations & Strategy Frameworks",
-                val: "₦15,000 value",
-              },
-              {
-                title:
-                  "The Accountability System (Xcuse Slots, Penalties, Eviction)",
-                val: "Zero Disappearing",
-              },
-            ].map((item, idx) => (
-              <div
-                key={idx}
-                className="flex items-center justify-between gap-3 text-slate-800"
-              >
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2
-                    size={16}
-                    className="text-secondary-blue shrink-0"
-                  />
-                  <span className="font-medium">{item.title}</span>
-                </div>
-                <span className="text-[11px] font-semibold text-slate-400 whitespace-nowrap hidden sm:inline">
-                  {item.val}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div className="pt-2 text-center">
-            <Link
-              href={checkoutUrl}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-primary-yellow hover:brightness-95 text-slate-950 font-heading font-black text-base py-4 shadow-md transition-all hover:scale-[1.01]"
+            <button
+              className={`rr-btn ${confirmed === 7 ? "" : "disabled"}`}
+              disabled={confirmed !== 7}
+              onClick={() => setModalOpen(true)}
             >
-              <span>SECURE MY SPOT NOW</span>
-              <span className="w-6 h-6 rounded-full bg-slate-950 text-white flex items-center justify-center">
-                <ArrowUpRight size={15} />
-              </span>
-            </Link>
-            <p className="mt-3 text-xs text-slate-500 font-medium">
-              Only 50 seats available • Deadline: October 8 (8:00 PM)
-            </p>
+              I'm ready for the 90 days
+              <Arrow />
+            </button>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Section 06: Full Bleed Yellow Finale */}
-      <section className="bg-primary-yellow py-24 px-4 text-slate-950">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-xs font-black uppercase tracking-wider text-slate-800 mb-4">
-            06 THE INVITATION • ONE LAST QUESTION
-          </div>
-
-          <h2 className="font-heading font-black text-4xl sm:text-6xl md:text-7xl uppercase tracking-tight leading-[1.05] mb-8 text-[#0D1322]">
-            Are you tired of confusing effort with progress?
-          </h2>
-
-          <p className="text-base sm:text-xl font-medium text-slate-800 max-w-2xl leading-relaxed mb-10">
-            January 16 is coming anyway. You'll either arrive with another
-            promise, another restart, and another explanation... or evidence.
-          </p>
-
-          <Link
-            href={checkoutUrl}
-            className="inline-flex items-center gap-3 rounded-full bg-[#0D1322] hover:bg-slate-800 text-white font-heading font-bold text-sm sm:text-base px-8 py-4 transition-all shadow-xl hover:scale-105"
-          >
-            <span>Reserve my seat</span>
-            <span className="w-6 h-6 rounded-full bg-primary-yellow text-slate-950 flex items-center justify-center">
-              <ArrowUpRight size={15} />
+        <section className="rr-section py-[clamp(70px,10vw,130px)]" id="faq">
+          <div className="rr-wrap rr-narrow mx-auto w-[calc(100%-44px)] max-w-[860px]">
+            <span className="rr-figure rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
+              A little clarity
             </span>
-          </Link>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-8 px-4">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-medium">
-          <div className="flex items-center gap-2">
-            <span className="font-heading font-black text-base text-slate-900 tracking-tight">
-              Uprix
-            </span>
-            <span>• The Result Room 2.0</span>
+            <h2 className="rr-reveal">Good questions.</h2>
+            {faqs.map(([question, answer], index) => (
+              <div
+                className={`rr-faq ${openFaq === index ? "open" : ""}`}
+                key={question}
+              >
+                <button
+                  onClick={() => setOpenFaq(openFaq === index ? -1 : index)}
+                >
+                  <span>{question}</span>
+                  <b>+</b>
+                </button>
+                {openFaq === index && <p>{answer}</p>}
+              </div>
+            ))}
           </div>
-          <div>Direction. Execution. Results.</div>
+        </section>
+      </main>
+      <footer className="rr-footer border-t border-[#e6e3da] px-0 pb-[110px] pt-9 text-[0.85rem] text-[#585862]">
+        <div className="rr-wrap mx-auto flex w-[calc(100%-44px)] max-w-[1120px] flex-wrap justify-between gap-2.5">
+          <span>© 2026 UPRIX · The Result Room 2.0</span>
+          <span>One goal. 90 days. No hiding.</span>
         </div>
       </footer>
+
+      {modalOpen && (
+        <div
+          className="rr-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) =>
+            event.target === event.currentTarget && setModalOpen(false)
+          }
+        >
+          <div
+            className="rr-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rr-modal-title"
+          >
+            <button
+              className="rr-modal-close"
+              onClick={() => setModalOpen(false)}
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <span className="rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
+              {step < 4 ? `STEP ${step + 1} OF 4` : "ALL SET"}
+            </span>
+            <div className="rr-check-progress">
+              <i style={{ width: `${(Math.min(step, 4) / 4) * 100}%` }} />
+            </div>
+            {step < 3 ? (
+              <>
+                <h3 id="rr-modal-title">{modalQuestions[step]}</h3>
+                <input
+                  autoFocus
+                  value={answers[modalKeys[step]]}
+                  onChange={(event) =>
+                    setAnswers({
+                      ...answers,
+                      [modalKeys[step]]: event.target.value,
+                    })
+                  }
+                  placeholder={
+                    step === 0
+                      ? "First name"
+                      : step === 1
+                        ? "+234…"
+                        : "e.g. Launch my design business"
+                  }
+                />
+                <button className="rr-btn" onClick={continueModal}>
+                  Continue
+                  <Arrow />
+                </button>
+              </>
+            ) : step === 3 ? (
+              <>
+                <h3 id="rr-modal-title">
+                  How would you like to secure your seat?
+                </h3>
+                <button
+                  className="rr-option"
+                  onClick={() => {
+                    setAnswers({
+                      ...answers,
+                      plan: "Deposit: ₦5,000 now, balance later",
+                    });
+                    setStep(4);
+                  }}
+                >
+                  Deposit: ₦5,000 now, balance later
+                </button>
+                <button
+                  className="rr-option"
+                  onClick={() => {
+                    setAnswers({ ...answers, plan: "Full payment: ₦10,600" });
+                    setStep(4);
+                  }}
+                >
+                  Full payment: ₦10,600
+                </button>
+              </>
+            ) : (
+              <>
+                <h3 id="rr-modal-title">You're nearly in, {answers.name}.</h3>
+                <p className="rr-lead">
+                  Goal: {answers.goal} · {answers.plan}. Complete your payment
+                  to lock your seat.
+                </p>
+                <ButtonLink href="#offer">Continue to payment</ButtonLink>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
