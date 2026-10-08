@@ -49,7 +49,7 @@ export default function ResultRoom({ status }: { status: ResultRoomStatus }) {
               <DialogTrigger asChild>
                 <button
                   type="button"
-                  disabled={!status.roomAvailable}
+                  disabled={status.roomAvailable}
                   className="inline-flex items-center gap-2 bg-secondary-blue text-white py-3 px-4 rounded-lg text-xs font-semibold font-heading duration-500 transition disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {status.roomAvailable

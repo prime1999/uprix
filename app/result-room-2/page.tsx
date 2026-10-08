@@ -5,6 +5,12 @@ import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
+import { CircleArrowOutUpRight, CircleArrowOutDownRight } from "lucide-react";
+import YellowButton from "@/components/miselleneous/yellowButton";
+import WhiteButton from "@/components/miselleneous/whiteButton";
+import TextSlider from "@/components/result-room/textSlider";
+import RoomSection from "@/components/result-room/RoomSection";
+import QualificationSection from "@/components/result-room/QualificationSection";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -75,7 +81,7 @@ function ButtonLink({
 
 function AppPreview() {
   return (
-    <div className="rr-card rr-app-preview rr-reveal grid min-h-[430px] text-left lg:grid-cols-[190px_1fr_250px]">
+    <div className="bg-white shadow-sm rr-app-preview rr-reveal grid min-h-[430px] text-left lg:grid-cols-[190px_1fr_250px]">
       <aside className="rr-sidebar">
         {["My goal", "Check-ins", "Partner", "Rules"].map((item, index) => (
           <div
@@ -261,7 +267,7 @@ export default function ResultRoomTwoPage() {
         </b>{" "}
         · Only 50 seats
       </div>
-      <nav className="w-8/12 mx-auto sticky top-3 z-10 border-b border-[#e6e3da]/80 bg-[#fbfaf7]/80 backdrop-blur-[14px]">
+      <nav className="w-8/12 mx-auto sticky top-3 z-10 rounded-full border-b border-[#e6e3da]/80 backdrop-blur-3xl">
         <div className="rr-wrap mx-auto flex h-16 w-[calc(100%-44px)] max-w-[1120px] items-center justify-between gap-3.5">
           <Link className="rr-logo" href="#top">
             <b />
@@ -293,7 +299,13 @@ export default function ResultRoomTwoPage() {
               FAQ
             </Link>
           </div>
-          <ButtonLink>Secure my spot</ButtonLink>
+          <YellowButton>
+            <span className="flex gap-2 items-center">
+              {" "}
+              Secure my spot
+              <CircleArrowOutUpRight className="size-4 ml-1" />
+            </span>
+          </YellowButton>
         </div>
       </nav>
 
@@ -324,10 +336,20 @@ export default function ResultRoomTwoPage() {
               harder to keep abandoning the one you already have.
             </p>
             <div className="rr-actions  mt-[34px] flex flex-wrap justify-center gap-3">
-              <ButtonLink>Enter the Result Room</ButtonLink>
-              <ButtonLink secondary href="#rules">
-                See the rules
-              </ButtonLink>
+              <YellowButton>
+                <span className="flex gap-2 items-center">
+                  {" "}
+                  Enter the result room
+                  <CircleArrowOutUpRight className="size-4 ml-1" />
+                </span>
+              </YellowButton>
+              <WhiteButton link="#rules">
+                <span className="flex gap-2 items-center">
+                  {" "}
+                  See Rules
+                  <CircleArrowOutDownRight className="size-4 ml-1" />
+                </span>
+              </WhiteButton>
             </div>
             <p className="rr-note ">
               <b>Start with a ₦5,000 deposit.</b> Balance later, no extra
@@ -340,86 +362,36 @@ export default function ResultRoomTwoPage() {
           </div>
         </header>
 
-        <div className="rr-ticker">
-          <div className="rr-wrap rr-ticker-head mx-auto mb-2 flex w-[calc(100%-44px)] max-w-[1120px] items-center justify-between gap-3.5">
-            <span className="rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
-              The advice you keep hearing
-            </span>
-            <button onClick={() => setPaused(!paused)}>
-              {paused ? "Play motion" : "Pause motion"}
-            </button>
-          </div>
-          <div
-            className={paused ? "rr-ticker-track paused" : "rr-ticker-track"}
-          >
-            Just keep going　·　Stay consistent　·　Don't stop　·　Show up every
-            day　·　Work harder　·　Keep showing up　·　Just keep going　·　Stay
-            consistent
-          </div>
-        </div>
+        <TextSlider />
 
-        <section className="rr-section py-[clamp(70px,10vw,130px)]">
-          <div className="rr-wrap rr-center mx-auto w-[calc(100%-44px)] max-w-[1120px] text-center">
-            <span className="rr-figure rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
-              Fig 0.1 — The room
-            </span>
-            <h2 className="">
-              A new way to finish
-              <br />
-              what you start.
-            </h2>
-            <p className="rr-lead ">
-              Purpose-built to turn intention into visible execution. One goal,
-              one partner, real consequences.
-            </p>
-            <div className="rr-three-col">
-              {[
-                [
-                  "1",
-                  "One goal",
-                  "Not seven goals. One clear result that actually matters to you.",
-                ],
-                [
-                  "1:1",
-                  "One partner",
-                  "Someone inside the room who expects you to do what you said.",
-                ],
-                [
-                  "90",
-                  "90 days",
-                  "A window where your goal gets structure, visibility and consequences.",
-                ],
-              ].map(([number, title, text]) => (
-                <article className="rr-card rr-feature " key={title}>
-                  <strong>{number}</strong>
-                  <h3>{title}</h3>
-                  <p>{text}</p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
+        <RoomSection />
 
-        <section className="rr-section rr-soft border-y border-[#e6e3da] bg-white py-[clamp(70px,10vw,130px)]">
+        <section className="rr-soft border-y border-[#e6e3da] bg-white py-[clamp(70px,10vw,130px)]">
           <div className="rr-wrap mx-auto w-[calc(100%-44px)] max-w-[1120px]">
-            <span className="rr-figure rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
+            <span className="rr-figure rr-mono font-mono text-xs tracking-[0.02em] text-gray-800 font-semibold">
               The pattern
             </span>
             <div className="rr-split">
               <div>
-                <h2 className="">You've said it before.</h2>
-                <p className="rr-lead ">
+                <h2 className="text-2xl">You've said it before.</h2>
+                <p className="text-sm my-4">
                   And you probably meant it. But then life happened. Motivation
                   dropped. You missed one day. Then another. And somehow…
                   another month disappeared without the result.
                 </p>
-                <p className="rr-lead ">
+                <p className="text-sm mb-8">
                   <b>
                     That's the cycle the Result Room was built to interrupt.
                   </b>{" "}
                   With structure, accountability, and consequences.
                 </p>
-                <ButtonLink>I&apos;m done postponing</ButtonLink>
+                <YellowButton>
+                  <span className="flex gap-2 items-center">
+                    {" "}
+                    I&apos;m done postponing
+                    <CircleArrowOutUpRight className="size-4 ml-1" />
+                  </span>
+                </YellowButton>
               </div>
               <div className="rr-card rr-backlog ">
                 <b>Your goals · Backlog</b>
@@ -439,13 +411,16 @@ export default function ResultRoomTwoPage() {
           </div>
         </section>
 
-        <section className="rr-section py-[clamp(70px,10vw,130px)]" id="how">
+        <section
+          className="rr-section bg-white py-[clamp(70px,10vw,130px)]"
+          id="how"
+        >
           <div className="rr-wrap mx-auto w-[calc(100%-44px)] max-w-[1120px]">
-            <span className="rr-figure rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
+            <span className="rr-figure rr-mono font-mono text-xs tracking-[0.02em] text-gray-800 font-semibold">
               How the room works
             </span>
-            <h2 className="">Structure that doesn't negotiate.</h2>
-            <div className="rr-three-col rr-process">
+            <h2 className="text-2xl">Structure that doesn't negotiate.</h2>
+            <div className="grid grid-cols-1 gap-6 text-left md:grid-cols-3 mt-12">
               <article className="">
                 <span className="rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
                   01 · Goal
@@ -466,7 +441,7 @@ export default function ResultRoomTwoPage() {
                   progress, report the work, and check in.
                 </p>
               </article>
-              <article className="rr-card rr-rules-card " id="rules">
+              <article className="rr-rules-card " id="rules">
                 <span className="rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
                   03 · Rules
                 </span>
@@ -479,42 +454,7 @@ export default function ResultRoomTwoPage() {
           </div>
         </section>
 
-        <section className="rr-section rr-soft border-y border-[#e6e3da] bg-white py-[clamp(70px,10vw,130px)]">
-          <div className="rr-wrap mx-auto w-[calc(100%-44px)] max-w-[1120px]">
-            <span className="rr-figure rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
-              Qualification
-            </span>
-            <h2 className="">Is this for you?</h2>
-            <div className="rr-two-col">
-              <article className="rr-card ">
-                <h3>Enter if…</h3>
-                {[
-                  "There's one result you've delayed long enough.",
-                  "You're tired of carrying it from month to month.",
-                  "You know you've been capable of more.",
-                  "You want structure, visibility and consequences.",
-                ].map((item) => (
-                  <p key={item} className="rr-list yes">
-                    {item}
-                  </p>
-                ))}
-              </article>
-              <article className="rr-card ">
-                <h3>Don't enter if you want…</h3>
-                {[
-                  "A casual community…",
-                  "A motivational group…",
-                  "Another place to read inspiring messages…",
-                  "A system with no consequences…",
-                ].map((item) => (
-                  <p key={item} className="rr-list no">
-                    {item}
-                  </p>
-                ))}
-              </article>
-            </div>
-          </div>
-        </section>
+        <QualificationSection />
 
         <section className="rr-section py-[clamp(70px,10vw,130px)]" id="offer">
           <div className="rr-wrap mx-auto w-[calc(100%-44px)] max-w-[1120px]">
