@@ -22,7 +22,7 @@
     "csv-parse": "^7.0.2",
     "date-fns": "^4.4.0",
     "date-fns-tz": "^3.2.0",
-    "googleapis": "^178.0.0",
+    "googleapis": "^178.1.1",
     "gsap": "^3.15.0",
     "lucide-react": "^0.511.0",
     "next": "latest",
