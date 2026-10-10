@@ -240,7 +240,7 @@ export default function OfferSection({
                       closed ? "bg-neutral-400" : "animate-pulse bg-red-500"
                     }`}
                   />
-                  {closed ? "Closed" : "Closes 8PM"}
+                  {closed ? "Closed" : "Closes OCT 17. 4PM"}
                 </span>
               </div>
 

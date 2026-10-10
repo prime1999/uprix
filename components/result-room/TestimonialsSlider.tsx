@@ -204,7 +204,7 @@ export default function TestimonialsSlider() {
             </button>
           ))}
         </div>
-
+        <h2 className="text-center text-4xl font-bricolage">Testimonials</h2>
         {/* Stage: height follows the tallest image, shorter ones sit centred */}
         <div
           className="relative w-full touch-pan-y select-none outline-none [--card-w:min(340px,62vw)]"

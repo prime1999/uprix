@@ -36,7 +36,7 @@ export default function RoomSection() {
           Fig 0.1 — The room
         </span>
 
-        <h2 className="text-4xl">
+        <h2 className="text-4xl tracking-tight">
           A new way to finish
           <br />
           what you start.
