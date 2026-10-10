@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import YellowButton from "../miselleneous/yellowButton";
+import YellowButton from "../miselleneous/ResultRoomPaymentButton";
+import type { ResultRoomStatus } from "@/lib/supabase/result-room";
 
 /* ───────────────────────── data ───────────────────────── */
 
@@ -182,12 +183,13 @@ function Accordion({ items }: { items: Item[] }) {
 
 export default function OfferSection({
   deadline,
-  onSecure,
+  status,
+
   items = INCLUDES,
 }: {
   /** ms timestamp, e.g. Date.UTC(2026, 9, 8, 19, 0, 0) */
   deadline: number;
-  onSecure: () => void;
+  status: ResultRoomStatus;
   items?: Item[];
 }) {
   const { h, m, s, closed } = useCountdown(deadline);
@@ -297,8 +299,8 @@ export default function OfferSection({
               </p>
 
               <YellowButton
+                status={status}
                 disabled={true}
-                onClick={onSecure}
                 className="mt-5 w-full rounded-full bg-gradient-to-b from-white to-neutral-300 py-4 text-lg font-semibold text-neutral-900 shadow-[inset_0_2px_0_rgba(255,255,255,0.9),0_14px_30px_-10px_rgba(255,255,255,0.35)] transition duration-200 hover:-translate-y-0.5 hover:brightness-105 active:translate-y-px"
               >
                 Secure my spot

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { ArrowLeft, TrendingUp, Star, HelpCircle } from "lucide-react";
 import Faq from "@/components/result-room/Faq";
-import PaymentModal from "@/components/payment/paymentModal";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import {
   Sheet,
@@ -15,6 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import ContinuePaymentModal from "@/components/payment/ContinuePaymentModal";
 import PaymentCompletedCard from "@/components/payment/PaymentComplete";
+import PaymentModal from "@/components/payment/paymentModal";
 import type { ResultRoomStatus } from "@/lib/supabase/result-room";
 
 export default function ResultRoom({ status }: { status: ResultRoomStatus }) {
