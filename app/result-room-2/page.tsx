@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import ResultRoomTwoPage from "./ResultRoomTwoPage";
+import ResultRoomTwoPage from "../../components/result-room/ResultRoom";
 import { checkResultRoomPaymentStatus } from "@/lib/supabase/result-room";
 
 async function ResultRoomTwoContent() {

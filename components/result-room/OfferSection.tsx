@@ -300,7 +300,7 @@ export default function OfferSection({
 
               <YellowButton
                 status={status}
-                disabled={true}
+                disabled={false}
                 className="mt-5 w-full rounded-full bg-gradient-to-b from-white to-neutral-300 py-4 text-lg font-semibold text-neutral-900 shadow-[inset_0_2px_0_rgba(255,255,255,0.9),0_14px_30px_-10px_rgba(255,255,255,0.35)] transition duration-200 hover:-translate-y-0.5 hover:brightness-105 active:translate-y-px"
               >
                 Secure my spot
