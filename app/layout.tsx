@@ -48,6 +48,16 @@ const myDeepFont = localFont({
   ],
   variable: "--font-deep",
 });
+const myBricolageFont = localFont({
+  src: [
+    {
+      path: "./fonts/font-bricolage.otf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-bricolage",
+});
 
 export default function RootLayout({
   children,
@@ -57,7 +67,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <body
-        className={`${bricolage.variable} ${lato.variable} ${myCustomFont.variable} ${myDeepFont.variable} antialiased`}
+        className={`${bricolage.variable} ${lato.variable} ${myCustomFont.variable} ${myDeepFont.variable} ${myBricolageFont.variable} antialiased`}
       >
         <ToastProvider>
           <Providers>{children}</Providers>

@@ -11,6 +11,11 @@ import WhiteButton from "@/components/miselleneous/whiteButton";
 import TextSlider from "@/components/result-room/textSlider";
 import RoomSection from "@/components/result-room/RoomSection";
 import QualificationSection from "@/components/result-room/QualificationSection";
+import OfferSection from "@/components/result-room/OfferSection";
+import Footer from "@/components/result-room/Footer";
+import BackToTop from "@/components/result-room/BackToTop";
+import HowTheRoomWorks from "@/components/result-room/HowTheRoomWorks";
+import TestimonialsSlider from "@/components/result-room/TestimonialsSlider";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -47,37 +52,6 @@ const faqs = [
     "The room gives you structure, a partner, and consequences. The work, and the result, are yours.",
   ],
 ];
-
-function Arrow() {
-  return (
-    <span className="rr-arrow" aria-hidden="true">
-      →
-    </span>
-  );
-}
-
-function ButtonLink({
-  children,
-  secondary = false,
-  href = "#offer",
-  onClick,
-}: {
-  children: React.ReactNode;
-  secondary?: boolean;
-  href?: string;
-  onClick?: () => void;
-}) {
-  return (
-    <a
-      className={`rr-btn inline-flex min-h-12 items-center justify-center gap-3 rounded-xl px-3 py-2.5 pl-[22px] text-base font-semibold no-underline transition-transform duration-150 hover:-translate-y-0.5 ${secondary ? "rr-btn-secondary" : ""}`}
-      href={href}
-      onClick={onClick}
-    >
-      {children}
-      <Arrow />
-    </a>
-  );
-}
 
 function AppPreview() {
   return (
@@ -166,7 +140,6 @@ export default function ResultRoomTwoPage() {
     minutes: "--",
     seconds: "--",
   });
-  const [paused, setPaused] = useState(false);
   const [openFaq, setOpenFaq] = useState(0);
   const [openInclude, setOpenInclude] = useState(0);
   const [checked, setChecked] = useState<boolean[]>(() =>
@@ -250,10 +223,10 @@ export default function ResultRoomTwoPage() {
     "What's the one goal you'll give 90 days?",
   ];
   const modalKeys = ["name", "phone", "goal"] as const;
-  const continueModal = () => {
-    if (step < 3 && !answers[modalKeys[step]]) return;
-    setStep((current) => current + 1);
-  };
+  // const continueModal = () => {
+  //   if (step < 3 && !answers[modalKeys[step]]) return;
+  //   setStep((current) => current + 1);
+  // };
 
   return (
     <div
@@ -267,7 +240,7 @@ export default function ResultRoomTwoPage() {
         </b>{" "}
         · Only 50 seats
       </div>
-      <nav className="w-8/12 mx-auto sticky top-3 z-10 rounded-full border-b border-[#e6e3da]/80 backdrop-blur-3xl">
+      <nav className="w-11/12 lg:w-8/12 mx-auto sticky top-3 z-10 rounded-full border-b border-[#e6e3da]/80 backdrop-blur-3xl">
         <div className="rr-wrap mx-auto flex h-16 w-[calc(100%-44px)] max-w-[1120px] items-center justify-between gap-3.5">
           <Link className="rr-logo" href="#top">
             <b />
@@ -320,10 +293,10 @@ export default function ResultRoomTwoPage() {
               <b className="bg-primary-yellow rounded-full px-2 py-1">
                 New cohort
               </b>{" "}
-              Oct 18, 2026 → Jan 16, 2027 →
+              Oct 18, 2026 → Jan 16, 2027
             </Link>
-            <h1 className="w-10/12 md:w-8/12 mx-auto pt-8 text-6xl tracking-tighter leading-none">
-              <span className="bg-primary-yellow py-1 px-4 rounded-xl">
+            <h1 className="w-full uppercase md:w-8/12 lg:w-7/12 mx-auto pt-8 text-[52px] lg:text-7xl lg:tracking-normal leading-[3.5rem] lg:leading-[4.8rem] font-bricolage">
+              <span className="bg-primary-yellow py-1 px-4 rounded-xl font-bricolage">
                 90 days
               </span>{" "}
               from now, you'll either have the result…
@@ -331,7 +304,7 @@ export default function ResultRoomTwoPage() {
             <p className="rr-reveal">
               …or another explanation for why you still don't.
             </p>
-            <p className="mx-auto w-10/12 md:w-7/12 mt-4 text-gray-700 text-center">
+            <p className="mx-auto w-full md:w-8/12 lg:w-7/12 mt-4 text-gray-700 text-center">
               You don't need another goal. You need an environment that makes it
               harder to keep abandoning the one you already have.
             </p>
@@ -343,13 +316,13 @@ export default function ResultRoomTwoPage() {
                   <CircleArrowOutUpRight className="size-4 ml-1" />
                 </span>
               </YellowButton>
-              <WhiteButton link="#rules">
+              {/* <WhiteButton link="#rules">
                 <span className="flex gap-2 items-center">
                   {" "}
                   See Rules
                   <CircleArrowOutDownRight className="size-4 ml-1" />
                 </span>
-              </WhiteButton>
+              </WhiteButton> */}
             </div>
             <p className="rr-note ">
               <b>Start with a ₦5,000 deposit.</b> Balance later, no extra
@@ -368,18 +341,21 @@ export default function ResultRoomTwoPage() {
 
         <section className="rr-soft border-y border-[#e6e3da] bg-white py-[clamp(70px,10vw,130px)]">
           <div className="rr-wrap mx-auto w-[calc(100%-44px)] max-w-[1120px]">
-            <span className="rr-figure rr-mono font-mono text-xs tracking-[0.02em] text-gray-800 font-semibold">
+            <span className="rr-figure rr-mono font-mono text-sm tracking-widest text-gray-800 font-semibold">
               The pattern
             </span>
             <div className="rr-split">
               <div>
-                <h2 className="text-2xl">You've said it before.</h2>
-                <p className="text-sm my-4">
+                <h2 className="text-4xl">
+                  You've said it <br />
+                  before.
+                </h2>
+                <p className="text-sm my-4 leading-relaxed">
                   And you probably meant it. But then life happened. Motivation
                   dropped. You missed one day. Then another. And somehow…
                   another month disappeared without the result.
                 </p>
-                <p className="text-sm mb-8">
+                <p className="text-sm mb-8 leading-relaxed">
                   <b>
                     That's the cycle the Result Room was built to interrupt.
                   </b>{" "}
@@ -410,132 +386,24 @@ export default function ResultRoomTwoPage() {
             </div>
           </div>
         </section>
-
-        <section
-          className="rr-section bg-white py-[clamp(70px,10vw,130px)]"
-          id="how"
-        >
-          <div className="rr-wrap mx-auto w-[calc(100%-44px)] max-w-[1120px]">
-            <span className="rr-figure rr-mono font-mono text-xs tracking-[0.02em] text-gray-800 font-semibold">
-              How the room works
-            </span>
-            <h2 className="text-2xl">Structure that doesn't negotiate.</h2>
-            <div className="grid grid-cols-1 gap-6 text-left md:grid-cols-3 mt-12">
-              <article className="">
-                <span className="rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
-                  01 · Goal
-                </span>
-                <h3>Pick one thing. Then give it 90 days.</h3>
-                <p className="rr-lead">
-                  One clear result that actually matters to you. You leave with
-                  a clear execution system.
-                </p>
-              </article>
-              <article className="">
-                <span className="rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
-                  02 · Partner
-                </span>
-                <h3>Someone will notice when you don't show up.</h3>
-                <p className="rr-lead">
-                  For the full 90 days, you're paired 1-on-1. You track
-                  progress, report the work, and check in.
-                </p>
-              </article>
-              <article className="rr-rules-card " id="rules">
-                <span className="rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
-                  03 · Rules
-                </span>
-                <h3>This room has rules.</h3>
-                <p>5 Xcuse Slots</p>
-                <p>₦500 penalty after slots</p>
-                <p>5 days no-show = out</p>
-              </article>
-            </div>
-          </div>
-        </section>
+        <HowTheRoomWorks />
 
         <QualificationSection />
-
-        <section className="rr-section py-[clamp(70px,10vw,130px)]" id="offer">
-          <div className="rr-wrap mx-auto w-[calc(100%-44px)] max-w-[1120px]">
-            <span className="rr-figure rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
-              Urgency · 90 days. That's all you get.
-            </span>
-            <h2 className="">Those days are coming anyway.</h2>
-            <p className="rr-lead ">
-              There is no version where October freezes until you feel ready.
-              Choose one thing and give it a real chance.
-            </p>
-            <div className="rr-offer">
-              <div className="rr-card rr-includes ">
-                {[
-                  "Reframe Your Goal Consultation",
-                  "Your 1-on-1 Accountability Partner",
-                  "The Result Room",
-                  "All Result Conversations",
-                  "The Accountability System",
-                ].map((item, index) => (
-                  <div key={item}>
-                    <button
-                      onClick={() =>
-                        setOpenInclude(openInclude === index ? -1 : index)
-                      }
-                    >
-                      <i>✓</i>
-                      {item}
-                      <span>{openInclude === index ? "−" : "+"}</span>
-                    </button>
-                    {openInclude === index && (
-                      <p>
-                        A structured part of the 90-day execution environment,
-                        built around showing up, tracking progress, and getting
-                        the result.
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div className="rr-card rr-price ">
-                <span className="rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
-                  The Result Room 2.0 · 90-Day Execution
-                </span>
-                <strong>₦10,600</strong>
-                <em>≈ ₦118 a day for 90 days</em>
-                <div className="rr-countdown">
-                  <b>
-                    {remaining.hours}
-                    <small>HOURS</small>
-                  </b>
-                  <b>
-                    {remaining.minutes}
-                    <small>MINS</small>
-                  </b>
-                  <b>
-                    {remaining.seconds}
-                    <small>SECS</small>
-                  </b>
-                </div>
-                <p>
-                  Start with a ₦5,000 deposit. Complete the balance without
-                  extra charges.
-                </p>
-                <ButtonLink onClick={() => setModalOpen(true)}>
-                  Secure my spot
-                </ButtonLink>
-              </div>
-            </div>
-          </div>
-        </section>
+        <OfferSection deadline={deadline} onSecure={() => setModalOpen(true)} />
 
         <section className="rr-section rr-soft border-y border-[#e6e3da] bg-white py-[clamp(70px,10vw,130px)]">
           <div className="rr-wrap rr-center mx-auto w-[calc(100%-44px)] max-w-[1120px] text-center">
-            <span className="rr-figure rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
+            <span className="rr-figure rr-mono font-mono text-xs tracking-relaxed text-gray-800 font-semibold">
               Commitment check
             </span>
-            <h2 className="">Before you join…</h2>
-            <p className="rr-lead ">
+            <h2 className="text-4xl">Before you join…</h2>
+            <p className="text-sm text-gray-800">
               Understand what you're saying yes to. If it sounds like exactly
-              what you've been missing, welcome.
+              what you've been missing, welcome. <br /> <br />{" "}
+              <span className="font-semibold">
+                Tap each one you’re genuinely ready to stand by for the next 90
+                days.
+              </span>
             </p>
             <div className="rr-checklist">
               {commitments.map((item, index) => (
@@ -560,26 +428,28 @@ export default function ResultRoomTwoPage() {
                 style={{ width: `${(confirmed / commitments.length) * 100}%` }}
               />
             </div>
-            <p className="rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
+            <p className="rr-mono font-mono text-xs tracking-[0.02em] text-gray-800 font-semibold my-4">
               {confirmed} / 7 confirmed
             </p>
-            <button
-              className={`rr-btn ${confirmed === 7 ? "" : "disabled"}`}
+            <YellowButton
               disabled={confirmed !== 7}
               onClick={() => setModalOpen(true)}
             >
-              I'm ready for the 90 days
-              <Arrow />
-            </button>
+              <span className="flex items-center justify-center gap-2">
+                {" "}
+                I'm ready for the 90 days
+                <CircleArrowOutUpRight className="size-4 ml-1" />
+              </span>
+            </YellowButton>
           </div>
         </section>
-
-        <section className="rr-section py-[clamp(70px,10vw,130px)]" id="faq">
+        <TestimonialsSlider />
+        <section className="bg-white py-[clamp(70px,10vw,130px)]" id="faq">
           <div className="rr-wrap rr-narrow mx-auto w-[calc(100%-44px)] max-w-[860px]">
-            <span className="rr-figure rr-mono font-mono text-xs tracking-[0.02em] text-[#585862]">
+            <span className="rr-figure rr-mono font-mono text-xs tracking-[0.02em] text-gray-800 font-semibold">
               A little clarity
             </span>
-            <h2 className="rr-reveal">Good questions.</h2>
+            <h2 className="rr-reveal text-2xl">Good questions.</h2>
             {faqs.map(([question, answer], index) => (
               <div
                 className={`rr-faq ${openFaq === index ? "open" : ""}`}
@@ -597,14 +467,9 @@ export default function ResultRoomTwoPage() {
           </div>
         </section>
       </main>
-      <footer className="rr-footer border-t border-[#e6e3da] px-0 pb-[110px] pt-9 text-[0.85rem] text-[#585862]">
-        <div className="rr-wrap mx-auto flex w-[calc(100%-44px)] max-w-[1120px] flex-wrap justify-between gap-2.5">
-          <span>© 2026 UPRIX · The Result Room 2.0</span>
-          <span>One goal. 90 days. No hiding.</span>
-        </div>
-      </footer>
-
-      {modalOpen && (
+      <Footer />
+      <BackToTop />
+      {/* {modalOpen && (
         <div
           className="rr-modal-backdrop"
           role="presentation"
@@ -695,7 +560,7 @@ export default function ResultRoomTwoPage() {
             )}
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 }

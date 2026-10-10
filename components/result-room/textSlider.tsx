@@ -1,7 +1,3 @@
-"use client";
-
-import { useState } from "react";
-
 const PHRASES = [
   "Just keep going",
   "Stay consistent",
@@ -11,15 +7,24 @@ const PHRASES = [
   "Keep showing up",
 ];
 
-// Each half repeats the list twice so it's wider than big screens.
-// The track holds two identical halves, so the -50% loop is seamless.
-const HALF = [...PHRASES, ...PHRASES];
+// Each half repeats the list so it's wider than big screens.
+// A track holds two identical halves, so the -50% loop is seamless.
+const repeat = (list: string[]) => [...list, ...list];
 
-function Half({ hidden = false }: { hidden?: boolean }) {
+function Half({
+  items,
+  hidden = false,
+}: {
+  items: string[];
+  hidden?: boolean;
+}) {
   return (
     <div className="rr-half" aria-hidden={hidden}>
-      {HALF.map((p, i) => (
-        <span key={i} className="rr-item">
+      {items.map((p, i) => (
+        <span
+          key={i}
+          className="rr-item font-bricolage text-3xl md:text-xl lg:text-lg"
+        >
           {p}
           <i className="rr-sep">·</i>
         </span>
@@ -28,15 +33,41 @@ function Half({ hidden = false }: { hidden?: boolean }) {
   );
 }
 
+function Row({
+  phrases,
+  reverse = false,
+  duration = 46,
+  decorative = false,
+}: {
+  phrases: string[];
+  reverse?: boolean;
+  /** seconds for one full loop */
+  duration?: number;
+  /** hide from screen readers (use for the duplicate row) */
+  decorative?: boolean;
+}) {
+  const items = repeat(phrases);
+
+  return (
+    <div className="rr-ticker-mask" aria-hidden={decorative}>
+      <div
+        className={`rr-ticker-track ${reverse ? "rr-ticker-track--reverse" : ""}`}
+        style={{ animationDuration: `${duration}s` }}
+      >
+        <Half items={items} />
+        <Half items={items} hidden />
+      </div>
+    </div>
+  );
+}
+
 export default function TextSlider() {
   return (
     <div className="rr-ticker mt-12">
-      <div className="rr-ticker-mask">
-        <div className="rr-ticker-track">
-          <Half />
-          <Half hidden />
-        </div>
-      </div>
+      {/* goes left */}
+      <Row phrases={PHRASES} />
+      {/* goes right, reversed order and a slightly different speed */}
+      <Row phrases={[...PHRASES].reverse()} reverse duration={54} decorative />
     </div>
   );
 }

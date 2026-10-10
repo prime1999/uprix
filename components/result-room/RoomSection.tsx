@@ -32,11 +32,11 @@ export default function RoomSection() {
   return (
     <section className="rr-section py-[clamp(70px,10vw,130px)]">
       <div className="rr-wrap rr-center mx-auto w-[calc(100%-44px)] max-w-[1120px] text-center">
-        <span className="rr-figure rr-mono font-mono text-xs tracking-[0.02em] text-gray-800 font-semibold">
+        <span className="rr-figure rr-mono font-mono text-sm tracking-widest text-gray-800 font-semibold">
           Fig 0.1 — The room
         </span>
 
-        <h2 className="text-2xl">
+        <h2 className="text-4xl">
           A new way to finish
           <br />
           what you start.
