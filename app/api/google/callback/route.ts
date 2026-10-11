@@ -178,6 +178,7 @@ export async function GET(request: NextRequest) {
 
     if (
       !scopes.includes("https://www.googleapis.com/auth/drive.file") ||
+      !scopes.includes("https://www.googleapis.com/auth/drive") ||
       !scopes.includes("openid") ||
       !scopes.includes("https://www.googleapis.com/auth/userinfo.email")
     ) {
