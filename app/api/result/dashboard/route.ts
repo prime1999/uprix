@@ -341,29 +341,106 @@ export async function GET() {
         },
       );
     }
-
     /**
      * ------------------------------------------------------------
-     * 5. Check today's partner review
+     * 5. Check today's partner submission and review
      * ------------------------------------------------------------
      *
-     * A partner review belongs to a submission.
+     * A partner review now belongs to an active partner pair and a
+     * review date, not to the participant's own submission.
      */
+
     let partnerReviewSubmitted = false;
+    let partnerSubmissionSubmitted = false;
 
-    const todaySubmission = todaySubmissionResult.data;
+    let partner: {
+      id: string;
+      submissionSubmitted: boolean;
+    } | null = null;
 
-    if (todaySubmission) {
-      const { data: partnerReview, error: partnerReviewError } = await supabase
-        .from("partner_reviews")
-        .select("id")
-        .eq("submission_id", todaySubmission.id)
-        .maybeSingle();
+    const { data: activePair, error: activePairError } = await supabase
+      .from("partner_pairs")
+      .select("id, participant_a_id, participant_b_id")
+      .eq("room_id", participant.room_id)
+      .eq("status", "ACTIVE")
+      .or(
+        `participant_a_id.eq.${participant.id},participant_b_id.eq.${participant.id}`,
+      )
+      .maybeSingle();
 
-      if (partnerReviewError) {
+    if (activePairError) {
+      console.error(
+        "Result Room dashboard active partner pair error:",
+        activePairError,
+      );
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Failed to load partner information",
+        },
+        {
+          status: 500,
+          headers: {
+            "Cache-Control": "private, no-store",
+          },
+        },
+      );
+    }
+
+    if (activePair) {
+      // Resolve the other participant in the active pair.
+      const partnerId =
+        activePair.participant_a_id === participant.id
+          ? activePair.participant_b_id
+          : activePair.participant_a_id;
+
+      const [partnerSubmissionResult, partnerReviewResult] = await Promise.all([
+        // Has the partner submitted for today's date?
+        supabase
+          .from("submissions")
+          .select("id")
+          .eq("participant_id", partnerId)
+          .eq("room_id", participant.room_id)
+          .eq("submission_date", todayString)
+          .maybeSingle(),
+
+        // Has the current participant submitted today's partner review?
+        // Has the current participant reviewed this specific partner today?
+        supabase
+          .from("partner_reviews")
+          .select("id")
+          .eq("partner_pair_id", activePair.id)
+          .eq("reviewer_id", participant.id)
+          .eq("partner_id", partnerId)
+          .eq("review_date", todayString)
+          .maybeSingle(),
+      ]);
+
+      if (partnerSubmissionResult.error) {
+        console.error(
+          "Result Room dashboard partner submission error:",
+          partnerSubmissionResult.error,
+        );
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Failed to load partner submission status",
+          },
+          {
+            status: 500,
+            headers: {
+              "Cache-Control": "private, no-store",
+            },
+          },
+        );
+      }
+
+      if (partnerReviewResult.error) {
         console.error(
           "Result Room dashboard partner review error:",
-          partnerReviewError,
+          partnerReviewResult.error,
         );
 
         return NextResponse.json(
@@ -380,9 +457,14 @@ export async function GET() {
         );
       }
 
-      partnerReviewSubmitted = Boolean(partnerReview);
-    }
+      partnerSubmissionSubmitted = Boolean(partnerSubmissionResult.data);
+      partnerReviewSubmitted = Boolean(partnerReviewResult.data);
 
+      partner = {
+        id: partnerId,
+        submissionSubmitted: partnerSubmissionSubmitted,
+      };
+    }
     /**
      * ------------------------------------------------------------
      * 6. Build raw API response
@@ -430,9 +512,12 @@ export async function GET() {
 
       today: {
         date: todayString,
-        submissionCompleted: Boolean(todaySubmission),
+        submissionCompleted: Boolean(todaySubmissionResult.data),
         partnerReviewSubmitted,
+        partnerSubmissionSubmitted,
       },
+
+      partner,
 
       submissionActivity: {
         dates:

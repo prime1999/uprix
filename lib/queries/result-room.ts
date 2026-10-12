@@ -311,3 +311,104 @@ export function useCreateResultRoomSubmission() {
     },
   });
 }
+
+/* -------------------------------------------------------------------------- */
+/* PARTNER SUBMISSION                                                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The partner-submission API returns either:
+ * - submission: null when the partner has not submitted for the date
+ * - submission details and images when a submission exists
+ */
+
+export interface PartnerSubmission {
+  id: string;
+  description: string | null;
+  submissionDate: string;
+  submittedAt: string;
+  status: string;
+  images: {
+    id: string;
+    url: string;
+  }[];
+}
+
+interface PartnerSubmissionResponse {
+  success: boolean;
+  submission: PartnerSubmission | null;
+  error?: string;
+}
+
+/**
+ * React Query cache key for a partner's submission.
+ *
+ * Including the date ensures that different dates have separate cache entries.
+ */
+export const resultRoomPartnerSubmissionQueryKey = (date: string) =>
+  ["result-room", "partner-submission", date] as const;
+
+/**
+ * Fetch the authenticated participant's partner submission.
+ */
+async function fetchResultRoomPartnerSubmission(
+  date: string,
+): Promise<PartnerSubmissionResponse> {
+  const response = await fetch(
+    `/api/result/partner-submission?date=${encodeURIComponent(date)}`,
+    {
+      cache: "no-store",
+    },
+  );
+
+  const data: unknown = await response.json();
+
+  if (!response.ok) {
+    const errorData = data as { error?: string };
+
+    throw new Error(
+      errorData.error ||
+        `Failed to load partner submission (${response.status}).`,
+    );
+  }
+
+  const result = data as PartnerSubmissionResponse;
+
+  if (!result.success) {
+    throw new Error(result.error || "Failed to load partner submission.");
+  }
+
+  return result;
+}
+
+/**
+ * Hook for retrieving the partner's submission for a specific date.
+ *
+ * Example:
+ *
+ * const {
+ *   data,
+ *   isLoading,
+ *   error,
+ *   refetch,
+ * } = useResultRoomPartnerSubmission(selectedDate);
+ *
+ * data?.submission === null means no submission exists for that date.
+ */
+export function useResultRoomPartnerSubmission(date: string) {
+  return useQuery({
+    queryKey: resultRoomPartnerSubmissionQueryKey(date),
+
+    queryFn: () => fetchResultRoomPartnerSubmission(date),
+
+    enabled: /^\d{4}-\d{2}-\d{2}$/.test(date),
+
+    staleTime: 0,
+
+    gcTime: 30 * 60 * 1000,
+
+    retry: 2,
+
+    refetchOnWindowFocus: false,
+  });
+}
