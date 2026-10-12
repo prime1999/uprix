@@ -1,5 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
-
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   resultRoomDashboardSchema,
   type ResultRoomDashboard,
@@ -236,5 +235,79 @@ export function useResultRoomDashboard() {
      * a Result Room action requires fresh information.
      */
     refetchOnWindowFocus: false,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* CREATE SUBMISSION                                                          */
+/* -------------------------------------------------------------------------- */
+
+export interface CreateSubmissionInput {
+  timezone: string;
+  description: string;
+  files: {
+    publicId: string;
+    secureUrl: string;
+  }[];
+}
+
+interface CreateSubmissionResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+  code?: string;
+}
+
+/**
+ * Sends the participant's submission to the API.
+ */
+async function createResultRoomSubmission(
+  input: CreateSubmissionInput,
+): Promise<CreateSubmissionResponse> {
+  const response = await fetch("/api/result/submissions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+
+  const data: unknown = await response.json();
+
+  if (!response.ok) {
+    const errorData = data as {
+      error?: string;
+      code?: string;
+    };
+
+    throw new Error(
+      errorData.error || `Failed to submit evidence (${response.status}).`,
+    );
+  }
+
+  const result = data as CreateSubmissionResponse;
+
+  if (!result.success) {
+    throw new Error(result.error || "Your submission could not be saved.");
+  }
+
+  return result;
+}
+
+/**
+ * React Query mutation for submitting daily evidence.
+ */
+export function useCreateResultRoomSubmission() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createResultRoomSubmission,
+
+    onSuccess: async () => {
+      // Refresh the dashboard so today's submission status updates.
+      await queryClient.invalidateQueries({
+        queryKey: resultRoomDashboardQueryKey,
+      });
+    },
   });
 }

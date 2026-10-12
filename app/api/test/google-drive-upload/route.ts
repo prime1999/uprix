@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
-import { uploadToGoogleDrive } from "@/lib/google/drive-upload-client";
+import { uploadTestToGoogleDrive } from "@/lib/google/drive-upload-client";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
 
     // Use the seat number from Supabase.
     // The uploader handles null by using "participant-no-seat".
-    const result = await uploadToGoogleDrive({
+    const result = await uploadTestToGoogleDrive({
       fileName: `TEST-drive-test-${timestamp}-${originalName}`,
       mimeType: file.type,
       buffer: Buffer.from(await file.arrayBuffer()),

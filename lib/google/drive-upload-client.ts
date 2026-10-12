@@ -57,10 +57,8 @@ function validateEvidenceDate(value: string): string {
 function getParticipantFolderName(
   participantSeatNumber: number | string | null,
 ): string {
-  // A missing seat number is allowed during testing.
   if (
     participantSeatNumber === null ||
-    participantSeatNumber === undefined ||
     (typeof participantSeatNumber === "string" &&
       participantSeatNumber.trim() === "")
   ) {
@@ -74,6 +72,20 @@ function getParticipantFolderName(
   }
 
   return `participant-${seatNumber}`;
+}
+
+function validateFileName(value: string): string {
+  const name = value
+    .replace(/[\\/]/g, "_")
+    .replace(/[\u0000-\u001F\u007F]/g, "_")
+    .trim()
+    .slice(0, 180);
+
+  if (!name || name === "." || name === "..") {
+    throw new Error("Invalid upload filename.");
+  }
+
+  return name;
 }
 
 async function findOrCreateFolder(
@@ -127,53 +139,55 @@ async function findOrCreateFolder(
   return created.data.id;
 }
 
-export async function uploadToGoogleDrive({
-  fileName,
-  mimeType,
-  buffer,
-  participantSeatNumber,
-  evidenceDate,
-}: GoogleDriveUploadInput): Promise<GoogleDriveUploadResult> {
-  if (!buffer.length) {
+async function uploadFile(
+  input: GoogleDriveUploadInput,
+  testMode: boolean,
+): Promise<GoogleDriveUploadResult> {
+  const { fileName, mimeType, buffer, participantSeatNumber, evidenceDate } =
+    input;
+
+  if (!Buffer.isBuffer(buffer) || buffer.length === 0) {
     throw new Error("Cannot upload an empty file.");
+  }
+
+  if (!["image/jpeg", "image/png", "image/webp"].includes(mimeType)) {
+    throw new Error("Unsupported evidence image type.");
   }
 
   const date = validateEvidenceDate(evidenceDate);
   const participantFolderName = getParticipantFolderName(participantSeatNumber);
 
-  const safeFileName = fileName
-    .replace(/[\\/]/g, "_")
-    .replace(/[\u0000-\u001F\u007F]/g, "_")
-    .trim()
-    .slice(0, 180);
-
-  if (!safeFileName) {
-    throw new Error("Invalid upload filename.");
-  }
+  const safeFileName = validateFileName(fileName);
 
   const { drive, folderId, storageEmail } = await getGoogleDriveClient();
 
-  // 1. Find or create the date folder under the configured root.
+  // Create/find the date folder under the configured Drive root.
   const dateFolderId = await findOrCreateFolder(drive, date, folderId);
 
-  // 2. Find or create the participant's seat-number folder.
+  // Create/find the participant folder inside the date folder.
   const participantFolderId = await findOrCreateFolder(
     drive,
     participantFolderName,
     dateFolderId,
   );
 
-  // 3. Upload a clearly marked test image.
-  const testFileName = safeFileName.startsWith("TEST-")
-    ? safeFileName
-    : `TEST-${safeFileName}`;
+  // Only test uploads receive the TEST- prefix.
+  const finalFileName = testMode
+    ? safeFileName.startsWith("TEST-")
+      ? safeFileName
+      : `TEST-${safeFileName}`
+    : safeFileName;
 
   const response = await drive.files.create({
     requestBody: {
-      name: testFileName,
-      description:
-        "Uprix Result Room Google Drive integration test. " +
-        "This file is not a real participant submission.",
+      name: finalFileName,
+      ...(testMode
+        ? {
+            description:
+              "Uprix Result Room Google Drive integration test. " +
+              "This file is not a real participant submission.",
+          }
+        : {}),
       parents: [participantFolderId],
     },
     media: {
@@ -200,4 +214,22 @@ export async function uploadToGoogleDrive({
     dateFolder: date,
     participantFolder: participantFolderName,
   };
+}
+
+/**
+ * Production uploader for genuine participant evidence.
+ */
+export function uploadToGoogleDrive(
+  input: GoogleDriveUploadInput,
+): Promise<GoogleDriveUploadResult> {
+  return uploadFile(input, false);
+}
+
+/**
+ * Test-only uploader. Keep the existing test endpoint pointed here.
+ */
+export function uploadTestToGoogleDrive(
+  input: GoogleDriveUploadInput,
+): Promise<GoogleDriveUploadResult> {
+  return uploadFile(input, true);
 }

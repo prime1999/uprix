@@ -34,6 +34,13 @@ interface SubmissionFormProps {
   /** Called after all images have been uploaded to Cloudinary. */
   onSubmit?: (payload: SubmissionPayload) => void | Promise<void>;
 
+  /** Reports upload progress to the dashboard. */
+  onUploadProgressChange?: (state: {
+    uploading: boolean;
+    progress: number;
+    imageCount: number;
+  }) => void;
+
   /** Called when the form is cancelled/cleared. */
   onCancel?: () => void;
 
@@ -58,10 +65,7 @@ interface SubmissionFormProps {
   /** Submit button label. */
   submitLabel?: string;
 
-  /**
-   * Paint a soft gradient behind the glass so the blur has something to frost.
-   * Turn off when the form already sits on a coloured or image background.
-   */
+  /** Paint a soft gradient behind the glass. */
   withBackdrop?: boolean;
 
   className?: string;
@@ -85,11 +89,9 @@ interface FormError {
 const sameFile = (a: File, b: File) =>
   a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
 
-// frosted panel: translucent white, blur, light border, bright top edge
 const GLASS =
   "border border-white/60 bg-white/40 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_8px_32px_-8px_rgba(60,70,160,0.25)]";
 
-// smaller frosted surface used inside the panel
 const GLASS_INNER = "border border-white/70 bg-white/30 backdrop-blur-md";
 
 /* -------------------------------------------------------------------------- */
@@ -98,6 +100,7 @@ const GLASS_INNER = "border border-white/70 bg-white/30 backdrop-blur-md";
 
 export default function SubmissionForm({
   onSubmit,
+  onUploadProgressChange,
   onCancel,
   maxImages = 5,
   maxSizeMB = 10,
@@ -118,7 +121,6 @@ export default function SubmissionForm({
 
   const fileInput = useRef<HTMLInputElement>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
-
   const idCounter = useRef(0);
   const itemsRef = useRef<UploadItem[]>([]);
   const submittingRef = useRef(false);
@@ -127,11 +129,6 @@ export default function SubmissionForm({
 
   const loading = submitting || busy;
 
-  /*
-   * An image is the required part.
-   * When images are optional, at least a description or image
-   * is still needed so an empty form cannot be submitted.
-   */
   const canSubmit =
     !loading &&
     (requireImage
@@ -146,9 +143,7 @@ export default function SubmissionForm({
 
   useEffect(() => {
     return () => {
-      itemsRef.current.forEach((item) => {
-        URL.revokeObjectURL(item.url);
-      });
+      itemsRef.current.forEach((item) => URL.revokeObjectURL(item.url));
     };
   }, []);
 
@@ -158,7 +153,6 @@ export default function SubmissionForm({
 
   useEffect(() => {
     const element = textarea.current;
-
     if (!element) return;
 
     element.style.height = "auto";
@@ -185,7 +179,6 @@ export default function SubmissionForm({
             title: "We couldn't use that file.",
             message: "Only image files can be uploaded.",
           };
-
           continue;
         }
 
@@ -194,7 +187,6 @@ export default function SubmissionForm({
             title: "We couldn't use that file.",
             message: `Each image must be under ${maxSizeMB}MB.`,
           };
-
           continue;
         }
 
@@ -209,7 +201,6 @@ export default function SubmissionForm({
             title: "Image limit reached.",
             message: `You can upload up to ${maxImages} images.`,
           };
-
           break;
         }
 
@@ -224,15 +215,11 @@ export default function SubmissionForm({
 
       if (next.length) {
         const merged = [...current, ...next];
-
-        // Keeps rapid back-to-back adds correct.
         itemsRef.current = merged;
         setItems(merged);
       }
 
-      if (problem) {
-        setError(problem);
-      }
+      if (problem) setError(problem);
     },
     [maxImages, maxSizeMB],
   );
@@ -245,13 +232,9 @@ export default function SubmissionForm({
     setError(null);
 
     const target = itemsRef.current.find((item) => item.id === id);
-
-    if (target) {
-      URL.revokeObjectURL(target.url);
-    }
+    if (target) URL.revokeObjectURL(target.url);
 
     const next = itemsRef.current.filter((item) => item.id !== id);
-
     itemsRef.current = next;
     setItems(next);
   };
@@ -261,20 +244,15 @@ export default function SubmissionForm({
   /* ------------------------------------------------------------------------ */
 
   const reset = () => {
-    itemsRef.current.forEach((item) => {
-      URL.revokeObjectURL(item.url);
-    });
+    itemsRef.current.forEach((item) => URL.revokeObjectURL(item.url));
 
     itemsRef.current = [];
-
     setItems([]);
     setDescription("");
     setError(null);
     setUploadProgress(0);
 
-    if (fileInput.current) {
-      fileInput.current.value = "";
-    }
+    if (fileInput.current) fileInput.current.value = "";
   };
 
   /* ------------------------------------------------------------------------ */
@@ -283,7 +261,6 @@ export default function SubmissionForm({
 
   const openPicker = () => {
     if (loading) return;
-
     fileInput.current?.click();
   };
 
@@ -292,11 +269,7 @@ export default function SubmissionForm({
   /* ------------------------------------------------------------------------ */
 
   const onDragOver = (event: DragEvent<HTMLDivElement>) => {
-    if (loading) return;
-
-    if (!event.dataTransfer.types.includes("Files")) {
-      return;
-    }
+    if (loading || !event.dataTransfer.types.includes("Files")) return;
 
     event.preventDefault();
     setDragging(true);
@@ -313,7 +286,6 @@ export default function SubmissionForm({
 
     event.preventDefault();
     setDragging(false);
-
     addFiles(Array.from(event.dataTransfer.files));
   };
 
@@ -331,7 +303,6 @@ export default function SubmissionForm({
     if (!files.length) return;
 
     event.preventDefault();
-
     addFiles(files);
   };
 
@@ -340,46 +311,34 @@ export default function SubmissionForm({
   /* ------------------------------------------------------------------------ */
 
   const handleSubmit = async () => {
-    /*
-     * The ref blocks a second submit fired before the loading
-     * state has rendered.
-     */
-    if (!canSubmit || submittingRef.current) {
-      return;
-    }
+    if (!canSubmit || submittingRef.current) return;
 
     submittingRef.current = true;
-
     setError(null);
     setBusy(true);
     setUploadProgress(0);
 
+    const selectedFiles = itemsRef.current.map((item) => item.file);
+
+    if (selectedFiles.length > 0) {
+      onUploadProgressChange?.({
+        uploading: true,
+        progress: 0,
+        imageCount: selectedFiles.length,
+      });
+    }
+
     try {
-      const selectedFiles = itemsRef.current.map((item) => item.file);
-
-      /*
-       * Each image has its own upload progress.
-       *
-       * We store progress for every image and calculate the
-       * average so the UI represents the whole submission.
-       */
       const progress = new Array(selectedFiles.length).fill(0);
-
       const cloudinaryFiles: SubmissionFile[] = [];
 
       for (let index = 0; index < selectedFiles.length; index++) {
         const originalFile = selectedFiles[index];
 
-        /*
-         * Step 1:
-         * Validate, resize and compress the image in the browser.
-         */
+        // Prepare and compress the image before uploading.
         const preparedFile = await prepareImage(originalFile);
 
-        /*
-         * Step 2:
-         * Upload the prepared image directly to Cloudinary.
-         */
+        // Upload the prepared image to Cloudinary.
         const result = await uploadToCloudinary(preparedFile, {
           onProgress: (value) => {
             progress[index] = value;
@@ -389,9 +348,15 @@ export default function SubmissionForm({
               0,
             );
 
-            const averageProgress = totalProgress / progress.length;
+            const roundedProgress = Math.round(totalProgress / progress.length);
 
-            setUploadProgress(Math.round(averageProgress));
+            setUploadProgress(roundedProgress);
+
+            onUploadProgressChange?.({
+              uploading: true,
+              progress: roundedProgress,
+              imageCount: selectedFiles.length,
+            });
           },
         });
 
@@ -400,20 +365,14 @@ export default function SubmissionForm({
           secureUrl: result.secureUrl,
         });
       }
-      console.log("All Cloudinary uploads succeeded:", cloudinaryFiles);
-      /*
-       * All Cloudinary uploads succeeded.
-       *
-       * The parent/dashboard now receives only the metadata
-       * required for the submission API.
-       */
+
+      // The parent saves the submission through the API.
       await onSubmit?.({
         description: description.trim(),
         files: cloudinaryFiles,
       });
 
       setUploadProgress(100);
-
       reset();
     } catch (submissionError) {
       setError({
@@ -424,6 +383,12 @@ export default function SubmissionForm({
             : "Something went wrong. Please try again.",
       });
     } finally {
+      onUploadProgressChange?.({
+        uploading: false,
+        progress: 0,
+        imageCount: itemsRef.current.length,
+      });
+
       submittingRef.current = false;
       setBusy(false);
     }
@@ -436,7 +401,6 @@ export default function SubmissionForm({
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
       event.preventDefault();
-
       void handleSubmit();
     }
   };
@@ -451,27 +415,19 @@ export default function SubmissionForm({
         withBackdrop ? "" : ""
       } ${className}`}
     >
-      {/* Soft colour blobs the glass can frost */}
       {withBackdrop && (
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
           <div className="sf-drift absolute -left-10 -top-10 size-56 rounded-full bg-blue-300/60 blur-3xl" />
-
           <div className="absolute -bottom-12 -right-10 size-64 rounded-full bg-violet-300/60 blur-3xl" />
-
           <div className="absolute left-1/2 top-1/3 size-40 -translate-x-1/2 rounded-full bg-cyan-200/50 blur-3xl" />
         </div>
       )}
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Header                                                             */}
-      {/* ------------------------------------------------------------------ */}
 
       <div className="flex items-center justify-between gap-4">
         <div>
           <h6 className="text-base font-semibold tracking-tight text-secondary-blue sm:text-sm">
             Done with today&apos;s Work
           </h6>
-
           <p className="mt-0.5 text-xs text-gray-500">
             You can attach up to {maxImages} images.
           </p>
@@ -492,10 +448,6 @@ export default function SubmissionForm({
         )}
       </div>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Main glass card                                                    */}
-      {/* ------------------------------------------------------------------ */}
-
       <div
         onDragOver={onDragOver}
         onDragEnter={onDragOver}
@@ -506,8 +458,6 @@ export default function SubmissionForm({
         }`}
       >
         <div className="p-4 sm:p-5">
-          {/* ---------------------------- upload area ---------------------------- */}
-
           {items.length === 0 ? (
             <button
               type="button"
@@ -522,11 +472,9 @@ export default function SubmissionForm({
               <span className="text-sm font-semibold text-neutral-900">
                 Upload your evidence
               </span>
-
               <span className="mt-1.5 text-xs leading-relaxed text-neutral-600">
                 Drop images here or click to browse
               </span>
-
               <span className="mt-3 text-[11px] font-medium text-neutral-500">
                 Up to {maxImages} images · {maxSizeMB}MB each
               </span>
@@ -566,7 +514,6 @@ export default function SubmissionForm({
                     className="flex size-20 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-blue-300/80 bg-white/30 text-neutral-500 backdrop-blur-md transition-all hover:border-blue-400 hover:bg-white/60 hover:text-blue-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400/30 disabled:cursor-not-allowed disabled:opacity-50 sm:size-24"
                   >
                     <Plus className="size-5" />
-
                     <span className="text-[10px] font-medium">Add</span>
                   </button>
                 )}
@@ -575,7 +522,6 @@ export default function SubmissionForm({
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-xs text-neutral-600">
                   <ImageIcon className="size-3.5 text-blue-500" />
-
                   <span>
                     {items.length} of {maxImages} images
                   </span>
@@ -589,8 +535,6 @@ export default function SubmissionForm({
               </div>
             </div>
           )}
-
-          {/* ----------------------------- description ----------------------------- */}
 
           <div className="mt-5 border-t border-white/60 pt-4">
             <label
@@ -622,14 +566,11 @@ export default function SubmissionForm({
               <p className="text-[11px] text-neutral-500">
                 Briefly explain what your evidence shows.
               </p>
-
               <span className="shrink-0 text-[11px] tabular-nums text-neutral-500">
                 {description.length}/{maxLength}
               </span>
             </div>
           </div>
-
-          {/* --------------------------------- error --------------------------------- */}
 
           {error && (
             <div
@@ -637,12 +578,9 @@ export default function SubmissionForm({
               className="mt-4 rounded-xl bg-red-500 px-3.5 py-3 text-sm text-white"
             >
               <p className="font-medium">{error.title}</p>
-
               <p className="mt-0.5 text-xs leading-relaxed">{error.message}</p>
             </div>
           )}
-
-          {/* ------------------------------ submitting ------------------------------ */}
 
           {loading && (
             <div className="mt-4 rounded-xl border border-blue-200/80 bg-white/50 px-3.5 py-3 backdrop-blur-md">
@@ -656,7 +594,6 @@ export default function SubmissionForm({
                     <p className="text-sm font-medium text-blue-950">
                       Uploading your evidence...
                     </p>
-
                     <span className="text-xs font-medium tabular-nums text-blue-800/70">
                       {uploadProgress}%
                     </span>
@@ -665,9 +602,7 @@ export default function SubmissionForm({
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-blue-100">
                     <div
                       className="h-full rounded-full bg-blue-500 transition-[width] duration-200"
-                      style={{
-                        width: `${uploadProgress}%`,
-                      }}
+                      style={{ width: `${uploadProgress}%` }}
                     />
                   </div>
 
@@ -680,8 +615,6 @@ export default function SubmissionForm({
           )}
         </div>
 
-        {/* ------------------------------ drag overlay ------------------------------ */}
-
         <div
           aria-hidden
           className={`pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl border-2 border-dashed border-blue-400 bg-blue-100/70 backdrop-blur-md transition-opacity duration-200 ${
@@ -692,17 +625,12 @@ export default function SubmissionForm({
             <span className="flex size-11 items-center justify-center rounded-xl bg-white/80 shadow-sm">
               <ImagePlus className="size-5" />
             </span>
-
             <span className="text-sm font-semibold">
               Drop your evidence here
             </span>
           </div>
         </div>
       </div>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Footer / action                                                    */}
-      {/* ------------------------------------------------------------------ */}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-xs leading-relaxed text-neutral-600">
@@ -713,17 +641,12 @@ export default function SubmissionForm({
           </p>
         </div>
 
-        {/* 3D blue button */}
         <GeneralButton
           text={loading ? "Uploading..." : submitLabel}
           buttonFunction={() => void handleSubmit()}
           variant={!canSubmit ? "disabled" : "active"}
         />
       </div>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Hidden file input                                                   */}
-      {/* ------------------------------------------------------------------ */}
 
       <input
         ref={fileInput}
@@ -734,8 +657,6 @@ export default function SubmissionForm({
         disabled={loading}
         onChange={(event) => {
           addFiles(Array.from(event.target.files ?? []));
-
-          // Reset so the same file can be picked again after removing it.
           event.target.value = "";
         }}
       />
