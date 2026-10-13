@@ -395,13 +395,16 @@ async function fetchResultRoomPartnerSubmission(
  *
  * data?.submission === null means no submission exists for that date.
  */
-export function useResultRoomPartnerSubmission(date: string) {
+export function useResultRoomPartnerSubmission(
+  date: string,
+  enabled = true,
+) {
   return useQuery({
     queryKey: resultRoomPartnerSubmissionQueryKey(date),
 
     queryFn: () => fetchResultRoomPartnerSubmission(date),
 
-    enabled: /^\d{4}-\d{2}-\d{2}$/.test(date),
+    enabled: enabled && /^\d{4}-\d{2}-\d{2}$/.test(date),
 
     staleTime: 0,
 
@@ -410,5 +413,90 @@ export function useResultRoomPartnerSubmission(date: string) {
     retry: 2,
 
     refetchOnWindowFocus: false,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* CREATE PARTNER REPORT                                                      */
+/* -------------------------------------------------------------------------- */
+
+export interface CreatePartnerReportInput {
+  date: string;
+  comment?: string;
+}
+
+interface CreatePartnerReportResponse {
+  success: boolean;
+  message?: string;
+  report?: {
+    id: string;
+    reviewer_id: string;
+    partner_id: string;
+    partner_pair_id: string;
+    review_date: string;
+    submitted_on_time: boolean;
+    comment: string | null;
+    reviewed_at: string;
+    created_at: string;
+  };
+}
+
+/**
+ * Sends the participant's partner report to the API.
+ */
+async function createPartnerReport(
+  input: CreatePartnerReportInput,
+): Promise<CreatePartnerReportResponse> {
+  const response = await fetch("/api/result/partner-report", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+
+  const data: unknown = await response.json();
+
+  if (!response.ok) {
+    const errorData = data as {
+      message?: string;
+      error?: string;
+    };
+
+    throw new Error(
+      errorData.message ||
+        errorData.error ||
+        `Failed to submit partner report (${response.status}).`,
+    );
+  }
+
+  const result = data as CreatePartnerReportResponse;
+
+  if (!result.success) {
+    throw new Error(
+      result.message || "Your partner report could not be saved.",
+    );
+  }
+
+  return result;
+}
+
+/**
+ * React Query mutation for submitting a partner report.
+ *
+ * On success, invalidate the dashboard so the partner-review status
+ * is refreshed from the server.
+ */
+export function useCreatePartnerReport() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createPartnerReport,
+
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: resultRoomDashboardQueryKey,
+      });
+    },
   });
 }

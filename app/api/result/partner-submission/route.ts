@@ -50,11 +50,23 @@ export async function GET(request: NextRequest) {
   };
 
   try {
+    console.log("Partner submission request received", {
+      url: request.url,
+      date: request.nextUrl.searchParams.get("date"),
+    });
+
     // 1. Authenticate the current user.
     const { data: claimsData, error: claimsError } =
       await supabase.auth.getClaims();
 
     const user = claimsData?.claims;
+
+    console.log("Partner submission auth check", {
+      hasClaims: !!claimsData,
+      hasUserSub: !!user?.sub,
+      userSub: user?.sub,
+      claimsError: claimsError?.message,
+    });
 
     if (claimsError || !user?.sub) {
       return json({ success: false, error: "Unauthorized." }, 401);
@@ -72,6 +84,8 @@ export async function GET(request: NextRequest) {
         400,
       );
     }
+
+    console.log("Partner submission date validated", { date });
 
     const parsedDate = new Date(`${date}T00:00:00.000Z`);
 
@@ -105,6 +119,11 @@ export async function GET(request: NextRequest) {
       return json({ success: false, error: "Participant not found." }, 404);
     }
 
+    console.log("Partner submission participant resolved", {
+      participantId: participant.id,
+      roomStatus: participant.room_status,
+    });
+
     if (participant.room_status !== "active") {
       return json(
         {
@@ -135,13 +154,15 @@ export async function GET(request: NextRequest) {
     }
 
     if (!pair) {
-      return json(
-        {
-          success: false,
-          error: "You do not currently have an active partner.",
-        },
-        404,
-      );
+      console.log("Partner submission no active pair found", {
+        participantId: participant.id,
+        date,
+      });
+
+      return json({
+        success: true,
+        submission: null,
+      });
     }
 
     // Determine the other participant exclusively from the pair.
@@ -149,6 +170,14 @@ export async function GET(request: NextRequest) {
       pair.participant_a_id === participant.id
         ? pair.participant_b_id
         : pair.participant_a_id;
+
+    console.log("Partner submission active pair resolved", {
+      participantId: participant.id,
+      partnerId,
+      pairId: pair.id,
+      roomId: pair.room_id,
+      date,
+    });
 
     // 5. Find that partner's submission for the requested day.
     // The pair's room_id prevents cross-room lookups.
@@ -159,7 +188,7 @@ export async function GET(request: NextRequest) {
       .eq("room_id", pair.room_id)
       .eq("submission_date", date)
       .maybeSingle();
-
+    console.log("submission query executed", submission);
     if (submissionError) {
       console.error("Error fetching partner submission:", submissionError);
 
@@ -174,11 +203,24 @@ export async function GET(request: NextRequest) {
 
     // A missing submission is a normal state, not a server error.
     if (!submission) {
+      console.log("Partner submission not found for date", {
+        participantId: participant.id,
+        partnerId,
+        date,
+      });
+
       return json({
         success: true,
         submission: null,
       });
     }
+
+    console.log("Partner submission found", {
+      submissionId: submission.id,
+      partnerId,
+      date,
+      imageCount: 0,
+    });
 
     // 6. Each image has its own submission_files row.
     const { data: files, error: filesError } = await supabase
@@ -199,6 +241,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const images = (files ?? []).map((file) => ({
+      id: file.id,
+      url: file.cloudinary_url,
+    }));
+
+    console.log("Partner submission response built", {
+      submissionId: submission.id,
+      imageCount: images.length,
+      date,
+    });
+
     return json({
       success: true,
       submission: {
@@ -207,10 +260,7 @@ export async function GET(request: NextRequest) {
         submissionDate: submission.submission_date,
         submittedAt: submission.submitted_at,
         status: submission.status,
-        images: (files ?? []).map((file) => ({
-          id: file.id,
-          url: file.cloudinary_url,
-        })),
+        images,
       },
     });
   } catch (error) {

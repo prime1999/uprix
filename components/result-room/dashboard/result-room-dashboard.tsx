@@ -8,6 +8,7 @@ import goGetter from "@/app/assets/images/goGetter.jpg";
 import {
   useResultRoomDashboard,
   useCreateResultRoomSubmission,
+  useCreatePartnerReport,
 } from "@/lib/queries/result-room";
 
 import type { SubmissionPayload } from "./submission/SubmissionForm";
@@ -30,6 +31,13 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import SubmissionUploading from "./submission/submissionUploading";
 import SubmissionSuccess from "./submission/submissionSuccess";
 import SubmissionError from "./submission/submissionError";
+
+import SubmitReportForm from "./reports/submitReportForm";
+import SubmitReportUploading from "./reports/submitReportUploading";
+import SubmitReportSuccess from "./reports/submitReportSuccess";
+import SubmitReportError from "./reports/submitReportError";
+
+import SubmissionViewModal from "./SubmissionViewModal";
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -62,6 +70,12 @@ type UploadProgressState = {
   imageCount: number;
 };
 
+type ReportView = "form" | "submitting" | "success" | "error";
+
+type ReportErrorDetails = {
+  message: string;
+};
+
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
 /* -------------------------------------------------------------------------- */
@@ -83,13 +97,43 @@ function formatCountdown(milliseconds: number): string {
   return `${seconds}s`;
 }
 
+/**
+ * Returns today's date in the participant's timezone as YYYY-MM-DD.
+ *
+ * The API must still validate the date and enforce its own deadline.
+ */
+function getTodayInTimezone(timezone: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  if (!year || !month || !day) {
+    throw new Error("Unable to determine today's date.");
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Component                                                                  */
 /* -------------------------------------------------------------------------- */
 
 const ResultRoomDashboard = () => {
   const { data: dashboardData } = useResultRoomDashboard();
+
   const submissionMutation = useCreateResultRoomSubmission();
+  const partnerReportMutation = useCreatePartnerReport();
+
+  /* ------------------------------------------------------------------------ */
+  /* Daily submission state                                                   */
+  /* ------------------------------------------------------------------------ */
 
   const [submissionDialogOpen, setSubmissionDialogOpen] = useState(false);
   const [submissionView, setSubmissionView] = useState<SubmissionView>("form");
@@ -105,6 +149,35 @@ const ResultRoomDashboard = () => {
       progress: 0,
       imageCount: 0,
     });
+
+  /* ------------------------------------------------------------------------ */
+  /* Partner report state                                                     */
+  /* ------------------------------------------------------------------------ */
+
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reportView, setReportView] = useState<ReportView>("form");
+
+  const [reportError, setReportError] = useState<ReportErrorDetails | null>(
+    null,
+  );
+
+  const [reportComment, setReportComment] = useState("");
+  const [reportSubmittedOnTime, setReportSubmittedOnTime] = useState<
+    boolean | null
+  >(null);
+
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+
+  /* ------------------------------------------------------------------------ */
+  /* Partner submission modal state                                           */
+  /* ------------------------------------------------------------------------ */
+
+  const [partnerSubmissionDialogOpen, setPartnerSubmissionDialogOpen] =
+    useState(false);
+
+  /* ------------------------------------------------------------------------ */
+  /* Participant state                                                        */
+  /* ------------------------------------------------------------------------ */
 
   const [participant, setParticipant] = useState<Participant | null>(null);
   const [loading, setLoading] = useState(true);
@@ -136,6 +209,10 @@ const ResultRoomDashboard = () => {
   const partnerReportDeadline = timezone
     ? getPartnerReportDeadline(timezone, now)
     : null;
+
+  const today = timezone
+    ? getTodayInTimezone(timezone)
+    : getTodayInTimezone(getParticipantTimezone());
 
   /* ------------------------------------------------------------------------ */
   /* Load participant                                                         */
@@ -183,7 +260,7 @@ const ResultRoomDashboard = () => {
   }, []);
 
   /* ------------------------------------------------------------------------ */
-  /* Submission progress                                                      */
+  /* Daily submission progress                                                */
   /* ------------------------------------------------------------------------ */
 
   const handleUploadProgressChange = ({
@@ -202,15 +279,13 @@ const ResultRoomDashboard = () => {
       return;
     }
 
-    // Only return to the form if the Cloudinary upload failed.
-    // Do not overwrite the saving, success, or error screens.
     setSubmissionView((current) =>
       current === "uploading" ? "form" : current,
     );
   };
 
   /* ------------------------------------------------------------------------ */
-  /* Save submission                                                          */
+  /* Save daily submission                                                    */
   /* ------------------------------------------------------------------------ */
 
   const handleSubmission = async (payload: SubmissionPayload) => {
@@ -242,7 +317,7 @@ const ResultRoomDashboard = () => {
   };
 
   /* ------------------------------------------------------------------------ */
-  /* Retry submission                                                        */
+  /* Retry daily submission                                                   */
   /* ------------------------------------------------------------------------ */
 
   const handleRetrySubmission = async () => {
@@ -254,20 +329,21 @@ const ResultRoomDashboard = () => {
   };
 
   /* ------------------------------------------------------------------------ */
-  /* Dialog state                                                             */
+  /* Daily submission dialog                                                  */
   /* ------------------------------------------------------------------------ */
 
   const resetSubmissionState = () => {
     setSubmissionView("form");
     setSubmissionError(null);
     setLastSubmissionPayload(null);
+
     setSubmissionUploadProgress({
       progress: 0,
       imageCount: 0,
     });
   };
 
-  const handleDialogOpenChange = (open: boolean) => {
+  const handleSubmissionDialogOpenChange = (open: boolean) => {
     if (
       !open &&
       (submissionView === "uploading" ||
@@ -282,6 +358,79 @@ const ResultRoomDashboard = () => {
     if (!open) {
       resetSubmissionState();
     }
+  };
+
+  /* ------------------------------------------------------------------------ */
+  /* Submit partner report                                                    */
+  /* ------------------------------------------------------------------------ */
+
+  const handleSubmitReport = async (
+    comment: string,
+    submittedOnTime: boolean,
+  ) => {
+    if (reportSubmitting) {
+      return;
+    }
+
+    setReportSubmitting(true);
+    setReportError(null);
+    setReportView("submitting");
+
+    try {
+      await partnerReportMutation.mutateAsync({
+        date: today,
+        comment: comment.trim(),
+        submittedOnTime,
+      });
+
+      setReportComment(comment);
+      setReportSubmittedOnTime(submittedOnTime);
+      setReportView("success");
+    } catch (error) {
+      console.error("Failed to submit partner report:", error);
+
+      setReportError({
+        message:
+          error instanceof Error
+            ? error.message
+            : "We couldn't submit your report. Please try again.",
+      });
+
+      setReportView("error");
+    } finally {
+      setReportSubmitting(false);
+    }
+  };
+
+  /* ------------------------------------------------------------------------ */
+  /* Partner report dialog                                                    */
+  /* ------------------------------------------------------------------------ */
+
+  const resetReportState = () => {
+    setReportView("form");
+    setReportError(null);
+    setReportComment("");
+    setReportSubmittedOnTime(null);
+  };
+
+  const handleReportDialogOpenChange = (open: boolean) => {
+    if (!open && reportSubmitting) {
+      return;
+    }
+
+    setReportDialogOpen(open);
+
+    if (!open) {
+      resetReportState();
+    }
+  };
+
+  const handleRetryReport = async () => {
+    if (reportSubmitting || reportSubmittedOnTime === null) {
+      return;
+    }
+
+    await handleSubmitReport(reportComment, reportSubmittedOnTime);
   };
 
   /* ------------------------------------------------------------------------ */
@@ -354,22 +503,50 @@ const ResultRoomDashboard = () => {
   /* ------------------------------------------------------------------------ */
 
   return (
-    <main className="w-full min-h-screen grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-      <div className="h-full w-full md:col-span-1 lg:col-span-2 p-2">
-        {dashboardData.room !== null ? (
-          <>
-            <ResultRoomHeatmap
-              startDate={dashboardData.room.startDate}
-              endDate={dashboardData.room.endDate}
-              submissionDates={dashboardData.submissionActivity.dates}
-            />
+    <>
+      <main className="grid min-h-screen w-full grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="h-full w-full p-2 md:col-span-1 lg:col-span-2">
+          {dashboardData.room !== null ? (
+            <>
+              <ResultRoomHeatmap
+                startDate={dashboardData.room.startDate}
+                endDate={dashboardData.room.endDate}
+                submissionDates={dashboardData.submissionActivity.dates}
+              />
 
-            <div className="mx-auto w-full my-4">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm">Go-Getter Details</p>
+              <div className="mx-auto my-4 w-full">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-sm">Go-Getter Details</p>
 
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="hidden lg:block">
+                  <div className="flex items-center gap-2 text-sm">
+                    <div className="hidden lg:block">
+                      <SecondaryButton
+                        onClick={() => console.log("edit button clicked")}
+                      >
+                        <Pencil className="text-white" />
+                      </SecondaryButton>
+                    </div>
+
+                    <GeneralButton
+                      text="View Profile"
+                      onClick={() => console.log("view profile button clicked")}
+                    />
+                  </div>
+                </div>
+
+                <div className="min-h-24 w-full rounded-2xl border border-white px-6 py-3 shadow-md backdrop-blur-3xl">
+                  {/* Mobile view */}
+                  <div className="mb-2 flex items-center justify-between lg:hidden">
+                    <div className="flex items-center gap-2">
+                      <Image
+                        src={goGetter}
+                        alt="Go Getter"
+                        className="size-12 rounded-full border border-white"
+                      />
+
+                      <h1 className="text-sm">{dashboardData.profile?.name}</h1>
+                    </div>
+
                     <SecondaryButton
                       onClick={() => console.log("edit button clicked")}
                     >
@@ -377,311 +554,367 @@ const ResultRoomDashboard = () => {
                     </SecondaryButton>
                   </div>
 
-                  <GeneralButton
-                    text="View Profile"
-                    onClick={() => console.log("view profile button clicked")}
-                  />
-                </div>
-              </div>
-
-              <div className="w-full min-h-24 backdrop-blur-3xl border border-white py-3 px-6 shadow-md rounded-2xl">
-                {/* Mobile view */}
-                <div className="lg:hidden flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
+                  {/* Desktop view */}
+                  <div className="flex items-center gap-4">
                     <Image
                       src={goGetter}
                       alt="Go Getter"
-                      className="size-12 rounded-full border border-white"
+                      className="hidden size-20 rounded-full border border-white lg:block"
                     />
 
-                    <h1 className="text-sm">
-                      {dashboardData.profile && dashboardData.profile.name}
-                    </h1>
+                    <div className="flex w-full flex-col items-start gap-4">
+                      <h1 className="hidden text-sm lg:block">
+                        {dashboardData.profile?.name}
+                      </h1>
+
+                      <div className="hidden w-full items-center justify-between md:flex">
+                        <div>
+                          <p className="text-xs text-gray-500">Goal</p>
+                          <h6 className="text-sm font-normal">
+                            {dashboardData.participant?.goal}
+                          </h6>
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-gray-500">Email</p>
+                          <h6 className="text-sm font-normal">
+                            {dashboardData.participant?.email}
+                          </h6>
+                        </div>
+
+                        <div>
+                          <p className="text-xs text-gray-500">Phone-Number</p>
+                          <h6 className="text-sm font-normal">
+                            {dashboardData.participant?.phone}
+                          </h6>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="lg:hidden">
-                    <SecondaryButton
-                      onClick={() => console.log("edit button clicked")}
-                    >
-                      <Pencil className="text-white" />
-                    </SecondaryButton>
-                  </div>
-                </div>
-
-                {/* Desktop view */}
-                <div className="flex items-center gap-4">
-                  <Image
-                    src={goGetter}
-                    alt="Go Getter"
-                    className="hidden lg:block size-20 rounded-full border border-white"
-                  />
-
-                  <div className="w-full flex flex-col items-start gap-4">
-                    <h1 className="hidden lg:block text-sm">
-                      {dashboardData.profile && dashboardData.profile.name}
-                    </h1>
-
-                    <div className="w-full items-center justify-between hidden md:flex">
+                  {/* Mobile view */}
+                  <div className="flex w-full flex-col md:hidden">
+                    <div className="mt-2 flex items-center justify-between gap-4">
                       <div>
                         <p className="text-xs text-gray-500">Goal</p>
                         <h6 className="text-sm font-normal">
-                          {dashboardData.participant &&
-                            dashboardData.participant.goal}
-                        </h6>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-gray-500">Email</p>
-                        <h6 className="text-sm font-normal">
-                          {dashboardData.participant &&
-                            dashboardData.participant.email}
+                          {dashboardData.participant?.goal}
                         </h6>
                       </div>
 
                       <div>
                         <p className="text-xs text-gray-500">Phone-Number</p>
                         <h6 className="text-sm font-normal">
-                          {dashboardData.participant &&
-                            dashboardData.participant.phone}
+                          {dashboardData.participant?.phone}
                         </h6>
                       </div>
                     </div>
-                  </div>
-                </div>
-
-                {/* Mobile view */}
-                <div className="w-full flex flex-col md:hidden">
-                  <div className="flex items-center justify-between mt-2 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-500">Goal</p>
-                      <h6 className="text-sm font-normal">
-                        {dashboardData.participant &&
-                          dashboardData.participant.goal}
-                      </h6>
-                    </div>
 
                     <div>
-                      <p className="text-xs text-gray-500">Phone-Number</p>
+                      <p className="text-xs text-gray-500">Email</p>
                       <h6 className="text-sm font-normal">
-                        {dashboardData.participant &&
-                          dashboardData.participant.phone}
+                        {dashboardData.participant?.email}
                       </h6>
                     </div>
                   </div>
-
-                  <div>
-                    <p className="text-xs text-gray-500">Email</p>
-                    <h6 className="text-sm font-normal">
-                      {dashboardData.participant &&
-                        dashboardData.participant.email}
-                    </h6>
-                  </div>
                 </div>
-              </div>
 
-              {/* Today's check-in */}
-              <section className="mt-4">
-                <h1 className="text-sm mb-2">Today&apos;s Check-in</h1>
+                {/* Today's check-in */}
+                <section className="mt-4">
+                  <h1 className="mb-2 text-sm">Today&apos;s Check-in</h1>
 
-                {/* Task submission */}
-                <div className="w-full min-h-12 backdrop-blur-3xl border border-white py-3 px-6 shadow-md rounded-2xl">
-                  <h1 className="text-sm">Task Submission</h1>
+                  {/* Task submission */}
+                  <div className="min-h-12 w-full rounded-2xl border border-white px-6 py-3 shadow-md backdrop-blur-3xl">
+                    <h1 className="text-sm">Task Submission</h1>
 
-                  <div className="w-full mt-1">
-                    {dashboardData.today.submissionCompleted ? (
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs md:text-sm">Welldone 👍</p>
-                        <GeneralButton text="View Submission" />
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="flex items-center gap-2">
-                          <Info className="size-4 text-primary-blue" />
+                    <div className="mt-1 w-full">
+                      {dashboardData.today.submissionCompleted ? (
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs md:text-sm">Well done 👍</p>
 
-                          <p className="text-xs md:text-sm">
-                            {submissionDeadline?.isOpen
-                              ? "Done with your task?"
-                              : "Today's submission window is closed."}
-                          </p>
-                        </span>
+                          {/* Connect this button when the own-submission
+                              GET endpoint is confirmed. */}
+                          <SubmissionViewModal
+                            isOpen={partnerSubmissionDialogOpen}
+                            onClose={() =>
+                              setPartnerSubmissionDialogOpen(false)
+                            }
+                            date={today}
+                            mode="partner"
+                            title="Partner's Task Submission"
+                            description="Review your partner's task and supporting evidence before submitting your partner report."
+                          />
+                          <GeneralButton text="View Submission" />
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="flex items-center gap-2">
+                            <Info className="size-4 text-primary-blue" />
 
-                        {submissionDeadline?.isOpen ? (
-                          <Dialog
-                            open={submissionDialogOpen}
-                            onOpenChange={handleDialogOpenChange}
-                          >
-                            <DialogTrigger asChild>
-                              <SecondaryButton>
-                                <span className="flex items-center gap-2 text-sm">
-                                  <Plus className="size-4 md:size-6" />
-                                  <span className="text-xs md:text-sm">
-                                    Submit Task
+                            <p className="text-xs md:text-sm">
+                              {submissionDeadline?.isOpen
+                                ? "Done with your task?"
+                                : "Today's submission window is closed."}
+                            </p>
+                          </span>
+
+                          {submissionDeadline?.isOpen ? (
+                            <Dialog
+                              open={submissionDialogOpen}
+                              onOpenChange={handleSubmissionDialogOpenChange}
+                            >
+                              <DialogTrigger asChild>
+                                <SecondaryButton>
+                                  <span className="flex items-center gap-2 text-sm">
+                                    <Plus className="size-4 md:size-6" />
+
+                                    <span className="text-xs md:text-sm">
+                                      Submit Task
+                                    </span>
                                   </span>
-                                </span>
-                              </SecondaryButton>
-                            </DialogTrigger>
+                                </SecondaryButton>
+                              </DialogTrigger>
 
-                            <DialogContent className="max-h-[95vh] isolate overflow-y-auto overflow-x-hidden rounded-[28px] border border-white/70 bg-gradient-to-br from-yellow-200 via-blue-100 to-blue-200 p-4 sm:p-5 sm:max-w-md">
-                              {/* Keep the form mounted during upload and save.
-                                  This prevents its refs and local state from
-                                  being destroyed when the status screen appears. */}
-                              <SubmissionForm
-                                onSubmit={handleSubmission}
-                                onUploadProgressChange={
-                                  handleUploadProgressChange
-                                }
-                                submitting={submissionMutation.isPending}
-                                onCancel={() => handleDialogOpenChange(false)}
-                                className={
-                                  submissionView === "form" ? "" : "hidden"
-                                }
-                              />
-
-                              {submissionView === "uploading" && (
-                                <SubmissionUploading
-                                  progress={submissionUploadProgress.progress}
-                                  imageCount={
-                                    submissionUploadProgress.imageCount
+                              <DialogContent className="isolate max-h-[95vh] overflow-x-hidden overflow-y-auto rounded-[28px] border border-white/70 bg-gradient-to-br from-yellow-200 via-blue-100 to-blue-200 p-4 sm:max-w-md sm:p-5">
+                                <SubmissionForm
+                                  onSubmit={handleSubmission}
+                                  onUploadProgressChange={
+                                    handleUploadProgressChange
                                   }
-                                  message="Uploading your evidence..."
-                                />
-                              )}
-
-                              {submissionView === "saving" && (
-                                <SubmissionUploading
-                                  imageCount={
-                                    lastSubmissionPayload?.files.length ?? 0
+                                  submitting={submissionMutation.isPending}
+                                  onCancel={() =>
+                                    handleSubmissionDialogOpenChange(false)
                                   }
-                                  message="Saving your submission..."
-                                />
-                              )}
-
-                              {submissionView === "success" && (
-                                <SubmissionSuccess
-                                  imageCount={
-                                    lastSubmissionPayload?.files.length ?? 0
-                                  }
-                                  description={
-                                    lastSubmissionPayload?.description
-                                  }
-                                  onContinue={() =>
-                                    handleDialogOpenChange(false)
+                                  className={
+                                    submissionView === "form" ? "" : "hidden"
                                   }
                                 />
-                              )}
 
-                              {submissionView === "error" &&
-                                submissionError && (
-                                  <SubmissionError
-                                    message={submissionError.message}
-                                    imageCount={submissionError.imageCount}
-                                    retrying={submissionMutation.isPending}
-                                    onRetry={handleRetrySubmission}
-                                    onCancel={() =>
-                                      handleDialogOpenChange(false)
+                                {submissionView === "uploading" && (
+                                  <SubmissionUploading
+                                    progress={submissionUploadProgress.progress}
+                                    imageCount={
+                                      submissionUploadProgress.imageCount
+                                    }
+                                    message="Uploading your evidence..."
+                                  />
+                                )}
+
+                                {submissionView === "saving" && (
+                                  <SubmissionUploading
+                                    imageCount={
+                                      lastSubmissionPayload?.files.length ?? 0
+                                    }
+                                    message="Saving your submission..."
+                                  />
+                                )}
+
+                                {submissionView === "success" && (
+                                  <SubmissionSuccess
+                                    imageCount={
+                                      lastSubmissionPayload?.files.length ?? 0
+                                    }
+                                    description={
+                                      lastSubmissionPayload?.description
+                                    }
+                                    onContinue={() =>
+                                      handleSubmissionDialogOpenChange(false)
                                     }
                                   />
                                 )}
-                            </DialogContent>
-                          </Dialog>
-                        ) : (
-                          <SecondaryButton disabled>
-                            <span className="flex items-center gap-2 text-sm">
-                              <Plus className="size-4 md:size-6" />
-                              <p className="text-xs md:text-sm">
-                                Submission Closed
-                              </p>
-                            </span>
-                          </SecondaryButton>
-                        )}
-                      </div>
-                    )}
 
-                    {!dashboardData.today.submissionCompleted &&
-                      submissionDeadline && (
-                        <p className="mt-2 text-right text-[11px] text-gray-500">
-                          {submissionDeadline.isOpen
-                            ? `Closes in ${formatCountdown(
-                                submissionDeadline.millisecondsRemaining,
-                              )}`
-                            : "Submissions closed at 9:00 PM"}
-                        </p>
+                                {submissionView === "error" &&
+                                  submissionError && (
+                                    <SubmissionError
+                                      message={submissionError.message}
+                                      imageCount={submissionError.imageCount}
+                                      retrying={submissionMutation.isPending}
+                                      onRetry={handleRetrySubmission}
+                                      onCancel={() =>
+                                        handleSubmissionDialogOpenChange(false)
+                                      }
+                                    />
+                                  )}
+                              </DialogContent>
+                            </Dialog>
+                          ) : (
+                            <SecondaryButton disabled>
+                              <span className="flex items-center gap-2 text-sm">
+                                <Plus className="size-4 md:size-6" />
+
+                                <span className="text-xs md:text-sm">
+                                  Submission Closed
+                                </span>
+                              </span>
+                            </SecondaryButton>
+                          )}
+                        </div>
                       )}
-                  </div>
-                </div>
 
-                {/* Partner check */}
-                <div className="w-full mt-2 min-h-12 backdrop-blur-3xl border border-white py-3 px-6 shadow-md rounded-2xl">
-                  <h1 className="text-sm">Partner Check</h1>
-
-                  <div className="w-full mt-1">
-                    {dashboardData.today.partnerReviewSubmitted ? (
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs md:text-sm">Great Partner 👍</p>
-                        <GeneralButton text="View Report" />
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="flex items-center gap-2">
-                          <Info className="size-4 text-primary-blue" />
-
-                          <p className="text-xs md:text-sm">
-                            {partnerReportDeadline?.isOpen
-                              ? "Check on your partner?"
-                              : "Partner reporting is closed."}
+                      {!dashboardData.today.submissionCompleted &&
+                        submissionDeadline && (
+                          <p className="mt-2 text-right text-[11px] text-gray-500">
+                            {submissionDeadline.isOpen
+                              ? `Closes in ${formatCountdown(
+                                  submissionDeadline.millisecondsRemaining,
+                                )}`
+                              : "Submissions closed at 9:00 PM"}
                           </p>
-                        </span>
-
-                        {partnerReportDeadline?.isOpen ? (
-                          <SecondaryButton
-                            onClick={() =>
-                              console.log("Submit report button clicked")
-                            }
-                          >
-                            <span className="flex items-center gap-2 text-sm">
-                              <Plus className="size-4 md:size-6" />
-                              <p className="text-xs md:text-sm">
-                                Submit Report
-                              </p>
-                            </span>
-                          </SecondaryButton>
-                        ) : (
-                          <SecondaryButton disabled>
-                            <span className="flex items-center gap-2 text-sm">
-                              <Plus className="size-4 md:size-6" />
-                              <p className="text-xs md:text-sm">
-                                Report Closed
-                              </p>
-                            </span>
-                          </SecondaryButton>
                         )}
-                      </div>
-                    )}
-
-                    {!dashboardData.today.partnerReviewSubmitted &&
-                      partnerReportDeadline && (
-                        <p className="mt-2 text-right text-[11px] text-gray-500">
-                          {partnerReportDeadline.isOpen
-                            ? `Closes in ${formatCountdown(
-                                partnerReportDeadline.millisecondsRemaining,
-                              )}`
-                            : "Reports closed at 9:30 PM"}
-                        </p>
-                      )}
+                    </div>
                   </div>
-                </div>
-              </section>
-            </div>
-          </>
-        ) : (
-          <p>Loading!!!</p>
-        )}
 
-        <MobileNav />
-      </div>
+                  {/* Partner check */}
+                  <div className="mt-2 min-h-12 w-full rounded-2xl border border-white px-6 py-3 shadow-md backdrop-blur-3xl">
+                    <h1 className="text-sm">Partner Check</h1>
 
-      <div className="h-full hidden lg:block md:col-span-1">vsadhv</div>
-    </main>
+                    <div className="mt-1 w-full">
+                      {dashboardData.today.partnerReviewSubmitted ? (
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs md:text-sm">
+                            Partner check completed 👍
+                          </p>
+
+                          <GeneralButton text="View Report" />
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="flex items-center gap-2">
+                            <Info className="size-4 text-primary-blue" />
+
+                            <p className="text-xs md:text-sm">
+                              {partnerReportDeadline?.isOpen
+                                ? "Check on your partner?"
+                                : "Partner reporting is closed."}
+                            </p>
+                          </span>
+
+                          {partnerReportDeadline?.isOpen ? (
+                            <Dialog
+                              open={reportDialogOpen}
+                              onOpenChange={handleReportDialogOpenChange}
+                            >
+                              <DialogTrigger asChild>
+                                <SecondaryButton
+                                  onClick={() => {
+                                    setReportView("form");
+                                    setReportError(null);
+                                  }}
+                                >
+                                  <span className="flex items-center gap-2 text-sm">
+                                    <Plus className="size-4 md:size-6" />
+
+                                    <span className="text-xs md:text-sm">
+                                      Submit Report
+                                    </span>
+                                  </span>
+                                </SecondaryButton>
+                              </DialogTrigger>
+
+                              <DialogContent className="isolate max-h-[95vh] overflow-x-hidden overflow-y-auto rounded-[28px] border border-white/70 bg-gradient-to-br from-yellow-200 via-blue-100 to-blue-200 p-4 sm:max-w-md sm:p-5">
+                                {reportView === "form" && (
+                                  <SubmitReportForm
+                                    onSubmit={({ comment, submittedOnTime }) =>
+                                      handleSubmitReport(
+                                        comment,
+                                        submittedOnTime,
+                                      )
+                                    }
+                                    submitting={reportSubmitting}
+                                    onCancel={() =>
+                                      handleReportDialogOpenChange(false)
+                                    }
+                                  />
+                                )}
+
+                                {reportView === "submitting" && (
+                                  <SubmitReportUploading message="Submitting your partner report..." />
+                                )}
+
+                                {reportView === "success" && (
+                                  <SubmitReportSuccess
+                                    onContinue={() =>
+                                      handleReportDialogOpenChange(false)
+                                    }
+                                  />
+                                )}
+
+                                {reportView === "error" && reportError && (
+                                  <SubmitReportError
+                                    message={reportError.message}
+                                    retrying={reportSubmitting}
+                                    onRetry={handleRetryReport}
+                                    onCancel={() =>
+                                      handleReportDialogOpenChange(false)
+                                    }
+                                  />
+                                )}
+                              </DialogContent>
+                            </Dialog>
+                          ) : (
+                            <SecondaryButton disabled>
+                              <span className="flex items-center gap-2 text-sm">
+                                <Plus className="size-4 md:size-6" />
+
+                                <span className="text-xs md:text-sm">
+                                  Report Closed
+                                </span>
+                              </span>
+                            </SecondaryButton>
+                          )}
+                        </div>
+                      )}
+
+                      {!dashboardData.today.partnerReviewSubmitted &&
+                        partnerReportDeadline && (
+                          <p className="mt-2 text-right text-[11px] text-gray-500">
+                            {partnerReportDeadline.isOpen
+                              ? `Closes in ${formatCountdown(
+                                  partnerReportDeadline.millisecondsRemaining,
+                                )}`
+                              : "Reports closed at 9:30 PM"}
+                          </p>
+                        )}
+                    </div>
+                  </div>
+
+                  {/* Open the reusable partner submission modal */}
+                  <div className="mt-3 flex justify-end">
+                    <SecondaryButton
+                      onClick={() => setPartnerSubmissionDialogOpen(true)}
+                    >
+                      <span className="flex items-center gap-2 text-sm">
+                        <Info className="size-4" />
+                        View Partner&apos;s Submission
+                      </span>
+                    </SecondaryButton>
+                  </div>
+                </section>
+              </div>
+            </>
+          ) : (
+            <p>Loading!!!</p>
+          )}
+
+          <MobileNav />
+        </div>
+
+        <div className="hidden h-full md:col-span-1 lg:block">vsadhv</div>
+      </main>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Reusable partner submission modal                                  */}
+      {/* ------------------------------------------------------------------ */}
+
+      <SubmissionViewModal
+        isOpen={partnerSubmissionDialogOpen}
+        onClose={() => setPartnerSubmissionDialogOpen(false)}
+        date={today}
+        mode="partner"
+        title="Partner's Task Submission"
+        description="Review your partner's task and supporting evidence before submitting your partner report."
+      />
+    </>
   );
 };
 
