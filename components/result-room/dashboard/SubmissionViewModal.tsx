@@ -16,11 +16,12 @@ import {
   Maximize2,
   X,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 
 import GeneralButton from "@/components/miscelleneous/generalButton";
-import { useResultRoomPartnerSubmission } from "@/lib/queries/result-room";
-// Adjust this import to the actual file containing your React Query hook.
+import {
+  useResultRoomMySubmission,
+  useResultRoomPartnerSubmission,
+} from "@/lib/queries/result-room"; // Change this to your actual hook file path
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -40,67 +41,18 @@ export interface Submission {
   images: SubmissionImage[];
 }
 
-interface SubmissionResponse {
-  success: boolean;
-  submission: Submission | null;
-  error?: string;
-  message?: string;
-}
-
 interface SubmissionViewModalProps {
   isOpen: boolean;
   onClose: () => void;
   date: string;
-  endpoint?: string;
   title?: string;
   description?: string;
-  mode?: "partner" | "own";
+  mode: "partner" | "own";
 }
 
 /* -------------------------------------------------------------------------- */
 /* Data + formatting helpers                                                  */
 /* -------------------------------------------------------------------------- */
-
-async function fetchSubmission(
-  endpoint: string,
-  date: string,
-): Promise<Submission | null> {
-  const separator = endpoint.includes("?") ? "&" : "?";
-  const url = `${endpoint}${separator}date=${encodeURIComponent(date)}`;
-
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-    },
-    cache: "no-store",
-  });
-
-  const data: unknown = await response.json();
-
-  if (!response.ok) {
-    const errorData = data as {
-      error?: string;
-      message?: string;
-    };
-
-    throw new Error(
-      errorData.message ||
-        errorData.error ||
-        `Failed to load submission (${response.status}).`,
-    );
-  }
-
-  const result = data as SubmissionResponse;
-
-  if (!result.success) {
-    throw new Error(
-      result.error || result.message || "Failed to load submission.",
-    );
-  }
-
-  return result.submission;
-}
 
 function formatDate(date: string): string {
   const parsed = new Date(`${date}T00:00:00`);
@@ -166,7 +118,7 @@ function getStatusStyles(status: string): string {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Design tokens (same glass + 3D language as the submission form)            */
+/* Design tokens                                                              */
 /* -------------------------------------------------------------------------- */
 
 const GLASS =
@@ -174,23 +126,6 @@ const GLASS =
 
 const GLASS_INNER = "border border-white/70 bg-white/40 backdrop-blur-md";
 
-const CSS = `
-@keyframes sv-drift {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50%      { transform: translate3d(30px, 20px, 0) scale(1.15); }
-}
-@keyframes sv-in {
-  from { opacity: 0; transform: translateY(12px) scale(.98); }
-  to   { opacity: 1; transform: none; }
-}
-.sv-drift { animation: sv-drift 14s ease-in-out infinite; }
-.sv-in    { animation: sv-in .35s cubic-bezier(.2,.8,.2,1) both; }
-@media (prefers-reduced-motion: reduce) {
-  .sv-drift, .sv-in { animation: none !important; }
-}
-`;
-
-/** 3D tile used for state icons (blue by default, red for errors). */
 function Tile3D({
   children,
   tone = "blue",
@@ -218,10 +153,6 @@ function Tile3D({
 
 /* -------------------------------------------------------------------------- */
 /* Evidence stack slider                                                      */
-/*                                                                            */
-/* Cards are stacked with the next two peeking out behind the front one, with */
-/* a round handle on the edge and a back button below. Every card is sized to */
-/* its own image, so images of different shapes are never cropped awkwardly.  */
 /* -------------------------------------------------------------------------- */
 
 function EvidenceStack({
@@ -248,11 +179,18 @@ function EvidenceStack({
 
   useEffect(() => {
     if (!stageEl) return;
+
     const update = () =>
-      setStage({ w: stageEl.clientWidth, h: stageEl.clientHeight });
+      setStage({
+        w: stageEl.clientWidth,
+        h: stageEl.clientHeight,
+      });
+
     update();
+
     const observer = new ResizeObserver(update);
     observer.observe(stageEl);
+
     return () => observer.disconnect();
   }, [stageEl]);
 
@@ -263,18 +201,17 @@ function EvidenceStack({
   const multiple = count > 1;
   const step = Math.max(16, Math.min(26, stage.w * 0.04));
 
-  // Fit each image inside the stage while keeping its own shape.
   const maxW = stage.w - step * 2 - 24;
   const maxH = stage.h - 40;
 
   const sizeOf = (id: string) => {
     const ratio = ratios[id] ?? 4 / 3;
     const w = Math.min(maxW, maxH * ratio);
+
     return { w, h: w / ratio };
   };
 
   const front = sizeOf(images[index]?.id ?? "");
-  // the handle straddles the right edge of the front card
   const handleLeft = front.w / 2 - step - 22;
 
   return (
@@ -284,16 +221,19 @@ function EvidenceStack({
         role="group"
         aria-roledescription="carousel"
         aria-label="Evidence images"
-        onPointerDown={(e) => {
-          startX.current = e.clientX;
+        onPointerDown={(event) => {
+          startX.current = event.clientX;
           swiped.current = false;
         }}
-        onPointerUp={(e) => {
+        onPointerUp={(event) => {
           if (startX.current === null) return;
-          const dx = e.clientX - startX.current;
+
+          const dx = event.clientX - startX.current;
           startX.current = null;
+
           if (Math.abs(dx) > 50 && multiple) {
             swiped.current = true;
+
             if (dx < 0) {
               next();
             } else {
@@ -301,14 +241,15 @@ function EvidenceStack({
             }
           }
         }}
-        onPointerCancel={() => (startX.current = null)}
+        onPointerCancel={() => {
+          startX.current = null;
+        }}
         className="relative h-[320px] touch-pan-y select-none overflow-hidden"
       >
         {images.map((image, i) => {
           const d = (((i - index) % count) + count) % count;
           const { w, h } = sizeOf(image.id);
 
-          // front / peeking behind / leaving to the left / parked out of sight
           let x = 0;
           let scale = 1;
           let opacity = 1;
@@ -346,6 +287,7 @@ function EvidenceStack({
                   swiped.current = false;
                   return;
                 }
+
                 if (isPeek) go(i);
               }}
               className={`absolute left-1/2 top-1/2 overflow-hidden rounded-3xl bg-white shadow-[0_18px_40px_-18px_rgba(30,40,120,0.55)] ring-1 ring-black/5 transition-[transform,opacity] duration-700 ease-[cubic-bezier(.22,1,.36,1)] motion-reduce:transition-none ${
@@ -370,8 +312,11 @@ function EvidenceStack({
                 draggable={false}
                 onLoad={(event) => {
                   const { naturalWidth, naturalHeight } = event.currentTarget;
+
                   if (!naturalWidth || !naturalHeight) return;
+
                   const ratio = naturalWidth / naturalHeight;
+
                   setRatios((current) =>
                     current[image.id] === ratio
                       ? current
@@ -381,13 +326,13 @@ function EvidenceStack({
                 className="object-cover"
               />
 
-              {/* coloured layers on the cards behind, like the stacked cards */}
               <span
                 aria-hidden
                 className={`pointer-events-none absolute inset-0 bg-violet-600/60 transition-opacity duration-700 motion-reduce:transition-none ${
                   d === 1 ? "opacity-100" : "opacity-0"
                 }`}
               />
+
               <span
                 aria-hidden
                 className={`pointer-events-none absolute inset-0 bg-emerald-500/60 transition-opacity duration-700 motion-reduce:transition-none ${
@@ -395,7 +340,6 @@ function EvidenceStack({
                 }`}
               />
 
-              {/* details on the front card only */}
               <div
                 className={`transition-opacity duration-500 motion-reduce:transition-none ${
                   isFront ? "opacity-100" : "pointer-events-none opacity-0"
@@ -405,6 +349,7 @@ function EvidenceStack({
                   aria-hidden
                   className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/40 to-transparent"
                 />
+
                 <span
                   aria-hidden
                   className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/55 to-transparent"
@@ -443,7 +388,6 @@ function EvidenceStack({
           );
         })}
 
-        {/* round handle on the front card's edge */}
         {multiple && (
           <button
             type="button"
@@ -457,10 +401,8 @@ function EvidenceStack({
         )}
       </div>
 
-      {/* back button + dots */}
       {multiple && (
         <div className="flex items-center justify-center gap-5">
-          {/* 3D blue back button */}
           <button
             type="button"
             onClick={prev}
@@ -471,10 +413,12 @@ function EvidenceStack({
               aria-hidden
               className="pointer-events-none absolute inset-x-1.5 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/50 to-transparent"
             />
+
             <span
               aria-hidden
               className="pointer-events-none absolute inset-y-0 left-0 w-1/3 -translate-x-full -skew-x-12 bg-white/30 transition-transform duration-700 group-hover:translate-x-[400%]"
             />
+
             <ArrowLeft className="relative size-5" />
           </button>
 
@@ -508,54 +452,32 @@ export default function SubmissionViewModal({
   isOpen,
   onClose,
   date,
-  endpoint,
   title,
   description,
-  mode = "partner",
+  mode,
 }: SubmissionViewModalProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isImageExpanded, setIsImageExpanded] = useState(false);
   const dialogRef = useRef<HTMLElement>(null);
 
   /*
-   * Partner mode:
-   * Reuse the existing project-level React Query hook and its cache key.
-   *
-   * Own mode:
-   * Use the supplied endpoint with a separate query key.
+   * Both hooks are called unconditionally to follow React's Rules of Hooks.
+   * Only the hook matching `mode` is enabled and will fetch data.
    */
+  const ownQuery = useResultRoomMySubmission(date, isOpen && mode === "own");
+
   const partnerQuery = useResultRoomPartnerSubmission(
     date,
     isOpen && mode === "partner",
   );
 
-  const ownQuery = useQuery({
-    queryKey: ["result-room", "own-submission-view", endpoint, date],
-    queryFn: () => {
-      if (!endpoint) {
-        throw new Error("An endpoint is required to view your own submission.");
-      }
+  /*
+   * Select the response belonging to the requested mode.
+   * Both hooks return { data: { success, submission }, ... }.
+   */
+  const activeQuery = mode === "own" ? ownQuery : partnerQuery;
 
-      return fetchSubmission(endpoint, date);
-    },
-    enabled:
-      isOpen &&
-      mode === "own" &&
-      Boolean(endpoint) &&
-      /^\d{4}-\d{2}-\d{2}$/.test(date),
-    staleTime: 0,
-    gcTime: 30 * 60 * 1000,
-    retry: 2,
-    refetchOnWindowFocus: false,
-  });
-
-  const activeQuery = mode === "partner" ? partnerQuery : ownQuery;
-
-  const submission =
-    mode === "partner"
-      ? (partnerQuery.data?.submission ?? null)
-      : (ownQuery.data ?? null);
-
+  const submission = activeQuery.data?.submission ?? null;
   const isLoading = activeQuery.isLoading;
   const isError = activeQuery.isError;
   const error = activeQuery.error;
@@ -571,9 +493,11 @@ export default function SubmissionViewModal({
     }
   }, [isOpen]);
 
-  // move focus into the dialog when it opens
+  // Move focus into the dialog when it opens.
   useEffect(() => {
-    if (isOpen) dialogRef.current?.focus();
+    if (isOpen) {
+      dialogRef.current?.focus();
+    }
   }, [isOpen]);
 
   useEffect(() => {
@@ -621,6 +545,7 @@ export default function SubmissionViewModal({
 
   useEffect(() => {
     setActiveImageIndex(0);
+    setIsImageExpanded(false);
   }, [date, submission?.id]);
 
   if (!isOpen) {
@@ -638,8 +563,6 @@ export default function SubmissionViewModal({
 
   return (
     <>
-      <style>{CSS}</style>
-
       <div
         className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/40 p-3 backdrop-blur-md sm:p-6"
         onMouseDown={(event) => {
@@ -656,7 +579,7 @@ export default function SubmissionViewModal({
           aria-labelledby="submission-modal-title"
           className="sv-in relative isolate flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-white/70 bg-gradient-to-br from-sky-100 via-indigo-100 to-violet-100 shadow-2xl outline-none sm:rounded-3xl"
         >
-          {/* soft colour blobs the glass can frost */}
+          {/* Soft colour blobs */}
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 -z-10"
@@ -676,7 +599,7 @@ export default function SubmissionViewModal({
 
               <h2
                 id="submission-modal-title"
-                className="text-lg font-semibold tracking-tight text-secondary-blue"
+                className="text-lg font-heading font-semibold tracking-tight text-secondary-blue"
               >
                 {modalTitle}
               </h2>
@@ -703,6 +626,7 @@ export default function SubmissionViewModal({
                 <Tile3D>
                   <LoaderCircle className="size-6 animate-spin" />
                 </Tile3D>
+
                 <p className="text-sm font-medium text-neutral-700">
                   Loading submission...
                 </p>
@@ -837,6 +761,7 @@ export default function SubmissionViewModal({
                   {images.length === 0 ? (
                     <div className="flex min-h-40 flex-col items-center justify-center rounded-xl border border-dashed border-blue-300/80 bg-white/30 text-center backdrop-blur-md">
                       <ImageIcon className="mb-2 size-6 text-neutral-500" />
+
                       <p className="text-sm text-neutral-600">
                         No evidence images are available.
                       </p>

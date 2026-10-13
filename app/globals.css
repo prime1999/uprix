@@ -471,6 +471,38 @@
 .su-bob {
   animation: su-bob 1.6s ease-in-out infinite;
 }
+
+@keyframes sv-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(30px, 20px, 0) scale(1.15);
+  }
+}
+@keyframes sv-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.sv-drift {
+  animation: sv-drift 14s ease-in-out infinite;
+}
+.sv-in {
+  animation: sv-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sv-drift,
+  .sv-in {
+    animation: none !important;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .su-slide,
   .su-shine,

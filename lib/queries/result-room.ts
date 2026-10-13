@@ -308,6 +308,11 @@ export function useCreateResultRoomSubmission() {
       await queryClient.invalidateQueries({
         queryKey: resultRoomDashboardQueryKey,
       });
+
+      // Refresh cached own-submission queries for every date.
+      await queryClient.invalidateQueries({
+        queryKey: ["result-room", "my-submission"],
+      });
     },
   });
 }
@@ -395,10 +400,7 @@ async function fetchResultRoomPartnerSubmission(
  *
  * data?.submission === null means no submission exists for that date.
  */
-export function useResultRoomPartnerSubmission(
-  date: string,
-  enabled = true,
-) {
+export function useResultRoomPartnerSubmission(date: string, enabled = true) {
   return useQuery({
     queryKey: resultRoomPartnerSubmissionQueryKey(date),
 
@@ -423,6 +425,7 @@ export function useResultRoomPartnerSubmission(
 export interface CreatePartnerReportInput {
   date: string;
   comment?: string;
+  submittedOnTime: boolean;
 }
 
 interface CreatePartnerReportResponse {
@@ -498,5 +501,112 @@ export function useCreatePartnerReport() {
         queryKey: resultRoomDashboardQueryKey,
       });
     },
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* MY SUBMISSION                                                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The my-submission API returns either:
+ * - submission: null when the participant has not submitted for the date
+ * - submission details and images when a submission exists
+ */
+
+export interface MySubmission {
+  id: string;
+  description: string | null;
+  submissionDate: string;
+  submittedAt: string;
+  status: string;
+  images: {
+    id: string;
+    url: string;
+  }[];
+}
+
+interface MySubmissionResponse {
+  success: boolean;
+  submission: MySubmission | null;
+  error?: string;
+}
+
+/**
+ * React Query cache key for the authenticated participant's own submission.
+ *
+ * Including the date gives each day's submission its own cache entry.
+ */
+export const resultRoomMySubmissionQueryKey = (date: string) =>
+  ["result-room", "my-submission", date] as const;
+
+/**
+ * Fetch the authenticated participant's own submission.
+ *
+ * The server identifies the participant through the authenticated session.
+ * The client only supplies the requested date.
+ */
+async function fetchResultRoomMySubmission(
+  date: string,
+): Promise<MySubmissionResponse> {
+  const response = await fetch(
+    `/api/result/my-submission?date=${encodeURIComponent(date)}`,
+    {
+      cache: "no-store",
+    },
+  );
+
+  const data: unknown = await response.json();
+
+  if (!response.ok) {
+    const errorData = data as { error?: string };
+
+    throw new Error(
+      errorData.error || `Failed to load your submission (${response.status}).`,
+    );
+  }
+
+  const result = data as MySubmissionResponse;
+
+  if (!result.success) {
+    throw new Error(result.error || "Failed to load your submission.");
+  }
+
+  return result;
+}
+
+/**
+ * Hook for retrieving the authenticated participant's own submission
+ * for a specific date.
+ *
+ * Example:
+ *
+ * const {
+ *   data,
+ *   isLoading,
+ *   isFetching,
+ *   error,
+ *   refetch,
+ * } = useResultRoomMySubmission(selectedDate);
+ *
+ * data?.submission === null means no submission exists for that date.
+ */
+export function useResultRoomMySubmission(date: string, enabled = true) {
+  return useQuery({
+    queryKey: resultRoomMySubmissionQueryKey(date),
+
+    queryFn: () => fetchResultRoomMySubmission(date),
+
+    enabled: enabled && /^\d{4}-\d{2}-\d{2}$/.test(date),
+
+    // Submission details should be refreshed when explicitly requested
+    // or when their query is invalidated after a successful mutation.
+    staleTime: 0,
+
+    gcTime: 30 * 60 * 1000,
+
+    retry: 2,
+
+    refetchOnWindowFocus: false,
   });
 }

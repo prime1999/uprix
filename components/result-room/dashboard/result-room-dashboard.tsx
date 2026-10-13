@@ -9,6 +9,8 @@ import {
   useResultRoomDashboard,
   useCreateResultRoomSubmission,
   useCreatePartnerReport,
+  useResultRoomPartnerSubmission,
+  useResultRoomMySubmission,
 } from "@/lib/queries/result-room";
 
 import type { SubmissionPayload } from "./submission/SubmissionForm";
@@ -174,6 +176,12 @@ const ResultRoomDashboard = () => {
 
   const [partnerSubmissionDialogOpen, setPartnerSubmissionDialogOpen] =
     useState(false);
+  /* ------------------------------------------------------------------------ */
+  /* Participant submission modal state                                           */
+  /* ------------------------------------------------------------------------ */
+
+  const [participantSubmissionDialogOpen, setParticipantSubmissionDialogOpen] =
+    useState(false);
 
   /* ------------------------------------------------------------------------ */
   /* Participant state                                                        */
@@ -213,6 +221,15 @@ const ResultRoomDashboard = () => {
   const today = timezone
     ? getTodayInTimezone(timezone)
     : getTodayInTimezone(getParticipantTimezone());
+
+  const partnerSubmissionQuery = useResultRoomPartnerSubmission(
+    today,
+    partnerSubmissionDialogOpen,
+  );
+  const participantSubmissionQuery = useResultRoomMySubmission(
+    today,
+    participantSubmissionDialogOpen,
+  );
 
   /* ------------------------------------------------------------------------ */
   /* Load participant                                                         */
@@ -631,20 +648,12 @@ const ResultRoomDashboard = () => {
                       {dashboardData.today.submissionCompleted ? (
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-xs md:text-sm">Well done 👍</p>
-
-                          {/* Connect this button when the own-submission
-                              GET endpoint is confirmed. */}
-                          <SubmissionViewModal
-                            isOpen={partnerSubmissionDialogOpen}
-                            onClose={() =>
-                              setPartnerSubmissionDialogOpen(false)
+                          <GeneralButton
+                            onClick={() =>
+                              setParticipantSubmissionDialogOpen(true)
                             }
-                            date={today}
-                            mode="partner"
-                            title="Partner's Task Submission"
-                            description="Review your partner's task and supporting evidence before submitting your partner report."
+                            text="View Submission"
                           />
-                          <GeneralButton text="View Submission" />
                         </div>
                       ) : (
                         <div className="flex items-center justify-between gap-2">
@@ -880,14 +889,14 @@ const ResultRoomDashboard = () => {
 
                   {/* Open the reusable partner submission modal */}
                   <div className="mt-3 flex justify-end">
-                    <SecondaryButton
+                    <GeneralButton
                       onClick={() => setPartnerSubmissionDialogOpen(true)}
                     >
                       <span className="flex items-center gap-2 text-sm">
                         <Info className="size-4" />
                         View Partner&apos;s Submission
                       </span>
-                    </SecondaryButton>
+                    </GeneralButton>
                   </div>
                 </section>
               </div>
@@ -903,6 +912,16 @@ const ResultRoomDashboard = () => {
       </main>
 
       {/* ------------------------------------------------------------------ */}
+      {/* Reusable participant submission modal                                  */}
+      {/* ------------------------------------------------------------------ */}
+      <SubmissionViewModal
+        isOpen={participantSubmissionDialogOpen}
+        onClose={() => setParticipantSubmissionDialogOpen(false)}
+        date={today}
+        mode="own"
+      />
+
+      {/* ------------------------------------------------------------------ */}
       {/* Reusable partner submission modal                                  */}
       {/* ------------------------------------------------------------------ */}
 
@@ -911,8 +930,6 @@ const ResultRoomDashboard = () => {
         onClose={() => setPartnerSubmissionDialogOpen(false)}
         date={today}
         mode="partner"
-        title="Partner's Task Submission"
-        description="Review your partner's task and supporting evidence before submitting your partner report."
       />
     </>
   );
