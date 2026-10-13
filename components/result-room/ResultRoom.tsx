@@ -223,7 +223,7 @@ export default function ResultRoomTwoPage({
         <b className="tabular-nums text-[#ffd60a]">
           {remaining.hours}:{remaining.minutes}:{remaining.seconds}
         </b>{" "}
-        · Only 7 seats
+        · Only 6 seats
       </div>
       <nav className="w-11/12 lg:w-8/12 mx-auto sticky top-3 z-10 rounded-full border-b border-[#e6e3da]/80 backdrop-blur-3xl">
         <div className="rr-wrap mx-auto flex h-16 w-[calc(100%-44px)] max-w-[1120px] items-center justify-between gap-3.5">
