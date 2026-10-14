@@ -1,135 +1,69 @@
 import { create } from "zustand";
 
+import type { DashboardDerivedState } from "@/lib/result-room/calculate-dashboard-state";
+
 /**
- * ---------------------------------------------------------
- * RESULT ROOM UI STORE
- * ---------------------------------------------------------
- *
- * This store contains CLIENT-SIDE state for the Result Room.
+ * ==========================================================================
+ * TYPES
+ * ==========================================================================
+ */
+
+/**
+ * Client-only UI state + client-derived Result Room state.
  *
  * IMPORTANT:
  *
- * React Query owns server state:
+ * This store does NOT contain the raw dashboard API response.
  *
- *   - participant
- *   - profile
- *   - room
- *   - submissions
- *   - partner
- *   - fines
+ * React Query remains the source of truth for server data.
  *
- * Zustand owns:
+ * Zustand only contains:
  *
- *   - UI state
- *   - selected UI values
- *   - derived values prepared for the UI
- *
- * We deliberately do NOT store the complete participant,
- * profile, or room objects here.
- */
-
-/**
- * The values that can be used by the dashboard UI.
- *
- * These values are derived from server data rather than being
- * independent database records.
- */
-interface ResultRoomDerivedState {
-  /**
-   * Current consecutive submission streak.
-   *
-   * Example:
-   *
-   *   7 days of qualifying submissions → currentStreak = 7
-   */
-  currentStreak: number;
-
-  /**
-   * User's highest streak during the room.
-   */
-  longestStreak: number;
-
-  /**
-   * Current day of the Result Room.
-   *
-   * Example:
-   *
-   *   Day 1 → 1
-   *   Day 45 → 45
-   *   Day 90 → 90
-   */
-  currentDay: number;
-
-  /**
-   * Number of days remaining in the room.
-   */
-  daysRemaining: number;
-
-  /**
-   * Percentage of the room timeline completed.
-   *
-   * Example:
-   *
-   *   45 / 90 → 50
-   */
-  roomProgress: number;
-}
-
-/**
- * UI-only state.
- *
- * These values exist because of user interaction with the
- * dashboard rather than because they exist in Supabase.
+ * 1. Client-only UI state
+ * 2. Values derived from React Query data by
+ *    calculateDashboardState()
  */
 interface ResultRoomUIState {
   /**
-   * Whether the daily submission modal is open.
+   * ------------------------------------------------------------------------
+   * CLIENT-ONLY UI STATE
+   * ------------------------------------------------------------------------
+   */
+
+  /**
+   * Whether the daily submission modal is currently open.
    */
   isSubmissionModalOpen: boolean;
 
   /**
-   * Date currently selected by the user.
-   *
-   * Useful later for viewing previous submissions/activity.
-   *
-   * null means no date has been explicitly selected.
+   * Date currently selected in the activity/heatmap UI.
    */
   selectedDate: string | null;
 
   /**
    * Current activity filter.
-   *
-   * We keep this flexible for now because we haven't finalized
-   * the Activity page filters yet.
    */
   activityFilter: string;
+
+  /**
+   * ------------------------------------------------------------------------
+   * CLIENT-DERIVED ROOM STATE
+   * ------------------------------------------------------------------------
+   *
+   * This is calculated from React Query data.
+   *
+   * It is NOT fetched from the API.
+   */
+  roomProgress: DashboardDerivedState | null;
 }
 
 /**
- * ---------------------------------------------------------
- * STORE ACTIONS
- * ---------------------------------------------------------
- *
- * Actions are the only way components should intentionally
- * change store state.
+ * ==========================================================================
+ * ACTIONS
+ * ==========================================================================
  */
+
 interface ResultRoomActions {
-  /**
-   * Update all derived dashboard values at once.
-   *
-   * This will be called by our dashboard data/calculation
-   * layer when fresh server data is available.
-   */
-  setDerivedState: (state: ResultRoomDerivedState) => void;
-
-  /**
-   * Reset derived values.
-   *
-   * Useful when the user leaves the Result Room context or
-   * when we need to clear stale calculated state.
-   */
-  resetDerivedState: () => void;
-
   /**
    * Open the daily submission modal.
    */
@@ -141,7 +75,7 @@ interface ResultRoomActions {
   closeSubmissionModal: () => void;
 
   /**
-   * Select a specific date.
+   * Select a specific activity date.
    */
   setSelectedDate: (date: string | null) => void;
 
@@ -151,113 +85,115 @@ interface ResultRoomActions {
   setActivityFilter: (filter: string) => void;
 
   /**
-   * Reset UI state to its initial values.
+   * Store the latest client-derived room progress.
+   *
+   * This is called after:
+   *
+   * React Query data
+   *        ↓
+   * calculateDashboardState()
+   *        ↓
+   * setRoomProgress()
+   */
+  setRoomProgress: (roomProgress: DashboardDerivedState) => void;
+
+  /**
+   * Clear the calculated room progress.
+   *
+   * Useful when the participant leaves the room/dashboard
+   * or when the underlying server data becomes unavailable.
+   */
+  clearRoomProgress: () => void;
+
+  /**
+   * Reset all client-side Result Room state.
    */
   resetUIState: () => void;
 }
 
 /**
- * ---------------------------------------------------------
- * INITIAL VALUES
- * ---------------------------------------------------------
+ * ==========================================================================
+ * INITIAL STATE
+ * ==========================================================================
  */
-
-const initialDerivedState: ResultRoomDerivedState = {
-  currentStreak: 0,
-  longestStreak: 0,
-  currentDay: 0,
-  daysRemaining: 0,
-  roomProgress: 0,
-};
 
 const initialUIState: ResultRoomUIState = {
   isSubmissionModalOpen: false,
   selectedDate: null,
   activityFilter: "all",
+  roomProgress: null,
 };
 
 /**
- * ---------------------------------------------------------
- * ZUSTAND STORE
- * ---------------------------------------------------------
- *
- * This is the single Result Room client-side store.
+ * ==========================================================================
+ * STORE
+ * ==========================================================================
  */
-export const useResultRoomStore = create<
-  ResultRoomDerivedState & ResultRoomUIState & ResultRoomActions
->((set) => ({
-  /**
-   * Initial derived values.
-   */
-  ...initialDerivedState,
 
-  /**
-   * Initial UI values.
-   */
-  ...initialUIState,
+export const useResultRoomStore = create<ResultRoomUIState & ResultRoomActions>(
+  (set) => ({
+    /**
+     * Initial state.
+     */
+    ...initialUIState,
 
-  /**
-   * -------------------------------------------------------
-   * DERIVED STATE ACTIONS
-   * -------------------------------------------------------
-   */
+    /**
+     * ------------------------------------------------------------------------
+     * SUBMISSION MODAL
+     * ------------------------------------------------------------------------
+     */
 
-  setDerivedState: (state) =>
-    set({
-      ...state,
-    }),
+    openSubmissionModal: () =>
+      set({
+        isSubmissionModalOpen: true,
+      }),
 
-  resetDerivedState: () =>
-    set({
-      ...initialDerivedState,
-    }),
+    closeSubmissionModal: () =>
+      set({
+        isSubmissionModalOpen: false,
+      }),
 
-  /**
-   * -------------------------------------------------------
-   * SUBMISSION MODAL
-   * -------------------------------------------------------
-   */
+    /**
+     * ------------------------------------------------------------------------
+     * ACTIVITY UI
+     * ------------------------------------------------------------------------
+     */
 
-  openSubmissionModal: () =>
-    set({
-      isSubmissionModalOpen: true,
-    }),
+    setSelectedDate: (date) =>
+      set({
+        selectedDate: date,
+      }),
 
-  closeSubmissionModal: () =>
-    set({
-      isSubmissionModalOpen: false,
-    }),
+    setActivityFilter: (filter) =>
+      set({
+        activityFilter: filter,
+      }),
 
-  /**
-   * -------------------------------------------------------
-   * DATE SELECTION
-   * -------------------------------------------------------
-   */
+    /**
+     * ------------------------------------------------------------------------
+     * DERIVED ROOM STATE
+     * ------------------------------------------------------------------------
+     */
 
-  setSelectedDate: (date) =>
-    set({
-      selectedDate: date,
-    }),
+    setRoomProgress: (roomProgress) =>
+      set({
+        roomProgress,
+      }),
 
-  /**
-   * -------------------------------------------------------
-   * ACTIVITY FILTER
-   * -------------------------------------------------------
-   */
+    clearRoomProgress: () =>
+      set({
+        roomProgress: null,
+      }),
 
-  setActivityFilter: (filter) =>
-    set({
-      activityFilter: filter,
-    }),
+    /**
+     * ------------------------------------------------------------------------
+     * RESET
+     * ------------------------------------------------------------------------
+     */
 
-  /**
-   * -------------------------------------------------------
-   * RESET UI STATE
-   * -------------------------------------------------------
-   */
-
-  resetUIState: () =>
-    set({
-      ...initialUIState,
-    }),
-}));
+    resetUIState: () =>
+      set({
+        ...initialUIState,
+      }),
+  }),
+);
