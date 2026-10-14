@@ -219,11 +219,8 @@ export default function ResultRoomTwoPage({
       ref={page}
     >
       <div className="rr-announcement bg-[#15151a] px-3.5 py-2 text-center text-[0.84rem] text-white">
-        Payment closes 17th October at 4:00 PM · closes in{" "}
-        <b className="tabular-nums text-[#ffd60a]">
-          {remaining.hours}:{remaining.minutes}:{remaining.seconds}
-        </b>{" "}
-        · Only 5 seats
+        All slots are gone · Full payment only before deadline (17th october
+        4pm){" "}
       </div>
       <nav className="w-11/12 lg:w-8/12 mx-auto sticky top-3 z-10 rounded-full border-b border-[#e6e3da]/80 backdrop-blur-3xl">
         <div className="rr-wrap mx-auto flex h-16 w-[calc(100%-44px)] max-w-[1120px] items-center justify-between gap-3.5">
