@@ -21,7 +21,7 @@ import GeneralButton from "@/components/miscelleneous/generalButton";
 import {
   useResultRoomMySubmission,
   useResultRoomPartnerSubmission,
-} from "@/lib/queries/result-room"; // Change this to your actual hook file path
+} from "@/lib/queries/result-room";
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */

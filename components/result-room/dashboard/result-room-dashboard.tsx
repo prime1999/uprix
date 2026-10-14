@@ -9,8 +9,6 @@ import {
   useResultRoomDashboard,
   useCreateResultRoomSubmission,
   useCreatePartnerReport,
-  useResultRoomPartnerSubmission,
-  useResultRoomMySubmission,
 } from "@/lib/queries/result-room";
 
 import type { SubmissionPayload } from "./submission/SubmissionForm";
@@ -39,7 +37,7 @@ import SubmitReportUploading from "./reports/submitReportUploading";
 import SubmitReportSuccess from "./reports/submitReportSuccess";
 import SubmitReportError from "./reports/submitReportError";
 
-import SubmissionViewModal from "./SubmissionViewModal";
+import SubmissionViewModal from "./modals/SubmissionViewModal";
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -221,15 +219,6 @@ const ResultRoomDashboard = () => {
   const today = timezone
     ? getTodayInTimezone(timezone)
     : getTodayInTimezone(getParticipantTimezone());
-
-  const partnerSubmissionQuery = useResultRoomPartnerSubmission(
-    today,
-    partnerSubmissionDialogOpen,
-  );
-  const participantSubmissionQuery = useResultRoomMySubmission(
-    today,
-    participantSubmissionDialogOpen,
-  );
 
   /* ------------------------------------------------------------------------ */
   /* Load participant                                                         */
@@ -530,112 +519,7 @@ const ResultRoomDashboard = () => {
                 endDate={dashboardData.room.endDate}
                 submissionDates={dashboardData.submissionActivity.dates}
               />
-
               <div className="mx-auto my-4 w-full">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-sm">Go-Getter Details</p>
-
-                  <div className="flex items-center gap-2 text-sm">
-                    <div className="hidden lg:block">
-                      <SecondaryButton
-                        onClick={() => console.log("edit button clicked")}
-                      >
-                        <Pencil className="text-white" />
-                      </SecondaryButton>
-                    </div>
-
-                    <GeneralButton
-                      text="View Profile"
-                      onClick={() => console.log("view profile button clicked")}
-                    />
-                  </div>
-                </div>
-
-                <div className="min-h-24 w-full rounded-2xl border border-white px-6 py-3 shadow-md backdrop-blur-3xl">
-                  {/* Mobile view */}
-                  <div className="mb-2 flex items-center justify-between lg:hidden">
-                    <div className="flex items-center gap-2">
-                      <Image
-                        src={goGetter}
-                        alt="Go Getter"
-                        className="size-12 rounded-full border border-white"
-                      />
-
-                      <h1 className="text-sm">{dashboardData.profile?.name}</h1>
-                    </div>
-
-                    <SecondaryButton
-                      onClick={() => console.log("edit button clicked")}
-                    >
-                      <Pencil className="text-white" />
-                    </SecondaryButton>
-                  </div>
-
-                  {/* Desktop view */}
-                  <div className="flex items-center gap-4">
-                    <Image
-                      src={goGetter}
-                      alt="Go Getter"
-                      className="hidden size-20 rounded-full border border-white lg:block"
-                    />
-
-                    <div className="flex w-full flex-col items-start gap-4">
-                      <h1 className="hidden text-sm lg:block">
-                        {dashboardData.profile?.name}
-                      </h1>
-
-                      <div className="hidden w-full items-center justify-between md:flex">
-                        <div>
-                          <p className="text-xs text-gray-500">Goal</p>
-                          <h6 className="text-sm font-normal">
-                            {dashboardData.participant?.goal}
-                          </h6>
-                        </div>
-
-                        <div>
-                          <p className="text-xs text-gray-500">Email</p>
-                          <h6 className="text-sm font-normal">
-                            {dashboardData.participant?.email}
-                          </h6>
-                        </div>
-
-                        <div>
-                          <p className="text-xs text-gray-500">Phone-Number</p>
-                          <h6 className="text-sm font-normal">
-                            {dashboardData.participant?.phone}
-                          </h6>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Mobile view */}
-                  <div className="flex w-full flex-col md:hidden">
-                    <div className="mt-2 flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-xs text-gray-500">Goal</p>
-                        <h6 className="text-sm font-normal">
-                          {dashboardData.participant?.goal}
-                        </h6>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-gray-500">Phone-Number</p>
-                        <h6 className="text-sm font-normal">
-                          {dashboardData.participant?.phone}
-                        </h6>
-                      </div>
-                    </div>
-
-                    <div>
-                      <p className="text-xs text-gray-500">Email</p>
-                      <h6 className="text-sm font-normal">
-                        {dashboardData.participant?.email}
-                      </h6>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Today's check-in */}
                 <section className="mt-4">
                   <h1 className="mb-2 text-sm">Today&apos;s Check-in</h1>
@@ -656,7 +540,7 @@ const ResultRoomDashboard = () => {
                           />
                         </div>
                       ) : (
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
                           <span className="flex items-center gap-2">
                             <Info className="size-4 text-primary-blue" />
 
@@ -787,7 +671,7 @@ const ResultRoomDashboard = () => {
                           <GeneralButton text="View Report" />
                         </div>
                       ) : (
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
                           <span className="flex items-center gap-2">
                             <Info className="size-4 text-primary-blue" />
 

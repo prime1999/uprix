@@ -1,6 +1,12 @@
 "use client";
 
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
+import {
+  Children,
+  forwardRef,
+  isValidElement,
+  type ButtonHTMLAttributes,
+  type ReactNode,
+} from "react";
 
 export type ButtonVariant =
   | "default"
@@ -17,6 +23,7 @@ type GeneralButtonProps = Omit<
 > & {
   text?: string;
   children?: ReactNode;
+  iconOnly?: boolean;
   /** default = yellow, active/secondary = blue, delete/danger = red, disabled = gray */
   variant?: ButtonVariant;
   /** Click handler. Works the same as onClick, so use either one. */
@@ -64,6 +71,7 @@ const GeneralButton = forwardRef<HTMLButtonElement, GeneralButtonProps>(
       disabled = false,
       type = "button",
       className = "",
+      iconOnly = false,
       ...props
     },
     ref,
@@ -74,6 +82,13 @@ const GeneralButton = forwardRef<HTMLButtonElement, GeneralButtonProps>(
     ) as ButtonVariant;
     const style = VARIANTS[resolvedVariant];
     const content = children ?? text;
+    const isSingleIconChild =
+      !text &&
+      !iconOnly &&
+      Children.count(children) === 1 &&
+      isValidElement(children) &&
+      (!children.props?.children as any);
+    const isIconOnly = iconOnly || isSingleIconChild;
 
     return (
       <button
@@ -84,7 +99,9 @@ const GeneralButton = forwardRef<HTMLButtonElement, GeneralButtonProps>(
           onClick?.(event);
           buttonFunction?.();
         }}
-        className={`group relative inline-flex items-center justify-center overflow-hidden rounded-full border px-6 py-2.5 text-xs font-bold transition-all duration-200 focus:outline-none focus-visible:ring-4 md:text-sm ${style} ${className}`}
+        className={`group relative flex items-center justify-center overflow-hidden rounded-full border text-xs font-bold transition-all duration-200 focus:outline-none focus-visible:ring-4 md:text-sm ${
+          isIconOnly ? "size-10 p-0" : "px-6 py-2.5"
+        } ${style} ${className}`}
         {...props}
       >
         {/* glossy highlight on the top half */}
@@ -100,7 +117,11 @@ const GeneralButton = forwardRef<HTMLButtonElement, GeneralButtonProps>(
           />
         )}
 
-        <span className="relative inline-flex items-center justify-center gap-2 [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
+        <span
+          className={`relative flex items-center justify-center gap-2 [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 ${
+            isIconOnly ? "!gap-0" : ""
+          }`}
+        >
           {content}
         </span>
       </button>

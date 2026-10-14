@@ -184,7 +184,7 @@ export async function GET(request: NextRequest) {
       .select("id, cloudinary_url, created_at")
       .eq("submission_id", submission.id)
       .order("created_at", { ascending: true });
-
+    console.log(files);
     if (filesError) {
       console.error("Error fetching my submission images:", filesError);
 
