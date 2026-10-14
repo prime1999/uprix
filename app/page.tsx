@@ -14,7 +14,6 @@ const Home = () => {
   return (
     <main className="relative w-full overflow-x-hidden overflow-y-visible bg-transparent">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.08),_transparent_30%)]" />
-
       <Navbar />
       <Hero />
       <UprizerSlider />
