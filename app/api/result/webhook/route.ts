@@ -635,26 +635,39 @@ export async function POST(req: Request) {
     // This is important because the same Uprix user could potentially
     // participate in different Result Rooms over time.
     //
+    console.log("WEBHOOK DEBUG: Before participant lookup", {
+      reference,
+      userId,
+      roomId,
+    });
+
     const { data: participant, error: participantError } = await supabase
       .from("participants")
       .select(
         `
-          id,
-          room_id,
-          user_id,
-          full_name,
-          email,
-          total_paid,
-          balance,
-          status,
-          seat_number,
-          drive_access_granted,
-          welcome_email_sent
-        `,
+      id,
+      room_id,
+      user_id,
+      full_name,
+      email,
+      total_paid,
+      balance,
+      status,
+      seat_number,
+      drive_access_granted,
+      welcome_email_sent
+    `,
       )
       .eq("room_id", roomId)
       .eq("user_id", userId)
       .maybeSingle();
+
+    console.log("WEBHOOK DEBUG: Participant lookup result", {
+      reference,
+      found: !!participant,
+      participantId: participant?.id,
+      error: participantError?.message,
+    });
 
     if (participantError) {
       console.error("Participant lookup error:", participantError);
@@ -713,6 +726,8 @@ export async function POST(req: Request) {
       //
       // The participant's name comes from the user's Uprix profile.
       //
+      console.log("Looking up profile for userId:", userId);
+
       const { data: profile, error: profileError } = await supabase
         .from("user_profiles")
         .select("full_name")
@@ -720,15 +735,15 @@ export async function POST(req: Request) {
         .single();
 
       if (profileError || !profile) {
-        console.error("Profile lookup error:", profileError);
+        console.error("Profile lookup failed:", {
+          userId,
+          code: profileError?.code,
+          message: profileError?.message,
+        });
 
         return NextResponse.json(
-          {
-            error: "User profile not found",
-          },
-          {
-            status: 500,
-          },
+          { error: "User profile not found" },
+          { status: 500 },
         );
       }
 
