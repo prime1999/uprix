@@ -726,6 +726,8 @@ export async function POST(req: Request) {
       //
       // The participant's name comes from the user's Uprix profile.
       //
+      console.log("Looking up profile for userId:", userId);
+
       const { data: profile, error: profileError } = await supabase
         .from("user_profiles")
         .select("full_name")
@@ -733,15 +735,15 @@ export async function POST(req: Request) {
         .single();
 
       if (profileError || !profile) {
-        console.error("Profile lookup error:", profileError);
+        console.error("Profile lookup failed:", {
+          userId,
+          code: profileError?.code,
+          message: profileError?.message,
+        });
 
         return NextResponse.json(
-          {
-            error: "User profile not found",
-          },
-          {
-            status: 500,
-          },
+          { error: "User profile not found" },
+          { status: 500 },
         );
       }
 
