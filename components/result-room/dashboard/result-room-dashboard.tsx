@@ -510,7 +510,7 @@ const ResultRoomDashboard = () => {
 
   return (
     <>
-      <main className="grid min-h-screen w-full grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <main className="min-h-screen w-full">
         <div className="h-full w-full p-2 md:col-span-1 lg:col-span-2">
           {dashboardData.room !== null ? (
             <>
@@ -792,7 +792,6 @@ const ResultRoomDashboard = () => {
           <MobileNav />
         </div>
 
-        <div className="hidden h-full md:col-span-1 lg:block">vsadhv</div>
       </main>
 
       {/* ------------------------------------------------------------------ */}

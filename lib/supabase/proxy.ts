@@ -112,7 +112,7 @@ export async function updateSession(request: NextRequest) {
   const { data: profile, error: profileError } = await supabase
     .from("user_profiles")
     .select("completed")
-    .eq("id", user.sub)
+    .eq("user_id", user.sub)
     .maybeSingle();
 
   if (profileError) {
