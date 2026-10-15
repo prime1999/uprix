@@ -635,26 +635,39 @@ export async function POST(req: Request) {
     // This is important because the same Uprix user could potentially
     // participate in different Result Rooms over time.
     //
+    console.log("WEBHOOK DEBUG: Before participant lookup", {
+      reference,
+      userId,
+      roomId,
+    });
+
     const { data: participant, error: participantError } = await supabase
       .from("participants")
       .select(
         `
-          id,
-          room_id,
-          user_id,
-          full_name,
-          email,
-          total_paid,
-          balance,
-          status,
-          seat_number,
-          drive_access_granted,
-          welcome_email_sent
-        `,
+      id,
+      room_id,
+      user_id,
+      full_name,
+      email,
+      total_paid,
+      balance,
+      status,
+      seat_number,
+      drive_access_granted,
+      welcome_email_sent
+    `,
       )
       .eq("room_id", roomId)
       .eq("user_id", userId)
       .maybeSingle();
+
+    console.log("WEBHOOK DEBUG: Participant lookup result", {
+      reference,
+      found: !!participant,
+      participantId: participant?.id,
+      error: participantError?.message,
+    });
 
     if (participantError) {
       console.error("Participant lookup error:", participantError);
