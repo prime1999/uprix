@@ -39,75 +39,58 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  /*
-   * ---------------------------------------------------------
-   * PUBLIC ROUTES
-   * ---------------------------------------------------------
-   *
-   * /result-room-2 is public.
-   *
-   * /result-room is intentionally NOT public.
-   */
+  // ---------------------------------------------------------
+  // PUBLIC ROUTES
+  // ---------------------------------------------------------
+  // Result Room routes are NOT public.
+  // Users must authenticate before accessing them.
+
   const isPublicRoute =
     pathname === "/" ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth") ||
-    pathname.startsWith("/api/admin") ||
-    pathname === "/result-room-2" ||
-    pathname === "/result-room-2/";
+    pathname.startsWith("/api/admin");
 
-  /*
-   * ---------------------------------------------------------
-   * PAYSTACK WEBHOOK
-   * ---------------------------------------------------------
-   *
-   * Paystack webhook must be accessible without
-   * authentication.
-   */
+  // ---------------------------------------------------------
+  // PAYSTACK WEBHOOK
+  // ---------------------------------------------------------
+  // Paystack must be able to call the webhook without a
+  // browser authentication session. Signature verification
+  // is handled inside the webhook route itself.
+
   const isPaystackWebhook = pathname === "/api/result/webhook";
 
   if (isPaystackWebhook) {
     return supabaseResponse;
   }
 
-  /*
-   * ---------------------------------------------------------
-   * AUTHENTICATION
-   * ---------------------------------------------------------
-   */
+  // ---------------------------------------------------------
+  // AUTHENTICATION
+  // ---------------------------------------------------------
 
-  const { data } = await supabase.auth.getClaims();
+  const { data, error: claimsError } = await supabase.auth.getClaims();
   const user = data?.claims;
 
-  /*
-   * Unauthenticated users can only access public routes.
-   *
-   * Notice that /result-room is NOT public.
-   */
+  if (claimsError) {
+    console.error("Middleware authentication error:", claimsError);
+  }
+
+  // Unauthenticated users can only access public routes.
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
-
     url.pathname = "/auth/login";
 
     return NextResponse.redirect(url);
   }
 
-  /*
-   * If there is no authenticated user and this is a
-   * public route, allow the request to continue.
-   *
-   * This is what allows /result-room-2 to be accessed
-   * without authentication.
-   */
+  // Allow unauthenticated users to continue on public routes.
   if (!user) {
     return supabaseResponse;
   }
 
-  /*
-   * ---------------------------------------------------------
-   * USER PROFILE
-   * ---------------------------------------------------------
-   */
+  // ---------------------------------------------------------
+  // USER PROFILE
+  // ---------------------------------------------------------
 
   const { data: profile, error: profileError } = await supabase
     .from("user_profiles")
@@ -123,64 +106,47 @@ export async function updateSession(request: NextRequest) {
 
   const profileCompleted = profile?.completed === true;
 
-  /*
-   * ---------------------------------------------------------
-   * PROFILE COMPLETION GATE
-   * ---------------------------------------------------------
-   *
-   * Incomplete profiles can access:
-   *
-   * - /auth/*
-   * - /profile/create
-   * - /result-room-2
-   *
-   * They cannot access /result-room until
-   * their profile is complete.
-   */
+  // ---------------------------------------------------------
+  // PROFILE COMPLETION GATE
+  // ---------------------------------------------------------
+  // Incomplete profiles can access:
+  // - /auth/*
+  // - /profile/create
+  //
+  // All other protected routes require a completed profile.
+
   if (
     !profileCompleted &&
     pathname !== "/profile/create" &&
-    !pathname.startsWith("/auth") &&
-    pathname !== "/result-room-2" &&
-    pathname !== "/result-room-2/"
+    !pathname.startsWith("/auth")
   ) {
     const url = request.nextUrl.clone();
-
     url.pathname = "/profile/create";
 
     return NextResponse.redirect(url);
   }
 
-  /*
-   * ---------------------------------------------------------
-   * AUTHENTICATED USER VISITING LOGIN
-   * ---------------------------------------------------------
-   */
+  // ---------------------------------------------------------
+  // AUTHENTICATED USER VISITING LOGIN
+  // ---------------------------------------------------------
 
   if (pathname === "/auth/login" || pathname === "/login") {
     const url = request.nextUrl.clone();
 
-    if (profileCompleted) {
-      url.pathname = "/";
-    } else {
-      url.pathname = "/profile/create";
-    }
+    url.pathname = profileCompleted ? "/" : "/profile/create";
 
     return NextResponse.redirect(url);
   }
 
-  /*
-   * ---------------------------------------------------------
-   * RESULT ROOM DASHBOARD
-   * ---------------------------------------------------------
-   *
-   * Requires:
-   *
-   * 1. Authentication
-   * 2. Completed profile
-   * 3. Participant record
-   * 4. Active room_status
-   */
+  // ---------------------------------------------------------
+  // RESULT ROOM DASHBOARD
+  // ---------------------------------------------------------
+  // Requires:
+  // 1. Authentication
+  // 2. Completed profile
+  // 3. Participant record
+  // 4. Active room_status for regular participants
+
   const isResultRoomDashboardRoute =
     pathname === "/result-room/dashboard" ||
     pathname.startsWith("/result-room/dashboard/");
@@ -200,53 +166,39 @@ export async function updateSession(request: NextRequest) {
       return supabaseResponse;
     }
 
-    /*
-     * Authenticated user without a participant record
-     * cannot access the Result Room dashboard.
-     */
+    // Users without a participant record cannot access
+    // the Result Room dashboard.
     if (!participant) {
       const url = request.nextUrl.clone();
-
       url.pathname = "/";
 
       return NextResponse.redirect(url);
     }
 
-    /*
-     * Admins use the admin dashboard.
-     */
+    // Admins use the admin dashboard.
     if (participant.is_admin) {
       const url = request.nextUrl.clone();
-
       url.pathname = "/result-room/admin";
 
       return NextResponse.redirect(url);
     }
 
-    /*
-     * Only active participants can access the
-     * participant dashboard.
-     */
+    // Only active participants can access the dashboard.
     if (participant.room_status === "active") {
       return supabaseResponse;
     }
 
-    /*
-     * Pending, locked, evicted, etc.
-     * remain authenticated but cannot enter the dashboard.
-     */
+    // Pending, locked, evicted, and other statuses
+    // are redirected to the access page.
     const url = request.nextUrl.clone();
-
     url.pathname = "/result-room/access";
 
     return NextResponse.redirect(url);
   }
 
-  /*
-   * ---------------------------------------------------------
-   * ALL OTHER ROUTES
-   * ---------------------------------------------------------
-   */
+  // ---------------------------------------------------------
+  // ALL OTHER ROUTES
+  // ---------------------------------------------------------
 
   return supabaseResponse;
 }
