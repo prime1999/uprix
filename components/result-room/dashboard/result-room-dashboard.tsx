@@ -102,13 +102,13 @@ function formatCountdown(milliseconds: number): string {
  *
  * The API must still validate the date and enforce its own deadline.
  */
-function getTodayInTimezone(timezone: string): string {
+function getTodayInTimezone(timezone: string, date: Date): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: timezone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).formatToParts(new Date());
+  }).formatToParts(date);
 
   const year = parts.find((part) => part.type === "year")?.value;
   const month = parts.find((part) => part.type === "month")?.value;
@@ -194,10 +194,11 @@ const ResultRoomDashboard = () => {
   /* ------------------------------------------------------------------------ */
 
   const [timezone, setTimezone] = useState<string | null>(null);
-  const [now, setNow] = useState<Date>(() => new Date());
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
     setTimezone(getParticipantTimezone());
+    setNow(new Date());
   }, []);
 
   useEffect(() => {
@@ -209,16 +210,16 @@ const ResultRoomDashboard = () => {
   }, []);
 
   const submissionDeadline = timezone
+    && now
     ? getDailySubmissionDeadline(timezone, now)
     : null;
 
   const partnerReportDeadline = timezone
+    && now
     ? getPartnerReportDeadline(timezone, now)
     : null;
 
-  const today = timezone
-    ? getTodayInTimezone(timezone)
-    : getTodayInTimezone(getParticipantTimezone());
+  const today = timezone && now ? getTodayInTimezone(timezone, now) : "";
 
   /* ------------------------------------------------------------------------ */
   /* Load participant                                                         */
@@ -510,7 +511,7 @@ const ResultRoomDashboard = () => {
 
   return (
     <>
-      <main className="grid min-h-screen w-full grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <main className="min-h-screen w-full">
         <div className="h-full w-full p-2 md:col-span-1 lg:col-span-2">
           {dashboardData.room !== null ? (
             <>
@@ -792,7 +793,6 @@ const ResultRoomDashboard = () => {
           <MobileNav />
         </div>
 
-        <div className="hidden h-full md:col-span-1 lg:block">vsadhv</div>
       </main>
 
       {/* ------------------------------------------------------------------ */}

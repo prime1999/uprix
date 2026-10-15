@@ -25,9 +25,12 @@ export default function ResultRoomDashboardLayout({
           <SidebarTrigger />
           <Topbar />
         </header>
-        <div className="min-w-0 flex-1 min-h-0 p-2">
+        <div className="grid min-w-0 flex-1 min-h-0 grid-cols-1 gap-4 p-2 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]">
           <ResultRoomStoreHydrator />
-          {children}
+          <div className="min-w-0">{children}</div>
+          <aside className="hidden min-h-full rounded-2xl border border-white/70 bg-white/20 p-4 shadow-md backdrop-blur-3xl lg:block">
+            vsadhv
+          </aside>
         </div>
       </SidebarInset>
     </SidebarProvider>

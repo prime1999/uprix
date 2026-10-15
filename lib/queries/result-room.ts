@@ -444,3 +444,239 @@ export function useResultRoomMySubmission(date: string, enabled = true) {
     refetchOnWindowFocus: false,
   });
 }
+
+/* -------------------------------------------------------------------------- */
+/* FINES                                                                       */
+/* -------------------------------------------------------------------------- */
+
+export interface ResultRoomFine {
+  id: string;
+  participant_id: string;
+  room_id: string;
+  violation_id: string | null;
+  source: "AUTOMATIC" | "MANUAL";
+  reason: string | null;
+  amount: number; // Naira
+  status: "UNPAID" | "PAID" | "WAIVED";
+  due_at: string | null;
+  paid_at: string | null;
+  created_at: string;
+  updated_at: string;
+  violation: {
+    id: string;
+    type: string;
+    occurred_on: string;
+    notes: string | null;
+    consequence: string | null;
+    resolved_at: string | null;
+    resolution_note: string | null;
+  } | null;
+}
+
+export interface FinePayment {
+  id: string;
+  fine_id: string;
+  amount: number; // Kobo
+  status: "PENDING" | "SUCCESS" | "FAILED" | "ABANDONED";
+  paystack_reference: string;
+  paid_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ResultRoomFinesResponse {
+  fines: ResultRoomFine[];
+  payments: FinePayment[];
+  summary: {
+    totalFines: number;
+    unpaidCount: number;
+    paidCount: number;
+    waivedCount: number;
+    outstandingAmount: number; // Naira
+    currency: "NGN";
+  };
+}
+
+export const resultRoomFinesQueryKey = ["result-room", "fines"] as const;
+
+async function fetchResultRoomFines(): Promise<ResultRoomFinesResponse> {
+  const response = await fetch("/api/result/fines", {
+    method: "GET",
+    headers: getTimezoneHeaders(),
+    cache: "no-store",
+  });
+
+  const data: unknown = await response.json();
+
+  if (!response.ok) {
+    const errorData = data as { error?: string };
+
+    throw new Error(
+      errorData.error || `Failed to load fines (${response.status}).`,
+    );
+  }
+
+  return data as ResultRoomFinesResponse;
+}
+
+export function useResultRoomFines(enabled = true) {
+  return useQuery({
+    queryKey: resultRoomFinesQueryKey,
+    queryFn: fetchResultRoomFines,
+    enabled,
+    staleTime: 30 * 1000,
+    gcTime: 30 * 60 * 1000,
+    retry: 2,
+    refetchOnWindowFocus: true,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* INITIALIZE FINE PAYMENT                                                     */
+/* -------------------------------------------------------------------------- */
+
+export type InitializeFinePaymentInput =
+  | {
+      fineId: string;
+      payAll?: never;
+    }
+  | {
+      payAll: true;
+      fineId?: never;
+    };
+
+export interface InitializeFinePaymentResponse {
+  authorizationUrl: string;
+  reference: string;
+  amount: number; // Kobo
+  currency: "NGN";
+  fineCount: number;
+  fineIds: string[];
+}
+
+async function initializeFinePayment(
+  input: InitializeFinePaymentInput,
+): Promise<InitializeFinePaymentResponse> {
+  const response = await fetch("/api/result/fines/payment/initialize", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+
+  const data: unknown = await response.json();
+
+  if (!response.ok) {
+    const errorData = data as { error?: string };
+
+    throw new Error(
+      errorData.error ||
+        `Failed to initialize fine payment (${response.status}).`,
+    );
+  }
+
+  const result = data as InitializeFinePaymentResponse;
+
+  if (!result.authorizationUrl || !result.reference) {
+    throw new Error("The payment service returned an invalid response.");
+  }
+
+  return result;
+}
+
+export function useInitializeFinePayment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: initializeFinePayment,
+
+    onSuccess: async () => {
+      // Refresh fines and payment history when the participant returns.
+      await queryClient.invalidateQueries({
+        queryKey: resultRoomFinesQueryKey,
+      });
+    },
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* VERIFY FINE PAYMENT                                                        */
+/* -------------------------------------------------------------------------- */
+
+export interface VerifyFinePaymentInput {
+  reference: string;
+}
+
+export type VerifyFinePaymentStatus = "success" | "pending" | "error";
+
+export interface VerifyFinePaymentResponse {
+  status: VerifyFinePaymentStatus;
+  message: string;
+  reference?: string;
+  amount?: number; // Kobo
+  currency?: "NGN";
+  fineCount?: number;
+}
+
+async function verifyFinePayment(
+  input: VerifyFinePaymentInput,
+): Promise<VerifyFinePaymentResponse> {
+  const response = await fetch("/api/result/fines/payment/verify", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+    cache: "no-store",
+  });
+
+  const data: unknown = await response.json();
+
+  const result = data as Partial<VerifyFinePaymentResponse> & {
+    error?: string;
+  };
+
+  // The API can return a pending or error status even when its HTTP
+  // response is successful, so inspect the response body as well.
+  if (
+    result.status === "success" ||
+    result.status === "pending" ||
+    result.status === "error"
+  ) {
+    if (!response.ok && result.status === "success") {
+      throw new Error(
+        `Payment verification request failed (${response.status}).`,
+      );
+    }
+
+    return result as VerifyFinePaymentResponse;
+  }
+
+  throw new Error(
+    result.error ||
+      result.message ||
+      `Failed to verify fine payment (${response.status}).`,
+  );
+}
+
+export function useVerifyFinePayment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: verifyFinePayment,
+
+    onSuccess: async (result) => {
+      if (result.status === "success") {
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: resultRoomFinesQueryKey,
+          }),
+          queryClient.invalidateQueries({
+            queryKey: resultRoomDashboardQueryKey,
+          }),
+        ]);
+      }
+    },
+  });
+}

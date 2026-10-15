@@ -24,13 +24,19 @@ type GeneralButtonProps = Omit<
   text?: string;
   children?: ReactNode;
   iconOnly?: boolean;
-  /** default = yellow, active/secondary = blue, delete/danger = red, disabled = gray */
+  /**
+   * default = yellow, active/secondary = blue,
+   * delete/danger = red, disabled = gray
+   */
   variant?: ButtonVariant;
-  /** Click handler. Works the same as onClick, so use either one. */
+  /**
+   * Click handler. Works the same as onClick,
+   * so use either one.
+   */
   buttonFunction?: () => void;
 };
 
-// lift on hover, press down on click (not used by the disabled style)
+// Lift on hover, press down on click.
 const MOTION =
   "hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0.5";
 
@@ -47,7 +53,7 @@ const VARIANTS: Record<ButtonVariant, string> = {
 
   danger: `${MOTION} border-red-400/80 bg-gradient-to-b from-red-400 via-red-500 to-red-600 text-white shadow-[inset_0_2px_0_rgba(255,255,255,0.45),0_8px_16px_-6px_rgba(239,68,68,0.6)] hover:shadow-[inset_0_2px_0_rgba(255,255,255,0.45),0_12px_22px_-6px_rgba(239,68,68,0.7)] active:shadow-[inset_0_2px_0_rgba(255,255,255,0.3),0_3px_8px_-3px_rgba(239,68,68,0.5)] focus-visible:ring-red-400/40`,
 
-  // deeper gray: flat, no lift, no glow, no hover sweep
+  // Flat gray, without lift or hover sweep.
   disabled:
     "cursor-not-allowed border-neutral-500/70 bg-gradient-to-b from-neutral-400 via-neutral-500 to-neutral-600 text-white/90 shadow-[inset_0_2px_0_rgba(255,255,255,0.35)]",
 };
@@ -77,17 +83,19 @@ const GeneralButton = forwardRef<HTMLButtonElement, GeneralButtonProps>(
     ref,
   ) => {
     const isDisabled = disabled || variant === "disabled";
-    const resolvedVariant = normalizeVariant(
-      isDisabled ? "disabled" : variant,
-    ) as ButtonVariant;
+
+    const resolvedVariant = normalizeVariant(isDisabled ? "disabled" : variant);
+
     const style = VARIANTS[resolvedVariant];
     const content = children ?? text;
+
     const isSingleIconChild =
       !text &&
       !iconOnly &&
       Children.count(children) === 1 &&
-      isValidElement(children) &&
-      (!children.props?.children as any);
+      isValidElement<{ children?: ReactNode }>(children) &&
+      !children.props.children;
+
     const isIconOnly = iconOnly || isSingleIconChild;
 
     return (
@@ -104,12 +112,13 @@ const GeneralButton = forwardRef<HTMLButtonElement, GeneralButtonProps>(
         } ${style} ${className}`}
         {...props}
       >
-        {/* glossy highlight on the top half */}
+        {/* Glossy highlight on the top half */}
         <span
           aria-hidden
           className="pointer-events-none absolute inset-x-3 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/50 to-transparent"
         />
-        {/* light sweep on hover (skipped when disabled) */}
+
+        {/* Light sweep on hover, skipped when disabled */}
         {!isDisabled && (
           <span
             aria-hidden
