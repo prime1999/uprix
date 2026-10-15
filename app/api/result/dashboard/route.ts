@@ -29,11 +29,6 @@ function createSupabaseServerClient(
 
 /**
  * Validate a browser-supplied IANA timezone.
- *
- * Examples:
- * Africa/Lagos
- * Europe/London
- * America/New_York
  */
 function isValidTimezone(timezone: string): boolean {
   try {
@@ -49,9 +44,6 @@ function isValidTimezone(timezone: string): boolean {
 
 /**
  * Get today's calendar date in the participant's timezone.
- *
- * Do not use getFullYear(), getMonth(), or getDate() on the
- * server's local clock for participant-facing dates.
  */
 function getDateInTimezone(date: Date, timezone: string): string {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -71,9 +63,9 @@ function getDateInTimezone(date: Date, timezone: string): string {
 export async function GET(request: Request) {
   try {
     /**
-     * 1. Get and validate the participant's browser timezone.
+     * 1. Validate the browser timezone.
      *
-     * The frontend must send:
+     * The frontend sends:
      * x-time-zone: Intl.DateTimeFormat().resolvedOptions().timeZone
      */
     const timezone = request.headers.get("x-time-zone");
@@ -103,7 +95,7 @@ export async function GET(request: Request) {
     const { data: claimsData, error: claimsError } =
       await supabase.auth.getClaims();
 
-    if (claimsError || !claimsData?.claims) {
+    if (claimsError || !claimsData?.claims?.sub) {
       return NextResponse.json(
         {
           success: false,
@@ -121,7 +113,10 @@ export async function GET(request: Request) {
     const user = claimsData.claims;
 
     /**
-     * 3. Fetch profile and participant.
+     * 3. Fetch the profile and participant.
+     *
+     * Include timezone so we only update the database
+     * when the browser's timezone has changed.
      */
     const [profileResult, participantResult] = await Promise.all([
       supabase
@@ -143,7 +138,8 @@ export async function GET(request: Request) {
           is_admin,
           admin_role,
           status_reason,
-          status_changed_at
+          status_changed_at,
+          timezone
         `,
         )
         .eq("user_id", user.sub)
@@ -208,7 +204,45 @@ export async function GET(request: Request) {
     }
 
     /**
-     * 4. Fetch the participant's room.
+     * 4. Save the browser timezone.
+     *
+     * The update is restricted to the authenticated user's
+     * participant record.
+     *
+     * Avoid unnecessary writes when the timezone is unchanged.
+     */
+    if (participant.timezone !== timezone) {
+      const { error: timezoneUpdateError } = await supabase
+        .from("participants")
+        .update({
+          timezone,
+        })
+        .eq("id", participant.id)
+        .eq("user_id", user.sub);
+
+      if (timezoneUpdateError) {
+        console.error(
+          "Result Room dashboard timezone update error:",
+          timezoneUpdateError,
+        );
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Failed to update participant timezone",
+          },
+          {
+            status: 500,
+            headers: {
+              "Cache-Control": "private, no-store",
+            },
+          },
+        );
+      }
+    }
+
+    /**
+     * 5. Fetch the participant's room.
      */
     const { data: room, error: roomError } = await supabase
       .from("rooms")
@@ -243,13 +277,13 @@ export async function GET(request: Request) {
     }
 
     /**
-     * 5. Calculate today's date in the participant's timezone.
+     * 6. Calculate today's date in the browser's timezone.
      */
     const now = new Date();
     const todayString = getDateInTimezone(now, timezone);
 
     /**
-     * 6. Fetch today's submission, submission activity,
+     * 7. Fetch today's submission, submission activity,
      *    violation history, and outstanding fines.
      */
     const [
@@ -282,12 +316,6 @@ export async function GET(request: Request) {
         .limit(1)
         .maybeSingle(),
 
-      /**
-       * The actual database statuses are UNPAID, PAID, and WAIVED.
-       * Overdue is determined from due_at, not from a status value.
-       *
-       * Multiple unpaid fines may exist, so fetch all of them.
-       */
       supabase
         .from("fines")
         .select("id, status, due_at")
@@ -386,7 +414,7 @@ export async function GET(request: Request) {
     );
 
     /**
-     * 7. Fetch today's partner submission and review.
+     * 8. Fetch today's partner submission and review.
      *
      * Partner reviews are independent of the participant's
      * own submission.
@@ -495,7 +523,6 @@ export async function GET(request: Request) {
       }
 
       partnerSubmissionSubmitted = Boolean(partnerSubmissionResult.data);
-
       partnerReviewSubmitted = Boolean(partnerReviewResult.data);
 
       partner = {
@@ -505,7 +532,7 @@ export async function GET(request: Request) {
     }
 
     /**
-     * 8. Return the dashboard data.
+     * 9. Return the dashboard data.
      *
      * Progress calculations remain client-side.
      */

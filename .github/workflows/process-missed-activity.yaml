@@ -1,0 +1,35 @@
+name: Process Result Room Missed Activity
+
+on:
+  schedule:
+    # Daily at 00:17 UTC.
+    - cron: "17 0 * * *"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: result-room-missed-activity
+  cancel-in-progress: false
+
+jobs:
+  process-missed-activity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Process missed activity
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/process-missed-activity.mjs
