@@ -654,44 +654,51 @@ function FineDialog({
         ? { icon: CircleSlash, tone: "slate" }
         : { icon: ShieldAlert, tone: overdue ? "red" : "amber" };
 
-  const details: {
-    label: string;
-    value: string | null;
-    icon: LucideIcon;
-    tone: Tone;
-  }[] = [
-    { label: "Reason", value: fine.reason, icon: FileText, tone: "blue" },
-    {
-      label: "What happened",
-      value: humanize(violation?.type) || null,
-      icon: ShieldAlert,
-      tone: "amber",
-    },
-    {
-      label: "Date it happened",
-      value: formatDate(violation?.occurred_on),
-      icon: CalendarDays,
-      tone: "violet",
-    },
-    {
-      label: "Consequence",
-      value: violation?.consequence ?? null,
-      icon: Scale,
-      tone: "red",
-    },
-    {
-      label: "Notes",
-      value: violation?.notes ?? null,
-      icon: StickyNote,
-      tone: "slate",
-    },
-    {
-      label: "Issued by",
-      value: humanize(fine.source) || null,
-      icon: UserCheck,
-      tone: "blue",
-    },
-  ].filter((item) => item.value);
+  const details = (
+    [
+      {
+        label: "Reason",
+        value: fine.reason,
+        icon: FileText,
+        tone: "blue",
+      },
+      {
+        label: "What happened",
+        value: humanize(violation?.type) || null,
+        icon: ShieldAlert,
+        tone: "amber",
+      },
+      {
+        label: "Date it happened",
+        value: formatDate(violation?.occurred_on),
+        icon: CalendarDays,
+        tone: "violet",
+      },
+      {
+        label: "Consequence",
+        value: violation?.consequence ?? null,
+        icon: Scale,
+        tone: "red",
+      },
+      {
+        label: "Notes",
+        value: violation?.notes ?? null,
+        icon: StickyNote,
+        tone: "slate",
+      },
+      {
+        label: "Issued by",
+        value: humanize(fine.source) || null,
+        icon: UserCheck,
+        tone: "blue",
+      },
+    ] satisfies {
+      label: string;
+      value: string | null;
+      icon: LucideIcon;
+      tone: Tone;
+    }[]
+  ).filter((item) => item.value);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
