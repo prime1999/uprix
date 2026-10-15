@@ -19,8 +19,7 @@ function createSupabaseServerClient(
               cookieStore.set(name, value, options);
             });
           } catch {
-            // Ignore cookie mutation errors in contexts where cookies
-            // cannot be modified.
+            // Cookie mutation may not be available in this context.
           }
         },
       },
@@ -28,16 +27,78 @@ function createSupabaseServerClient(
   );
 }
 
-export async function GET() {
+/**
+ * Validate a browser-supplied IANA timezone.
+ *
+ * Examples:
+ * Africa/Lagos
+ * Europe/London
+ * America/New_York
+ */
+function isValidTimezone(timezone: string): boolean {
   try {
-    const cookieStore = await cookies();
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+    });
 
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get today's calendar date in the participant's timezone.
+ *
+ * Do not use getFullYear(), getMonth(), or getDate() on the
+ * server's local clock for participant-facing dates.
+ */
+function getDateInTimezone(date: Date, timezone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const values = Object.fromEntries(
+    parts.map((part) => [part.type, part.value]),
+  );
+
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+export async function GET(request: Request) {
+  try {
+    /**
+     * 1. Get and validate the participant's browser timezone.
+     *
+     * The frontend must send:
+     * x-time-zone: Intl.DateTimeFormat().resolvedOptions().timeZone
+     */
+    const timezone = request.headers.get("x-time-zone");
+
+    if (!timezone || !isValidTimezone(timezone)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "A valid browser timezone is required.",
+          code: "INVALID_TIMEZONE",
+        },
+        {
+          status: 400,
+          headers: {
+            "Cache-Control": "private, no-store",
+          },
+        },
+      );
+    }
+
+    const cookieStore = await cookies();
     const supabase = createSupabaseServerClient(cookieStore);
 
     /**
-     * ------------------------------------------------------------
-     * 1. Authenticate the current user
-     * ------------------------------------------------------------
+     * 2. Authenticate the current user.
      */
     const { data: claimsData, error: claimsError } =
       await supabase.auth.getClaims();
@@ -60,11 +121,7 @@ export async function GET() {
     const user = claimsData.claims;
 
     /**
-     * ------------------------------------------------------------
-     * 2. Fetch profile + participant
-     * ------------------------------------------------------------
-     *
-     * These two queries are independent, so we run them together.
+     * 3. Fetch profile and participant.
      */
     const [profileResult, participantResult] = await Promise.all([
       supabase
@@ -77,17 +134,17 @@ export async function GET() {
         .from("participants")
         .select(
           `
-            id,
-            room_id,
-            room_status,
-            email,
-            phone,
-            goal,
-            is_admin,
-            admin_role,
-            status_reason,
-            status_changed_at
-          `,
+          id,
+          room_id,
+          room_status,
+          email,
+          phone,
+          goal,
+          is_admin,
+          admin_role,
+          status_reason,
+          status_changed_at
+        `,
         )
         .eq("user_id", user.sub)
         .maybeSingle(),
@@ -135,9 +192,6 @@ export async function GET() {
 
     const participant = participantResult.data;
 
-    /**
-     * A user without a participant record is not inside a room.
-     */
     if (!participant) {
       return NextResponse.json(
         {
@@ -154,21 +208,19 @@ export async function GET() {
     }
 
     /**
-     * ------------------------------------------------------------
-     * 3. Fetch the participant's actual room
-     * ------------------------------------------------------------
+     * 4. Fetch the participant's room.
      */
     const { data: room, error: roomError } = await supabase
       .from("rooms")
       .select(
         `
-          id,
-          name,
-          description,
-          status,
-          start_date,
-          end_date
-        `,
+        id,
+        name,
+        description,
+        status,
+        start_date,
+        end_date
+      `,
       )
       .eq("id", participant.room_id)
       .single();
@@ -191,38 +243,21 @@ export async function GET() {
     }
 
     /**
-     * ------------------------------------------------------------
-     * 4. Fetch today's submission
-     * ------------------------------------------------------------
-     *
-     * IMPORTANT:
-     * The API no longer calculates today's date.
-     *
-     * We intentionally keep this endpoint focused on server data.
-     *
-     * If your submission_date query needs to become participant-local
-     * as well, we should handle that consistently in the submission
-     * endpoint/database design rather than mixing timeline logic here.
-     *
-     * For now, this query remains based on the submission data model.
+     * 5. Calculate today's date in the participant's timezone.
      */
-    const today = new Date();
+    const now = new Date();
+    const todayString = getDateInTimezone(now, timezone);
 
-    const todayString = [
-      today.getFullYear(),
-      String(today.getMonth() + 1).padStart(2, "0"),
-      String(today.getDate()).padStart(2, "0"),
-    ].join("-");
-
+    /**
+     * 6. Fetch today's submission, submission activity,
+     *    violation history, and outstanding fines.
+     */
     const [
       todaySubmissionResult,
       submissionActivityResult,
       violationResult,
       fineResult,
     ] = await Promise.all([
-      /**
-       * Today's submission.
-       */
       supabase
         .from("submissions")
         .select("id")
@@ -230,9 +265,6 @@ export async function GET() {
         .eq("submission_date", todayString)
         .maybeSingle(),
 
-      /**
-       * Only dates are needed for the dashboard heatmap.
-       */
       supabase
         .from("submissions")
         .select("submission_date")
@@ -243,9 +275,6 @@ export async function GET() {
           ascending: true,
         }),
 
-      /**
-       * Whether this participant has a violation.
-       */
       supabase
         .from("violations")
         .select("id")
@@ -254,15 +283,16 @@ export async function GET() {
         .maybeSingle(),
 
       /**
-       * Whether there is an active fine.
+       * The actual database statuses are UNPAID, PAID, and WAIVED.
+       * Overdue is determined from due_at, not from a status value.
+       *
+       * Multiple unpaid fines may exist, so fetch all of them.
        */
       supabase
         .from("fines")
-        .select("status")
+        .select("id, status, due_at")
         .eq("participant_id", participant.id)
-        .in("status", ["pending", "overdue"])
-        .limit(1)
-        .maybeSingle(),
+        .eq("status", "UNPAID"),
     ]);
 
     if (todaySubmissionResult.error) {
@@ -341,15 +371,26 @@ export async function GET() {
         },
       );
     }
-    /**
-     * ------------------------------------------------------------
-     * 5. Check today's partner submission and review
-     * ------------------------------------------------------------
-     *
-     * A partner review now belongs to an active partner pair and a
-     * review date, not to the participant's own submission.
-     */
 
+    const unpaidFines = fineResult.data ?? [];
+    const currentTime = now.getTime();
+
+    const hasPendingFine = unpaidFines.some(
+      (fine) =>
+        fine.due_at !== null && new Date(fine.due_at).getTime() > currentTime,
+    );
+
+    const hasOverdueFine = unpaidFines.some(
+      (fine) =>
+        fine.due_at !== null && new Date(fine.due_at).getTime() <= currentTime,
+    );
+
+    /**
+     * 7. Fetch today's partner submission and review.
+     *
+     * Partner reviews are independent of the participant's
+     * own submission.
+     */
     let partnerReviewSubmitted = false;
     let partnerSubmissionSubmitted = false;
 
@@ -389,14 +430,12 @@ export async function GET() {
     }
 
     if (activePair) {
-      // Resolve the other participant in the active pair.
       const partnerId =
         activePair.participant_a_id === participant.id
           ? activePair.participant_b_id
           : activePair.participant_a_id;
 
       const [partnerSubmissionResult, partnerReviewResult] = await Promise.all([
-        // Has the partner submitted for today's date?
         supabase
           .from("submissions")
           .select("id")
@@ -405,8 +444,6 @@ export async function GET() {
           .eq("submission_date", todayString)
           .maybeSingle(),
 
-        // Has the current participant submitted today's partner review?
-        // Has the current participant reviewed this specific partner today?
         supabase
           .from("partner_reviews")
           .select("id")
@@ -458,6 +495,7 @@ export async function GET() {
       }
 
       partnerSubmissionSubmitted = Boolean(partnerSubmissionResult.data);
+
       partnerReviewSubmitted = Boolean(partnerReviewResult.data);
 
       partner = {
@@ -465,20 +503,11 @@ export async function GET() {
         submissionSubmitted: partnerSubmissionSubmitted,
       };
     }
+
     /**
-     * ------------------------------------------------------------
-     * 6. Build raw API response
-     * ------------------------------------------------------------
+     * 8. Return the dashboard data.
      *
-     * Notice that we DO NOT calculate:
-     *
-     * - totalDays
-     * - currentDay
-     * - progressPercentage
-     * - hasStarted
-     * - hasEnded
-     *
-     * Those belong to the client-side calculation utility.
+     * Progress calculations remain client-side.
      */
     const responseData = {
       success: true as const,
@@ -512,6 +541,7 @@ export async function GET() {
 
       today: {
         date: todayString,
+        timezone,
         submissionCompleted: Boolean(todaySubmissionResult.data),
         partnerReviewSubmitted,
         partnerSubmissionSubmitted,
@@ -528,8 +558,8 @@ export async function GET() {
 
       accountability: {
         hasViolation: Boolean(violationResult.data),
-        hasPendingFine: fineResult.data?.status === "pending",
-        hasOverdueFine: fineResult.data?.status === "overdue",
+        hasPendingFine,
+        hasOverdueFine,
       },
     };
 
