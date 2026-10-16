@@ -175,13 +175,17 @@ export function useCreateResultRoomSubmission() {
     mutationFn: createResultRoomSubmission,
 
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: resultRoomDashboardQueryKey,
-      });
-
-      await queryClient.invalidateQueries({
-        queryKey: ["result-room", "my-submission"],
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: resultRoomDashboardQueryKey,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["result-room", "my-submission"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["result-room", "submission-history"],
+        }),
+      ]);
     },
   });
 }
@@ -678,5 +682,117 @@ export function useVerifyFinePayment() {
         ]);
       }
     },
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* SUBMISSION HISTORY                                                         */
+/* -------------------------------------------------------------------------- */
+
+export interface ResultRoomSubmissionHistoryFile {
+  id: string;
+  submission_id: string;
+  cloudinary_public_id: string;
+  cloudinary_url: string;
+  google_drive_file_id: string | null;
+  google_drive_url: string | null;
+  google_drive_status: string;
+  created_at: string;
+}
+
+export interface ResultRoomSubmissionHistoryItem {
+  id: string;
+  participant_id: string;
+  room_id: string;
+  submission_date: string;
+  description: string | null;
+  submitted_at: string;
+  created_at: string;
+  updated_at: string;
+  status: string;
+  files: ResultRoomSubmissionHistoryFile[];
+}
+
+export interface ResultRoomSubmissionHistoryResponse {
+  submissions: ResultRoomSubmissionHistoryItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
+}
+
+const RESULT_ROOM_SUBMISSION_HISTORY_ENDPOINT =
+  "/api/result/submissions/history";
+
+/**
+ * Each page and page size have their own cache entry.
+ */
+export const resultRoomSubmissionHistoryQueryKey = (page: number, limit = 10) =>
+  ["result-room", "submission-history", page, limit] as const;
+
+/**
+ * Fetches one page of the authenticated participant's submission history.
+ */
+async function fetchResultRoomSubmissionHistory(
+  page: number,
+  limit: number,
+): Promise<ResultRoomSubmissionHistoryResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+
+  const response = await fetch(
+    `${RESULT_ROOM_SUBMISSION_HISTORY_ENDPOINT}?${params.toString()}`,
+    {
+      method: "GET",
+      headers: getTimezoneHeaders(),
+      cache: "no-store",
+    },
+  );
+
+  const data: unknown = await response.json();
+
+  if (!response.ok) {
+    const errorData = data as { error?: string };
+
+    throw new Error(
+      errorData.error ||
+        `Failed to load submission history (${response.status}).`,
+    );
+  }
+
+  return data as ResultRoomSubmissionHistoryResponse;
+}
+
+/**
+ * React Query hook for paginated submission history.
+ *
+ * Defaults to 10 submissions per page.
+ */
+export function useResultRoomSubmissionHistory(
+  page = 1,
+  limit = 10,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: resultRoomSubmissionHistoryQueryKey(page, limit),
+    queryFn: () => fetchResultRoomSubmissionHistory(page, limit),
+
+    enabled:
+      enabled &&
+      Number.isSafeInteger(page) &&
+      page >= 1 &&
+      Number.isSafeInteger(limit) &&
+      limit >= 1 &&
+      limit <= 50,
+
+    staleTime: 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 }

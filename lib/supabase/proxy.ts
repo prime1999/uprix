@@ -64,9 +64,12 @@ export async function updateSession(request: NextRequest) {
    * Paystack webhook must be accessible without
    * authentication.
    */
-  const isPaystackWebhook = pathname === "/api/result/webhook";
+  const isPaymentPublicRoute =
+    pathname === "/api/result/webhook" ||
+    pathname === "/api/result/fines/verify" ||
+    pathname === "/api/result/fines/payment/verify";
 
-  if (isPaystackWebhook) {
+  if (isPaymentPublicRoute) {
     return supabaseResponse;
   }
 
