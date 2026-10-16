@@ -39,6 +39,21 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
+  // ---------------------------------------------------------
+  // PUBLIC PWA ASSETS
+  // These must load without authentication so browsers can
+  // read the manifest and app icons.
+  // ---------------------------------------------------------
+  const isPublicPwaAsset =
+    pathname === "/manifest.webmanifest" ||
+    pathname === "/logo/uprix-apple.png" ||
+    pathname === "/logo/logo-192x192.png" ||
+    pathname === "/logo/logo-512x512.png";
+
+  if (isPublicPwaAsset) {
+    return supabaseResponse;
+  }
+
   /*
    * ---------------------------------------------------------
    * PUBLIC ROUTES
