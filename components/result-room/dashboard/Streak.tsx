@@ -1,10 +1,188 @@
 "use client";
 
 import { buildHeatmapData } from "@/lib/result-room/build-heatmap";
+import DayDisc from "./DayDisc";
 
-const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
+/* -------------------------------------------------------------------------- */
+/* Types (the cells returned by buildHeatmapData)                             */
+/* -------------------------------------------------------------------------- */
 
-interface Props {
+export interface HeatmapCell {
+  /** YYYY-MM-DD */
+  date: string;
+  submitted: boolean;
+  future: boolean;
+  isToday: boolean;
+}
+
+/** One calendar week, Monday first. Days outside the room are null. */
+export type HeatmapWeek = (HeatmapCell | null)[];
+
+export type DayState = "submitted" | "today" | "missed" | "upcoming" | "empty";
+
+/* -------------------------------------------------------------------------- */
+/* Styles                                                                     */
+/* -------------------------------------------------------------------------- */
+
+export const GLASS =
+  "border border-white/60 bg-white/40 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_8px_32px_-8px_rgba(60,70,160,0.25)]";
+
+export const GLASS_INNER =
+  "border border-white/70 bg-white/30 backdrop-blur-md";
+
+/* -------------------------------------------------------------------------- */
+/* Helpers                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
+
+export const plural = (n: number, word: string) =>
+  `${n} ${word}${n === 1 ? "" : "s"}`;
+
+export const parseDay = (date: string) => new Date(`${date}T00:00:00`);
+
+export const dayOfMonth = (date: string) => Number(date.slice(8, 10));
+
+export const formatFullDate = (date: string) =>
+  parseDay(date).toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
+export const STATE_LABEL: Record<DayState, string> = {
+  submitted: "Evidence submitted",
+  today: "Today, not submitted yet",
+  missed: "No submission",
+  upcoming: "Upcoming",
+  empty: "Outside the room dates",
+};
+
+export function dayState(cell: HeatmapCell | null): DayState {
+  if (!cell) return "empty";
+  if (cell.submitted) return "submitted";
+  if (cell.isToday) return "today";
+  if (cell.future) return "upcoming";
+  return "missed";
+}
+
+/** Flatten the weeks into one ordered list of real days. */
+export function flattenDays(weeks: HeatmapWeek[]): HeatmapCell[] {
+  return weeks
+    .flat()
+    .filter((cell): cell is HeatmapCell => !!cell)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** The week to show on the dashboard: this week, or the latest one that has started. */
+export function pickWeek(weeks: HeatmapWeek[]): number {
+  const thisWeek = weeks.findIndex((week) =>
+    week.some((cell) => cell?.isToday),
+  );
+  if (thisWeek >= 0) return thisWeek;
+
+  let latest = -1;
+  weeks.forEach((week, index) => {
+    if (week.some((cell) => cell && !cell.future)) latest = index;
+  });
+
+  return latest >= 0 ? latest : 0;
+}
+
+export function computeStats(days: HeatmapCell[]) {
+  let best = 0;
+  let run = 0;
+  let submitted = 0;
+  let missed = 0;
+  let elapsed = 0;
+
+  for (const day of days) {
+    if (!day.future) elapsed++;
+
+    if (day.submitted) {
+      submitted++;
+      run++;
+      if (run > best) best = run;
+    } else {
+      run = 0;
+      if (!day.future && !day.isToday) missed++;
+    }
+  }
+
+  // Current streak: count back from today (or the last day that has happened).
+  let start = days.findIndex((day) => day.isToday);
+
+  if (start === -1) {
+    for (let i = days.length - 1; i >= 0; i--) {
+      if (!days[i].future) {
+        start = i;
+        break;
+      }
+    }
+  }
+
+  // Today isn't over yet, so not having submitted doesn't break the streak.
+  if (start >= 0 && days[start].isToday && !days[start].submitted) start -= 1;
+
+  let current = 0;
+  for (let i = start; i >= 0 && days[i].submitted; i--) current++;
+
+  return {
+    current,
+    best,
+    submitted,
+    missed,
+    elapsed,
+    total: days.length,
+    todaySubmitted: days.some((day) => day.isToday && day.submitted),
+    hasStarted: elapsed > 0,
+  };
+}
+
+export type StreakStats = ReturnType<typeof computeStats>;
+
+export interface MonthGroup {
+  key: string;
+  label: string;
+  /** Empty cells before day 1 so the weekdays line up (Monday first). */
+  offset: number;
+  days: HeatmapCell[];
+  hasToday: boolean;
+}
+
+export function groupByMonth(days: HeatmapCell[]): MonthGroup[] {
+  const groups = new Map<string, MonthGroup>();
+
+  for (const day of days) {
+    const key = day.date.slice(0, 7);
+    let group = groups.get(key);
+
+    if (!group) {
+      const date = parseDay(day.date);
+
+      group = {
+        key,
+        label: date.toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        }),
+        offset: (date.getDay() + 6) % 7,
+        days: [],
+        hasToday: false,
+      };
+
+      groups.set(key, group);
+    }
+
+    group.days.push(day);
+    if (day.isToday) group.hasToday = true;
+  }
+
+  return [...groups.values()];
+}
+
+interface ResultRoomHeatmapProps {
   startDate: string;
   endDate: string;
   submissionDates: string[];
@@ -14,190 +192,31 @@ export function ResultRoomHeatmap({
   startDate,
   endDate,
   submissionDates,
-}: Props) {
+}: ResultRoomHeatmapProps) {
   const weeks = buildHeatmapData({
     startDate,
     endDate,
     submissionDates,
   });
 
-  /**
-   * Find the first week containing each new month.
-   *
-   * Each month is displayed only once.
-   */
-  const monthLabels = weeks.map((week, weekIndex) => {
-    const validCells = week.filter(Boolean);
-
-    if (validCells.length === 0) {
-      return "";
-    }
-
-    const previousWeek = weeks[weekIndex - 1];
-
-    const previousValidCells = previousWeek?.filter(Boolean) ?? [];
-
-    /**
-     * First week of the heatmap.
-     */
-    if (previousValidCells.length === 0) {
-      const firstDate = new Date(`${validCells[0].date}T00:00:00`);
-
-      return firstDate.toLocaleDateString("en-US", {
-        month: "short",
-      });
-    }
-
-    /**
-     * Get all months represented in the previous week.
-     */
-    const previousMonths = new Set(
-      previousValidCells.map((cell) => {
-        return new Date(`${cell.date}T00:00:00`).getMonth();
-      }),
-    );
-
-    /**
-     * Find the first cell belonging to a month
-     * that wasn't represented in the previous week.
-     */
-    const newMonthCell = validCells.find((cell) => {
-      const month = new Date(`${cell.date}T00:00:00`).getMonth();
-
-      return !previousMonths.has(month);
-    });
-
-    if (!newMonthCell) {
-      return "";
-    }
-
-    const date = new Date(`${newMonthCell.date}T00:00:00`);
-
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-    });
-  });
-
   return (
-    <div className="w-full overflow-x-auto">
-      <div className="w-full">
-        {/* Month labels */}
-        <div className="mb-3 flex">
-          {/* Space for weekday labels */}
-          <div className="w-7 shrink-0" />
+    <section className={`${GLASS} my-4 rounded-2xl p-4`}>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-semibold">Your progress</h2>
+        <span className="text-xs text-muted-foreground">
+          {submissionDates.length} submitted
+        </span>
+      </div>
 
-          <div className="w-full">
-            <div className="grid grid-flow-col auto-cols-fr gap-1.5">
-              {weeks.map((_, weekIndex) => (
-                <div
-                  key={weekIndex}
-                  className="h-4 text-[10px] font-medium text-muted-foreground"
-                >
-                  {monthLabels[weekIndex]}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Heatmap */}
-        <div className="flex">
-          {/* Weekday labels */}
-          <div className="mr-2 flex w-5 shrink-0 flex-col gap-1.5">
-            {WEEKDAYS.map((day, index) => (
-              <div
-                key={`${day}-${index}`}
-                className="flex h-5 items-center justify-center text-[10px] font-medium text-muted-foreground"
-              >
-                {day}
-              </div>
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {weeks.map((week, weekIndex) => (
+          <div className="flex shrink-0 flex-col gap-2" key={weekIndex}>
+            {week.map((cell, dayIndex) => (
+              <DayDisc cell={cell} key={cell?.date ?? `empty-${dayIndex}`} size="sm" />
             ))}
           </div>
-
-          {/* Heatmap grid */}
-          <div className="w-full">
-            <div className="grid grid-flow-col auto-cols-fr gap-1.5">
-              {weeks.map((week, weekIndex) => (
-                <div key={weekIndex} className="flex flex-col gap-1.5">
-                  {week.map((cell, dayIndex) => {
-                    /**
-                     * Empty cells are used for days before
-                     * the room starts / after the room ends
-                     * within the first or final week.
-                     */
-                    if (!cell) {
-                      return (
-                        <div key={`empty-${dayIndex}`} className="h-5 w-full" />
-                      );
-                    }
-
-                    const date = new Date(`${cell.date}T00:00:00`);
-
-                    const formattedDate = date.toLocaleDateString("en-US", {
-                      weekday: "long",
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    });
-
-                    return (
-                      <div
-                        key={cell.date}
-                        title={
-                          cell.future
-                            ? `${formattedDate} · Upcoming`
-                            : cell.submitted
-                              ? `${formattedDate} · Evidence submitted`
-                              : `${formattedDate} · No submission`
-                        }
-                        className={[
-                          "h-5 w-full rounded-[4px] cursor-pointer",
-                          "transition-all duration-200",
-
-                          // Upcoming
-                          cell.future && "bg-green-900",
-
-                          // Missed
-                          !cell.future && !cell.submitted && "bg-red-500/15",
-
-                          // Submitted
-                          cell.submitted && "bg-green-500",
-
-                          // Today
-                          cell.isToday && "bg-red-800",
-
-                          // Hover
-                          "hover:scale-[1.08]",
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
-                      />
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Legend */}
-        <div className="mt-5 flex w-[72%] lg:w-[73%] items-center justify-end gap-4 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <span className="size-3 rounded-[3px] bg-green-500" />
-            <span>Submitted</span>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <span className="size-3 rounded-[3px] bg-red-800" />
-            <span>Missed</span>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <span className="size-3 rounded-[3px] bg-green-900" />
-            <span>Upcoming</span>
-          </div>
-        </div>
+        ))}
       </div>
-    </div>
+    </section>
   );
 }

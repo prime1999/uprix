@@ -62,6 +62,8 @@ function getDateInTimezone(date: Date, timezone: string): string {
 
 export async function GET(request: Request) {
   try {
+    console.log("[Result Room dashboard] GET request started");
+
     /**
      * 1. Validate the browser timezone.
      *
@@ -71,6 +73,11 @@ export async function GET(request: Request) {
     const timezone = request.headers.get("x-time-zone");
 
     if (!timezone || !isValidTimezone(timezone)) {
+      console.warn(
+        "[Result Room dashboard] Invalid or missing browser timezone",
+        { timezone },
+      );
+
       return NextResponse.json(
         {
           success: false,
@@ -86,6 +93,10 @@ export async function GET(request: Request) {
       );
     }
 
+    console.log("[Result Room dashboard] Browser timezone validated", {
+      timezone,
+    });
+
     const cookieStore = await cookies();
     const supabase = createSupabaseServerClient(cookieStore);
 
@@ -96,6 +107,11 @@ export async function GET(request: Request) {
       await supabase.auth.getClaims();
 
     if (claimsError || !claimsData?.claims?.sub) {
+      console.warn("[Result Room dashboard] Authentication failed", {
+        hasClaimsError: Boolean(claimsError),
+        hasUserId: Boolean(claimsData?.claims?.sub),
+      });
+
       return NextResponse.json(
         {
           success: false,
@@ -111,6 +127,7 @@ export async function GET(request: Request) {
     }
 
     const user = claimsData.claims;
+    console.log("[Result Room dashboard] User authenticated");
 
     /**
      * 3. Fetch the profile and participant.
@@ -121,7 +138,7 @@ export async function GET(request: Request) {
     const [profileResult, participantResult] = await Promise.all([
       supabase
         .from("user_profiles")
-        .select("user_id, full_name")
+        .select("user_id, full_name, gender")
         .eq("user_id", user.sub)
         .maybeSingle(),
 
@@ -132,6 +149,7 @@ export async function GET(request: Request) {
           id,
           room_id,
           room_status,
+          full_name,
           email,
           phone,
           goal,
@@ -189,6 +207,8 @@ export async function GET(request: Request) {
     const participant = participantResult.data;
 
     if (!participant) {
+      console.warn("[Result Room dashboard] Participant not found");
+
       return NextResponse.json(
         {
           success: false,
@@ -203,6 +223,12 @@ export async function GET(request: Request) {
       );
     }
 
+    console.log("[Result Room dashboard] Profile and participant loaded", {
+      participantId: participant.id,
+      roomId: participant.room_id,
+      participantTimezone: participant.timezone,
+    });
+
     /**
      * 4. Save the browser timezone.
      *
@@ -212,6 +238,12 @@ export async function GET(request: Request) {
      * Avoid unnecessary writes when the timezone is unchanged.
      */
     if (participant.timezone !== timezone) {
+      console.log("[Result Room dashboard] Updating participant timezone", {
+        participantId: participant.id,
+        previousTimezone: participant.timezone,
+        nextTimezone: timezone,
+      });
+
       const { error: timezoneUpdateError } = await supabase
         .from("participants")
         .update({
@@ -239,6 +271,10 @@ export async function GET(request: Request) {
           },
         );
       }
+
+      console.log("[Result Room dashboard] Participant timezone updated", {
+        participantId: participant.id,
+      });
     }
 
     /**
@@ -276,11 +312,22 @@ export async function GET(request: Request) {
       );
     }
 
+    console.log("[Result Room dashboard] Room loaded", {
+      roomId: room.id,
+      roomStatus: room.status,
+      startDate: room.start_date,
+      endDate: room.end_date,
+    });
+
     /**
      * 6. Calculate today's date in the browser's timezone.
      */
     const now = new Date();
     const todayString = getDateInTimezone(now, timezone);
+    console.log("[Result Room dashboard] Calculated dashboard date", {
+      todayString,
+      timezone,
+    });
 
     /**
      * 7. Fetch today's submission, submission activity,
@@ -413,6 +460,15 @@ export async function GET(request: Request) {
         fine.due_at !== null && new Date(fine.due_at).getTime() <= currentTime,
     );
 
+    console.log("[Result Room dashboard] Dashboard status queries loaded", {
+      submissionCompleted: Boolean(todaySubmissionResult.data),
+      submissionActivityCount: submissionActivityResult.data?.length ?? 0,
+      hasViolation: Boolean(violationResult.data),
+      unpaidFineCount: unpaidFines.length,
+      hasPendingFine,
+      hasOverdueFine,
+    });
+
     /**
      * 8. Fetch today's partner submission and review.
      *
@@ -456,6 +512,11 @@ export async function GET(request: Request) {
         },
       );
     }
+
+    console.log("[Result Room dashboard] Active partner pair lookup complete", {
+      hasActivePair: Boolean(activePair),
+      partnerPairId: activePair?.id ?? null,
+    });
 
     if (activePair) {
       const partnerId =
@@ -529,6 +590,11 @@ export async function GET(request: Request) {
         id: partnerId,
         submissionSubmitted: partnerSubmissionSubmitted,
       };
+
+      console.log("[Result Room dashboard] Partner status loaded", {
+        partnerSubmissionSubmitted,
+        partnerReviewSubmitted,
+      });
     }
 
     /**
@@ -543,12 +609,14 @@ export async function GET(request: Request) {
         id: user.sub,
         email: typeof user.email === "string" ? user.email : null,
         name: profileResult.data?.full_name ?? null,
+        gender: profileResult.data?.gender ?? null,
       },
 
       participant: {
         id: participant.id,
         roomStatus: participant.room_status,
         email: participant.email,
+        name: participant.full_name,
         phone: participant.phone,
         goal: participant.goal,
         isAdmin: participant.is_admin,
@@ -589,6 +657,12 @@ export async function GET(request: Request) {
         hasOverdueFine,
       },
     };
+
+    console.log("[Result Room dashboard] Returning dashboard response", {
+      participantId: participant.id,
+      roomId: room.id,
+      hasPartner: Boolean(partner),
+    });
 
     return NextResponse.json(responseData, {
       status: 200,

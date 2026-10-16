@@ -17,6 +17,7 @@ export const resultRoomProfileSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email().nullable(),
   name: z.string().nullable(),
+  gender: z.string().nullable(),
 });
 
 /**
@@ -26,6 +27,7 @@ export const resultRoomParticipantSchema = z.object({
   id: z.string().uuid(),
   roomStatus: resultRoomStatusSchema,
   isAdmin: z.boolean(),
+  name: z.string().nullable(),
   email: z.email(),
   goal: z.string().nullable(),
   phone: z.string().nullable(),
@@ -60,8 +62,15 @@ export const resultRoomSchema = z.object({
 
 export const resultRoomTodaySchema = z.object({
   date: z.string(),
+  timezone: z.string(),
   submissionCompleted: z.boolean(),
   partnerReviewSubmitted: z.boolean(),
+  partnerSubmissionSubmitted: z.boolean(),
+});
+
+export const resultRoomPartnerSchema = z.object({
+  id: z.string().uuid(),
+  submissionSubmitted: z.boolean(),
 });
 
 /**
@@ -92,6 +101,7 @@ export const resultRoomDashboardSchema = z.object({
   participant: resultRoomParticipantSchema.nullable(),
   room: resultRoomSchema.nullable(),
   today: resultRoomTodaySchema,
+  partner: resultRoomPartnerSchema.nullable(),
   submissionActivity: resultRoomSubmissionActivitySchema,
   accountability: resultRoomAccountabilitySchema,
 });

@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { Pencil, Plus, Info } from "lucide-react";
-import goGetter from "@/app/assets/images/goGetter.jpg";
+import { Plus, Info } from "lucide-react";
+import female from "@/app/assets/images/profile/female.png";
+import male from "@/app/assets/images/profile/male.png";
 
 import {
   useResultRoomDashboard,
@@ -18,8 +19,6 @@ import {
   getDailySubmissionDeadline,
   getPartnerReportDeadline,
 } from "@/lib/result-room/deadlines";
-
-import { ResultRoomHeatmap } from "./Streak";
 
 import GeneralButton from "@/components/miscelleneous/generalButton";
 import SecondaryButton from "@/components/miscelleneous/secondaryButton";
@@ -38,6 +37,8 @@ import SubmitReportSuccess from "./reports/submitReportSuccess";
 import SubmitReportError from "./reports/submitReportError";
 
 import SubmissionViewModal from "./modals/SubmissionViewModal";
+import StreakCard from "./StreakCard";
+import TimelinePair from "./TImelinePair";
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -47,6 +48,7 @@ type Participant = {
   id: string;
   room_status: "pending" | "active" | "locked" | "evicted";
   isAdmin: boolean;
+  name: string;
   adminRole: string | null;
   statusReason: string | null;
   statusChangedAt: string | null;
@@ -126,7 +128,14 @@ function getTodayInTimezone(timezone: string, date: Date): string {
 /* -------------------------------------------------------------------------- */
 
 const ResultRoomDashboard = () => {
-  const { data: dashboardData } = useResultRoomDashboard();
+  const {
+    data: dashboardData,
+    isPending,
+    isError,
+    error: dashboardError,
+    status,
+    fetchStatus,
+  } = useResultRoomDashboard();
 
   const submissionMutation = useCreateResultRoomSubmission();
   const partnerReportMutation = useCreatePartnerReport();
@@ -209,15 +218,11 @@ const ResultRoomDashboard = () => {
     return () => window.clearInterval(interval);
   }, []);
 
-  const submissionDeadline = timezone
-    && now
-    ? getDailySubmissionDeadline(timezone, now)
-    : null;
+  const submissionDeadline =
+    timezone && now ? getDailySubmissionDeadline(timezone, now) : null;
 
-  const partnerReportDeadline = timezone
-    && now
-    ? getPartnerReportDeadline(timezone, now)
-    : null;
+  const partnerReportDeadline =
+    timezone && now ? getPartnerReportDeadline(timezone, now) : null;
 
   const today = timezone && now ? getTodayInTimezone(timezone, now) : "";
 
@@ -440,6 +445,14 @@ const ResultRoomDashboard = () => {
     await handleSubmitReport(reportComment, reportSubmittedOnTime);
   };
 
+  /////////// fucntion to get the first name ///////////////////////
+  const getFirstName = (fullName: string | null) => {
+    if (!fullName || typeof fullName !== "string") {
+      return "";
+    }
+    return fullName.trim().split(/\s+/)[0];
+  };
+
   /* ------------------------------------------------------------------------ */
   /* Loading state                                                            */
   /* ------------------------------------------------------------------------ */
@@ -500,9 +513,28 @@ const ResultRoomDashboard = () => {
       </main>
     );
   }
+  console.log("Dashboard query state:", {
+    data: dashboardData,
+    isPending,
+    isError,
+    dashboardError,
+    status,
+    fetchStatus,
+  });
 
   if (!dashboardData) {
-    return <p>Loading!!!</p>;
+    if (isError) {
+      return (
+        <p>
+          Unable to load dashboard:{" "}
+          {dashboardError instanceof Error
+            ? dashboardError.message
+            : "Unknown error"}
+        </p>
+      );
+    }
+
+    return <p>Loading...</p>;
   }
 
   /* ------------------------------------------------------------------------ */
@@ -512,26 +544,58 @@ const ResultRoomDashboard = () => {
   return (
     <>
       <main className="min-h-screen w-full">
-        <div className="h-full w-full p-2 md:col-span-1 lg:col-span-2">
+        <div className="h-full w-full md:col-span-1 lg:col-span-2">
           {dashboardData.room !== null ? (
             <>
-              <ResultRoomHeatmap
+              <div>
+                <h6 className="text-lg mb-2">
+                  Hi{" "}
+                  {getFirstName(
+                    dashboardData.profile && dashboardData.profile.name,
+                  )}{" "}
+                  👋
+                </h6>
+                <div className="flex items-center justify-between gap-2 bg-secondary-blue rounded-lg px-4 py-2 h-36 w-full overflow-hidden text-white/90">
+                  <div>
+                    <p className="text-md">Welcome to your Room</p>
+                    <h3 className="text-lg/2.5 font-semibold text-white mt-1">
+                      This is where you work on your <br />
+                      goals for the 90 days
+                    </h3>
+                  </div>
+                  <div className="overflow-hidden w-[400px]">
+                    <Image
+                      src={
+                        dashboardData.profile &&
+                        dashboardData.profile.gender === "male"
+                          ? male
+                          : female
+                      }
+                      alt="profile"
+                      width={400}
+                      height={400}
+                      className="mt-6"
+                    />
+                  </div>
+                </div>
+              </div>
+              <StreakCard
                 startDate={dashboardData.room.startDate}
                 endDate={dashboardData.room.endDate}
                 submissionDates={dashboardData.submissionActivity.dates}
               />
+
               <div className="mx-auto my-4 w-full">
                 {/* Today's check-in */}
-                <section className="mt-4">
-                  <h1 className="mb-2 text-sm">Today&apos;s Check-in</h1>
-
+                <h1 className="mb-2 text-sm">Today&apos;s Check-in</h1>
+                <section className="flex flex-col lg:flex-row gap-2 items-center justify-between mt-4">
                   {/* Task submission */}
                   <div className="min-h-12 w-full rounded-2xl border border-white px-6 py-3 shadow-md backdrop-blur-3xl">
                     <h1 className="text-sm">Task Submission</h1>
 
                     <div className="mt-1 w-full">
                       {dashboardData.today.submissionCompleted ? (
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-col items-center justify-between gap-2">
                           <p className="text-xs md:text-sm">Well done 👍</p>
                           <GeneralButton
                             onClick={() =>
@@ -541,7 +605,7 @@ const ResultRoomDashboard = () => {
                           />
                         </div>
                       ) : (
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                        <div className="flex flex-col justify-between gap-2">
                           <span className="flex items-center gap-2">
                             <Info className="size-4 text-primary-blue" />
 
@@ -664,7 +728,7 @@ const ResultRoomDashboard = () => {
 
                     <div className="mt-1 w-full">
                       {dashboardData.today.partnerReviewSubmitted ? (
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-col items-center justify-between gap-2">
                           <p className="text-xs md:text-sm">
                             Partner check completed 👍
                           </p>
@@ -672,7 +736,7 @@ const ResultRoomDashboard = () => {
                           <GeneralButton text="View Report" />
                         </div>
                       ) : (
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                        <div className="flex flex-col justify-between gap-2">
                           <span className="flex items-center gap-2">
                             <Info className="size-4 text-primary-blue" />
 
@@ -771,28 +835,29 @@ const ResultRoomDashboard = () => {
                         )}
                     </div>
                   </div>
-
-                  {/* Open the reusable partner submission modal */}
-                  <div className="mt-3 flex justify-end">
-                    <GeneralButton
-                      onClick={() => setPartnerSubmissionDialogOpen(true)}
-                    >
-                      <span className="flex items-center gap-2 text-sm">
-                        <Info className="size-4" />
-                        View Partner&apos;s Submission
-                      </span>
-                    </GeneralButton>
-                  </div>
                 </section>
               </div>
+              {/* Open the reusable partner submission modal */}
+              <div className="mt-3 flex justify-end">
+                <GeneralButton
+                  onClick={() => setPartnerSubmissionDialogOpen(true)}
+                >
+                  <span className="flex items-center gap-2 text-sm">
+                    <Info className="size-4" />
+                    View Partner&apos;s Submission
+                  </span>
+                </GeneralButton>
+              </div>
+              <TimelinePair />
             </>
           ) : (
-            <p>Loading!!!</p>
+            <div className="flex min-h-[240px] items-center justify-center">
+              <p>This Result Room is not currently available.</p>
+            </div>
           )}
 
           <MobileNav />
         </div>
-
       </main>
 
       {/* ------------------------------------------------------------------ */}

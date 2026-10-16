@@ -80,7 +80,16 @@ async function fetchResultRoomDashboard(): Promise<ResultRoomDashboard> {
 
   const data: unknown = await response.json();
 
-  return resultRoomDashboardSchema.parse(data);
+  try {
+    return resultRoomDashboardSchema.parse(data);
+  } catch (error) {
+    console.error("[Result Room dashboard] Response validation failed", {
+      status: response.status,
+      error,
+    });
+
+    throw error;
+  }
 }
 
 /**
