@@ -452,6 +452,296 @@ export async function POST(req: Request) {
     }
 
     // ============================================================
+    // FINE PAYMENT FLOW
+    // ============================================================
+    //
+    // Fine payments are separate from Result Room entry payments.
+    //
+    // Their metadata contains:
+    // - payment_type: "fine"
+    // - participant_id
+    // - room_id
+    // - fine_ids
+    // - fine_count
+    //
+    // We validate the payment against fine_payments in the database.
+    // We then use complete_fine_payment to atomically mark the
+    // payment records SUCCESS and the associated fines PAID.
+    //
+    // IMPORTANT:
+    // This branch returns after processing. It must never continue
+    // into the entry-payment flow below.
+    //
+    if (metadata?.payment_type === "fine") {
+      console.log("Processing Result Room fine payment");
+
+      // ----------------------------------------------------------
+      // A. VALIDATE REQUIRED FINE METADATA
+      // ----------------------------------------------------------
+
+      const participantId = metadata.participant_id;
+      const roomId = metadata.room_id;
+      const metadataFineCount = Number(metadata.fine_count);
+
+      let metadataFineIds: string[] = [];
+
+      if (Array.isArray(metadata.fine_ids)) {
+        metadataFineIds = metadata.fine_ids;
+      } else if (typeof metadata.fine_ids === "string") {
+        try {
+          const parsedFineIds = JSON.parse(metadata.fine_ids);
+
+          if (Array.isArray(parsedFineIds)) {
+            metadataFineIds = parsedFineIds;
+          }
+        } catch {
+          // Invalid JSON is rejected by the validation below.
+        }
+      }
+
+      if (
+        typeof participantId !== "string" ||
+        typeof roomId !== "string" ||
+        !Number.isInteger(metadataFineCount) ||
+        metadataFineCount < 1 ||
+        metadataFineIds.length !== metadataFineCount ||
+        !metadataFineIds.every((id) => typeof id === "string") ||
+        new Set(metadataFineIds).size !== metadataFineIds.length
+      ) {
+        console.error("Invalid fine payment metadata:", {
+          reference,
+          participantId,
+          roomId,
+          metadataFineCount,
+          metadataFineIds,
+        });
+
+        return NextResponse.json(
+          { error: "Invalid fine payment metadata" },
+          { status: 400 },
+        );
+      }
+
+      // ----------------------------------------------------------
+      // B. VALIDATE PAYSTACK TRANSACTION DETAILS
+      // ----------------------------------------------------------
+
+      if (
+        !reference ||
+        status !== "success" ||
+        transaction.currency !== "NGN" ||
+        !Number.isSafeInteger(amount) ||
+        amount <= 0
+      ) {
+        console.error("Invalid fine transaction details:", {
+          reference,
+          status,
+          currency: transaction.currency,
+          amount,
+        });
+
+        return NextResponse.json(
+          { error: "Invalid fine transaction details" },
+          { status: 400 },
+        );
+      }
+
+      // ----------------------------------------------------------
+      // C. CREATE ADMIN CLIENT
+      // ----------------------------------------------------------
+
+      const supabase = createAdminClient();
+
+      // ----------------------------------------------------------
+      // D. LOAD PAYMENT RECORDS FOR THIS REFERENCE
+      // ----------------------------------------------------------
+      //
+      // Initialization creates one fine_payments row per fine.
+      // All rows belonging to one checkout share the same reference.
+      //
+      const { data: finePayments, error: finePaymentsError } = await supabase
+        .from("fine_payments")
+        .select("id, fine_id, participant_id, amount, status")
+        .eq("paystack_reference", reference);
+
+      if (finePaymentsError) {
+        console.error("Fine payment lookup failed:", finePaymentsError);
+
+        return NextResponse.json(
+          { error: "Failed to look up fine payment" },
+          { status: 500 },
+        );
+      }
+
+      if (!finePayments || finePayments.length === 0) {
+        console.error("No fine payment records found:", reference);
+
+        return NextResponse.json(
+          { error: "Fine payment records not found" },
+          { status: 404 },
+        );
+      }
+
+      // ----------------------------------------------------------
+      // E. VERIFY THE DATABASE RECORDS MATCH THE METADATA
+      // ----------------------------------------------------------
+
+      const databaseFineIds = finePayments.map((payment) => payment.fine_id);
+
+      const uniqueDatabaseFineIds = new Set(databaseFineIds);
+
+      const databaseParticipantIds = new Set(
+        finePayments.map((payment) => payment.participant_id),
+      );
+
+      const recordedAmount = finePayments.reduce(
+        (total, payment) => total + payment.amount,
+        0,
+      );
+
+      const metadataFineIdsMatch =
+        metadataFineIds.length === databaseFineIds.length &&
+        metadataFineIds.every((id) => uniqueDatabaseFineIds.has(id));
+
+      if (
+        finePayments.length !== metadataFineCount ||
+        uniqueDatabaseFineIds.size !== finePayments.length ||
+        databaseParticipantIds.size !== 1 ||
+        !databaseParticipantIds.has(participantId) ||
+        !metadataFineIdsMatch ||
+        recordedAmount !== amount ||
+        !Number.isSafeInteger(recordedAmount)
+      ) {
+        console.error("Fine payment validation failed:", {
+          reference,
+          paystackAmount: amount,
+          recordedAmount,
+          metadataFineCount,
+          databaseFineCount: finePayments.length,
+          participantId,
+          databaseParticipantIds: [...databaseParticipantIds],
+          metadataFineIds,
+          databaseFineIds,
+        });
+
+        return NextResponse.json(
+          { error: "Fine payment validation failed" },
+          { status: 400 },
+        );
+      }
+
+      // ----------------------------------------------------------
+      // F. VERIFY THE PARTICIPANT AND ROOM
+      // ----------------------------------------------------------
+      //
+      // Metadata alone is not sufficient. Confirm the participant
+      // actually belongs to the room included in the transaction.
+      //
+      const { data: participant, error: participantError } = await supabase
+        .from("participants")
+        .select("id, room_id")
+        .eq("id", participantId)
+        .maybeSingle();
+
+      if (participantError || !participant || participant.room_id !== roomId) {
+        console.error("Fine payment participant validation failed:", {
+          reference,
+          participantId,
+          roomId,
+          participant,
+          error: participantError,
+        });
+
+        return NextResponse.json(
+          { error: "Fine payment participant validation failed" },
+          { status: 400 },
+        );
+      }
+
+      // ----------------------------------------------------------
+      // G. COMPLETE THE PAYMENT ATOMICALLY
+      // ----------------------------------------------------------
+      //
+      // The RPC handles the database transition:
+      //
+      // fine_payments: PENDING -> SUCCESS
+      // fines:         UNPAID  -> PAID
+      //
+      // It also handles idempotent retries and the associated
+      // violation-resolution updates implemented in the RPC.
+      //
+      // Do not update these tables separately here.
+      //
+      const { data: completionResult, error: completionError } =
+        await supabase.rpc("complete_fine_payment", {
+          p_reference: reference,
+          p_paid_at: paid_at ?? new Date().toISOString(),
+        });
+
+      if (completionError) {
+        console.error("Failed to complete fine payment:", {
+          reference,
+          error: completionError,
+        });
+
+        // Return a server error so Paystack can retry the webhook.
+        return NextResponse.json(
+          { error: "Failed to complete fine payment" },
+          { status: 500 },
+        );
+      }
+
+      // ----------------------------------------------------------
+      // H. CHECK THE RPC RESULT
+      // ----------------------------------------------------------
+      //
+      // The RPC returns JSONB. A database call can succeed at the
+      // transport level while the RPC itself reports failure.
+      //
+
+      if (
+        !completionResult ||
+        typeof completionResult !== "object" ||
+        completionResult.status !== "success"
+      ) {
+        console.error("Fine payment RPC did not confirm completion:", {
+          reference,
+          completionResult,
+        });
+
+        return NextResponse.json(
+          { error: "Fine payment completion was not confirmed" },
+          { status: 500 },
+        );
+      }
+
+      // ----------------------------------------------------------
+      // I. FINISH FINE PAYMENT PROCESSING
+      // ----------------------------------------------------------
+
+      console.log("Fine payment processed successfully:", {
+        reference,
+        participantId,
+        roomId,
+        amount,
+        fineCount: finePayments.length,
+        fineIds: databaseFineIds,
+      });
+
+      return NextResponse.json({
+        received: true,
+        processed: true,
+        paymentType: "fine",
+        reference,
+        participantId,
+        roomId,
+        amount,
+        currency: "NGN",
+        fineCount: finePayments.length,
+      });
+    }
+
+    // ============================================================
     // 9. VALIDATE REQUIRED METADATA
     // ============================================================
     //

@@ -9,7 +9,6 @@ import {
   CircleSlash,
   Clock,
   FileText,
-  Loader2,
   ReceiptText,
   RefreshCw,
   Scale,
@@ -28,8 +27,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-// Adjust this path to wherever your hook lives.
 import { useResultRoomFines } from "@/lib/queries/result-room";
+
+import FinePaymentSheet from "@/components/result-room/dashboard/fines/fine-payment-sheet";
+import {
+  Icon3D,
+  type Tone,
+} from "@/components/result-room/dashboard/fines/icon-3d";
+import {
+  money,
+  useFinePayment,
+  type PayTarget,
+} from "@/components/result-room/dashboard/fines/use-fine-payment";
 
 /* -------------------------------------------------------------------------- */
 /* Types (mirrors the GET /fines API response)                                */
@@ -66,7 +75,7 @@ export interface Fine {
 export interface FinePayment {
   id: string;
   fine_id: string;
-  amount: number;
+  amount: number; // kobo
   status: string;
   paystack_reference: string | null;
   paid_at: string | null;
@@ -88,8 +97,6 @@ export interface FinesResponse {
 }
 
 interface FinesPageProps {
-  /** Starts the payment flow for one fine (e.g. initialise Paystack). */
-  onPay?: (fine: Fine) => void | Promise<void>;
   className?: string;
 }
 
@@ -98,13 +105,6 @@ type Filter = "ALL" | FineStatus;
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
 /* -------------------------------------------------------------------------- */
-
-const money = (amount: number, currency = "NGN") =>
-  new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(amount);
 
 const formatDate = (value: string | null | undefined) =>
   value
@@ -136,7 +136,7 @@ const isOverdue = (fine: Fine) =>
   fine.status === "UNPAID" && !!fine.due_at && daysUntil(fine.due_at) < 0;
 
 const isPendingPayment = (payment: FinePayment) =>
-  ["PENDING", "INITIATED", "PROCESSING"].includes(payment.status.toUpperCase());
+  payment.status.toUpperCase() === "PENDING";
 
 const STATUS: Record<FineStatus, { label: string; dot: string; text: string }> =
   {
@@ -185,7 +185,7 @@ const OUTLINE_BUTTON =
 /* Page                                                                       */
 /* -------------------------------------------------------------------------- */
 
-export default function FinesPage({ onPay, className = "" }: FinesPageProps) {
+export default function FinesPage({ className = "" }: FinesPageProps) {
   const { data, isLoading, isError, error, refetch, isRefetching } =
     useResultRoomFines() as {
       data?: FinesResponse;
@@ -196,20 +196,37 @@ export default function FinesPage({ onPay, className = "" }: FinesPageProps) {
       isRefetching: boolean;
     };
 
+  const payment = useFinePayment();
+
   const [filter, setFilter] = useState<Filter>("ALL");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [payingId, setPayingId] = useState<string | null>(null);
-  const [payError, setPayError] = useState<string | null>(null);
 
   const fines = useMemo(() => data?.fines ?? [], [data]);
   const payments = useMemo(() => data?.payments ?? [], [data]);
   const summary = data?.summary;
 
-  const pendingFineIds = useMemo(
-    () => new Set(payments.filter(isPendingPayment).map((p) => p.fine_id)),
-    [payments],
-  );
+  /**
+   * fine id -> reference of its newest PENDING checkout.
+   * Checkouts that were abandoned stay PENDING in the database, so instead of
+   * locking the Pay button we let the person check that payment's status.
+   */
+  const pendingReferenceByFine = useMemo(() => {
+    const map = new Map<string, string>();
+
+    // The API returns payments newest first.
+    for (const item of payments) {
+      if (
+        isPendingPayment(item) &&
+        item.paystack_reference &&
+        !map.has(item.fine_id)
+      ) {
+        map.set(item.fine_id, item.paystack_reference);
+      }
+    }
+
+    return map;
+  }, [payments]);
 
   const visible = useMemo(
     () => (filter === "ALL" ? fines : fines.filter((f) => f.status === filter)),
@@ -217,6 +234,14 @@ export default function FinesPage({ onPay, className = "" }: FinesPageProps) {
   );
 
   const overdueCount = useMemo(() => fines.filter(isOverdue).length, [fines]);
+
+  const hasPendingUnpaid = useMemo(
+    () =>
+      fines.some(
+        (f) => f.status === "UNPAID" && pendingReferenceByFine.has(f.id),
+      ),
+    [fines, pendingReferenceByFine],
+  );
 
   // Derive from the list so the dialog stays fresh after a refetch.
   const selected = fines.find((f) => f.id === selectedId) ?? null;
@@ -226,23 +251,39 @@ export default function FinesPage({ onPay, className = "" }: FinesPageProps) {
     setDialogOpen(true);
   };
 
-  const handlePay = async (fine: Fine) => {
-    if (!onPay || payingId) return;
+  /** Pay a single fine, or check on it if a checkout is already pending. */
+  const startPayment = (fine: Fine) => {
+    setDialogOpen(false);
 
-    setPayError(null);
-    setPayingId(fine.id);
+    const target: PayTarget = {
+      kind: "single",
+      fineId: fine.id,
+      title: fineTitle(fine),
+      amountNaira: fine.amount,
+    };
 
-    try {
-      await onPay(fine);
-    } catch (err) {
-      setPayError(
-        err instanceof Error && err.message
-          ? err.message
-          : "We couldn't start the payment. Please try again.",
-      );
-    } finally {
-      setPayingId(null);
+    const pendingReference = pendingReferenceByFine.get(fine.id);
+
+    if (pendingReference) {
+      void payment.verify(pendingReference, target);
+    } else {
+      payment.begin(target);
     }
+  };
+
+  const startPayAll = () => {
+    if (!summary) return;
+
+    payment.begin({
+      kind: "all",
+      count: summary.unpaidCount,
+      amountNaira: summary.outstandingAmount,
+    });
+  };
+
+  const closePayment = () => {
+    payment.close();
+    void refetch();
   };
 
   const tabs: { key: Filter; label: string; count: number }[] = [
@@ -253,13 +294,14 @@ export default function FinesPage({ onPay, className = "" }: FinesPageProps) {
   ];
 
   const owing = (summary?.unpaidCount ?? 0) > 0;
+  const canPayAll = (summary?.unpaidCount ?? 0) > 1 && !hasPendingUnpaid;
 
   return (
     <div className={`mx-auto w-full max-w-3xl space-y-6 ${className}`}>
       {/* Balance */}
       <section
         aria-label="Balance"
-        className="flex items-end justify-between gap-4 rounded-2xl bg-secondary-blue px-5 py-6 text-white sm:px-7 sm:py-8"
+        className="flex flex-wrap items-end justify-between gap-x-4 gap-y-5 rounded-2xl bg-secondary-blue px-5 py-6 text-white sm:px-7 sm:py-8"
       >
         {isLoading ? (
           <div className="space-y-3">
@@ -284,28 +326,26 @@ export default function FinesPage({ onPay, className = "" }: FinesPageProps) {
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={() => refetch()}
-          disabled={isRefetching}
-          aria-label="Refresh fines"
-          className="mb-1 flex size-9 shrink-0 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/15 hover:text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40 disabled:opacity-60"
-        >
-          <RefreshCw
-            className={`size-4 ${isRefetching ? "animate-spin" : ""}`}
-          />
-        </button>
-      </section>
+        <div className="flex items-center gap-2">
+          {canPayAll && (
+            <GeneralButton variant="active" buttonFunction={startPayAll}>
+              Pay all {money(summary?.outstandingAmount ?? 0)}
+            </GeneralButton>
+          )}
 
-      {payError && (
-        <div
-          role="alert"
-          className="rounded-xl bg-red-500 px-3.5 py-3 text-sm text-white"
-        >
-          <p className="font-medium">We couldn&apos;t start that payment.</p>
-          <p className="mt-0.5 text-xs leading-relaxed">{payError}</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            disabled={isRefetching}
+            aria-label="Refresh fines"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/15 hover:text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40 disabled:opacity-60"
+          >
+            <RefreshCw
+              className={`size-4 ${isRefetching ? "animate-spin" : ""}`}
+            />
+          </button>
         </div>
-      )}
+      </section>
 
       {/* Ledger */}
       <section aria-label="Fines">
@@ -387,11 +427,8 @@ export default function FinesPage({ onPay, className = "" }: FinesPageProps) {
               <FineRow
                 key={fine.id}
                 fine={fine}
-                canPay={!!onPay}
-                paying={payingId === fine.id}
-                locked={!!payingId && payingId !== fine.id}
-                paymentPending={pendingFineIds.has(fine.id)}
-                onPay={() => void handlePay(fine)}
+                pending={pendingReferenceByFine.has(fine.id)}
+                onPay={() => startPayment(fine)}
                 onView={() => openFine(fine)}
               />
             ))}
@@ -404,10 +441,15 @@ export default function FinesPage({ onPay, className = "" }: FinesPageProps) {
         open={dialogOpen && !!selected}
         onOpenChange={setDialogOpen}
         payments={payments.filter((p) => p.fine_id === selectedId)}
-        canPay={!!onPay}
-        paying={!!selected && payingId === selected.id}
-        paymentPending={!!selected && pendingFineIds.has(selected.id)}
-        onPay={() => selected && void handlePay(selected)}
+        pending={!!selected && pendingReferenceByFine.has(selected.id)}
+        onPay={() => selected && startPayment(selected)}
+      />
+
+      <FinePaymentSheet
+        phase={payment.phase}
+        onProceed={(target) => void payment.proceed(target)}
+        onVerify={(reference, target) => void payment.verify(reference, target)}
+        onClose={closePayment}
       />
     </div>
   );
@@ -417,40 +459,18 @@ export default function FinesPage({ onPay, className = "" }: FinesPageProps) {
 /* Pay button (shared by the row and the dialog)                              */
 /* -------------------------------------------------------------------------- */
 
-interface PayButtonProps {
-  fine: Fine;
-  canPay: boolean;
-  paying: boolean;
-  locked?: boolean;
-  paymentPending: boolean;
-  onPay: () => void;
-}
-
 function PayButton({
   fine,
-  canPay,
-  paying,
-  locked = false,
-  paymentPending,
+  pending,
   onPay,
-}: PayButtonProps) {
-  const disabled = !canPay || paying || paymentPending || locked;
-
+}: {
+  fine: Fine;
+  pending: boolean;
+  onPay: () => void;
+}) {
   return (
-    <GeneralButton
-      variant={disabled ? "disabled" : "active"}
-      buttonFunction={onPay}
-    >
-      {paying ? (
-        <>
-          <Loader2 className="animate-spin" />
-          Starting payment
-        </>
-      ) : paymentPending ? (
-        "Payment in progress"
-      ) : (
-        `Pay ${money(fine.amount)}`
-      )}
+    <GeneralButton variant="active" buttonFunction={onPay}>
+      {pending ? "Check payment" : `Pay ${money(fine.amount)}`}
     </GeneralButton>
   );
 }
@@ -461,23 +481,12 @@ function PayButton({
 
 interface FineRowProps {
   fine: Fine;
-  canPay: boolean;
-  paying: boolean;
-  locked: boolean;
-  paymentPending: boolean;
+  pending: boolean;
   onPay: () => void;
   onView: () => void;
 }
 
-function FineRow({
-  fine,
-  canPay,
-  paying,
-  locked,
-  paymentPending,
-  onPay,
-  onView,
-}: FineRowProps) {
+function FineRow({ fine, pending, onPay, onView }: FineRowProps) {
   const status = STATUS[fine.status];
   const timing = timingFor(fine);
   const unpaid = fine.status === "UNPAID";
@@ -516,6 +525,12 @@ function FineRow({
                 {timing.text}
               </span>
             )}
+
+            {unpaid && pending && (
+              <span className="font-medium text-amber-700">
+                Payment awaiting confirmation
+              </span>
+            )}
           </p>
 
           <p className="mt-1 text-xs text-neutral-500">
@@ -534,69 +549,9 @@ function FineRow({
       <div className="mt-4 flex flex-col-reverse gap-2.5 border-t border-white/60 pt-4 sm:flex-row sm:justify-end">
         <GeneralButton onClick={onView}>View cause</GeneralButton>
 
-        {unpaid && (
-          <PayButton
-            fine={fine}
-            canPay={canPay}
-            paying={paying}
-            locked={locked}
-            paymentPending={paymentPending}
-            onPay={onPay}
-          />
-        )}
+        {unpaid && <PayButton fine={fine} pending={pending} onPay={onPay} />}
       </div>
     </li>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* 3D icon tile                                                               */
-/* -------------------------------------------------------------------------- */
-
-type Tone = "blue" | "amber" | "emerald" | "red" | "violet" | "slate";
-
-const TONES: Record<Tone, string> = {
-  blue: "border-blue-400/80 from-blue-300 via-blue-500 to-blue-600 shadow-[inset_0_2px_0_rgba(255,255,255,0.5),inset_0_-3px_0_rgba(30,64,175,0.35),0_6px_12px_-4px_rgba(59,130,246,0.65)]",
-  amber:
-    "border-amber-300/80 from-amber-200 via-amber-400 to-amber-500 shadow-[inset_0_2px_0_rgba(255,255,255,0.55),inset_0_-3px_0_rgba(146,64,14,0.35),0_6px_12px_-4px_rgba(245,158,11,0.65)]",
-  emerald:
-    "border-emerald-400/80 from-emerald-300 via-emerald-500 to-emerald-600 shadow-[inset_0_2px_0_rgba(255,255,255,0.5),inset_0_-3px_0_rgba(6,78,59,0.35),0_6px_12px_-4px_rgba(16,185,129,0.65)]",
-  red: "border-red-400/80 from-red-300 via-red-500 to-red-600 shadow-[inset_0_2px_0_rgba(255,255,255,0.5),inset_0_-3px_0_rgba(127,29,29,0.35),0_6px_12px_-4px_rgba(239,68,68,0.65)]",
-  violet:
-    "border-violet-400/80 from-violet-300 via-violet-500 to-violet-600 shadow-[inset_0_2px_0_rgba(255,255,255,0.5),inset_0_-3px_0_rgba(76,29,149,0.35),0_6px_12px_-4px_rgba(139,92,246,0.65)]",
-  slate:
-    "border-slate-400/80 from-slate-300 via-slate-500 to-slate-600 shadow-[inset_0_2px_0_rgba(255,255,255,0.45),inset_0_-3px_0_rgba(15,23,42,0.35),0_6px_12px_-4px_rgba(71,85,105,0.55)]",
-};
-
-const ICON_SIZES = {
-  sm: { box: "size-9 rounded-xl", icon: "size-4" },
-  md: { box: "size-11 rounded-xl", icon: "size-5" },
-  lg: { box: "size-12 rounded-2xl", icon: "size-6" },
-} as const;
-
-/** A raised, glossy icon tile: top highlight, darker bottom edge, soft drop shadow. */
-function Icon3D({
-  icon: Icon,
-  tone = "blue",
-  size = "md",
-}: {
-  icon: LucideIcon;
-  tone?: Tone;
-  size?: keyof typeof ICON_SIZES;
-}) {
-  const s = ICON_SIZES[size];
-
-  return (
-    <span
-      aria-hidden
-      className={`relative flex shrink-0 items-center justify-center overflow-hidden border bg-gradient-to-b text-white ${s.box} ${TONES[tone]}`}
-    >
-      <span className="pointer-events-none absolute inset-x-1.5 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/55 to-transparent" />
-      <Icon
-        className={`relative drop-shadow-[0_1.5px_1px_rgba(0,0,0,0.35)] ${s.icon}`}
-        strokeWidth={2.25}
-      />
-    </span>
   );
 }
 
@@ -611,9 +566,7 @@ interface FineDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   payments: FinePayment[];
-  canPay: boolean;
-  paying: boolean;
-  paymentPending: boolean;
+  pending: boolean;
   onPay: () => void;
 }
 
@@ -623,7 +576,7 @@ function paymentVisual(status: string): { icon: LucideIcon; tone: Tone } {
   if (["SUCCESS", "SUCCESSFUL", "PAID", "COMPLETED"].includes(value)) {
     return { icon: BadgeCheck, tone: "emerald" };
   }
-  if (["PENDING", "INITIATED", "PROCESSING"].includes(value)) {
+  if (value === "PENDING") {
     return { icon: Clock, tone: "amber" };
   }
 
@@ -635,9 +588,7 @@ function FineDialog({
   open,
   onOpenChange,
   payments,
-  canPay,
-  paying,
-  paymentPending,
+  pending,
   onPay,
 }: FineDialogProps) {
   if (!fine) return null;
@@ -808,28 +759,26 @@ function FineDialog({
               <ul
                 className={`divide-y divide-white/60 rounded-2xl px-4 ${GLASS_INNER}`}
               >
-                {payments.map((payment) => {
-                  const visual = paymentVisual(payment.status);
+                {payments.map((item) => {
+                  const visual = paymentVisual(item.status);
 
                   return (
-                    <li
-                      key={payment.id}
-                      className="flex items-center gap-3 py-3"
-                    >
+                    <li key={item.id} className="flex items-center gap-3 py-3">
                       <Icon3D icon={visual.icon} tone={visual.tone} size="sm" />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-neutral-900">
-                          {humanize(payment.status)}
+                          {humanize(item.status)}
                         </p>
                         <p className="truncate text-xs text-neutral-500">
-                          {formatDate(payment.paid_at ?? payment.created_at)}
-                          {payment.paystack_reference
-                            ? `, ref ${payment.paystack_reference}`
+                          {formatDate(item.paid_at ?? item.created_at)}
+                          {item.paystack_reference
+                            ? `, ref ${item.paystack_reference}`
                             : ""}
                         </p>
                       </div>
+                      {/* fine_payments.amount is stored in kobo */}
                       <span className="shrink-0 text-sm font-medium tabular-nums text-neutral-900">
-                        {money(payment.amount)}
+                        {money(item.amount / 100)}
                       </span>
                     </li>
                   );
@@ -849,13 +798,7 @@ function FineDialog({
           </button>
 
           {fine.status === "UNPAID" && (
-            <PayButton
-              fine={fine}
-              canPay={canPay}
-              paying={paying}
-              paymentPending={paymentPending}
-              onPay={onPay}
-            />
+            <PayButton fine={fine} pending={pending} onPay={onPay} />
           )}
         </DialogFooter>
       </DialogContent>

@@ -29,6 +29,26 @@ function isValidUuid(value: unknown): value is string {
   );
 }
 
+/**
+ * Where Paystack should send the person back to after paying.
+ *
+ * Session cookies only work on the domain you signed in on. If the callback
+ * points at a different domain (tunnel, www, production vs localhost) the
+ * person comes back signed out and lands on the login page. So we return them
+ * to the same origin the request came from, but only if it is one we trust.
+ */
+function getCallbackBaseUrl(request: Request, appUrl: string) {
+  const trustedOrigins = new Set([appUrl, "http://localhost:3000"]);
+
+  const requestOrigin = request.headers.get("origin");
+
+  if (requestOrigin && trustedOrigins.has(requestOrigin)) {
+    return requestOrigin;
+  }
+
+  return appUrl;
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -197,11 +217,12 @@ export async function POST(request: Request) {
 
     // 7. Initialize Paystack checkout.
     const secretKey = process.env.PAYSTACK_SECRET_KEY;
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    // Remove any trailing slash so we never build "//result-room/...".
+    const appUrl = (process.env.APP_URL ?? "").replace(/\/+$/, "");
 
     if (!secretKey || !appUrl) {
       console.error(
-        "Fine payment initialization requires PAYSTACK_SECRET_KEY and NEXT_PUBLIC_APP_URL.",
+        "Fine payment initialization requires PAYSTACK_SECRET_KEY and APP_URL.",
       );
 
       await admin
@@ -234,6 +255,8 @@ export async function POST(request: Request) {
       );
     }
 
+    const callbackBaseUrl = getCallbackBaseUrl(request, appUrl);
+
     const paystackResponse = await fetch(
       "https://api.paystack.co/transaction/initialize",
       {
@@ -247,7 +270,7 @@ export async function POST(request: Request) {
           amount: totalKobo,
           currency: "NGN",
           reference,
-          callback_url: `${process.env.APP_URL}/result-room/dashboard/`,
+          callback_url: `${callbackBaseUrl}/result-room/dashboard/fines`,
           metadata: {
             payment_type: "fine",
             participant_id: participant.id,

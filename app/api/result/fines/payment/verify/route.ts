@@ -274,17 +274,20 @@ export async function POST(request: Request) {
     if (
       !completion ||
       typeof completion !== "object" ||
-      !("status" in completion) ||
-      completion.status !== "success"
+      completion.success !== true
     ) {
-      console.error("Unexpected fine payment completion response:", {
+      console.error("Fine payment RPC did not confirm completion:", {
         reference,
         completion,
       });
 
-      return response(
-        "pending",
-        "Payment was confirmed, but its records could not yet be finalized.",
+      return NextResponse.json(
+        {
+          status: "pending",
+          message: "Payment received, but confirmation is still processing.",
+          reference,
+        },
+        { status: 200 },
       );
     }
 
