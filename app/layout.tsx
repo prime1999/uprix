@@ -13,6 +13,15 @@ export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
   title: "Uprix",
   description: "Evolve Upward",
+  applicationName: "Uprix",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Uprix",
+  },
+  icons: {
+    apple: "/logo/uprix-apple.png",
+  },
 };
 
 const bricolage = Bricolage_Grotesque({

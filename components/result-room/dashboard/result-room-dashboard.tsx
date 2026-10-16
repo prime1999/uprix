@@ -39,6 +39,8 @@ import SubmitReportError from "./reports/submitReportError";
 import SubmissionViewModal from "./modals/SubmissionViewModal";
 import StreakCard from "./StreakCard";
 import TimelinePair from "./TImelinePair";
+import { formatDateWithOrdinal, getGreeting } from "@/lib/helper";
+import { useResultRoomStore } from "@/lib/stores/result-room-store";
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -48,6 +50,7 @@ type Participant = {
   id: string;
   room_status: "pending" | "active" | "locked" | "evicted";
   isAdmin: boolean;
+  goal: string;
   name: string;
   adminRole: string | null;
   statusReason: string | null;
@@ -139,6 +142,19 @@ const ResultRoomDashboard = () => {
 
   const submissionMutation = useCreateResultRoomSubmission();
   const partnerReportMutation = useCreatePartnerReport();
+
+  /**
+   * Read only the calculated room progress from Zustand.
+   */
+  const roomProgress = useResultRoomStore((state) => state.roomProgress);
+
+  /**
+   * Safe fallback while the dashboard data is
+   * still loading.
+   */
+  const currentDay = roomProgress?.currentDay ?? 0;
+
+  const totalDays = roomProgress?.totalDays ?? 90;
 
   /* ------------------------------------------------------------------------ */
   /* Daily submission state                                                   */
@@ -548,22 +564,38 @@ const ResultRoomDashboard = () => {
           {dashboardData.room !== null ? (
             <>
               <div>
-                <h6 className="text-lg mb-2">
-                  Hi{" "}
+                <p className="text-xs text-black/50">
+                  {formatDateWithOrdinal()}
+                </p>
+                <h6 className="text-lg mb-2 capitalize">
+                  {getGreeting()},{" "}
                   {getFirstName(
                     dashboardData.profile && dashboardData.profile.name,
                   )}{" "}
-                  👋
                 </h6>
-                <div className="flex items-center justify-between gap-2 bg-secondary-blue rounded-lg px-4 py-2 h-36 w-full overflow-hidden text-white/90">
-                  <div>
-                    <p className="text-md">Welcome to your Room</p>
-                    <h3 className="text-lg/2.5 font-semibold text-white mt-1">
-                      This is where you work on your <br />
-                      goals for the 90 days
-                    </h3>
+                <div className="flex items-center justify-between gap-2 bg-secondary-blue rounded-lg px-4 py-2 h-48 w-full overflow-hidden text-white/90">
+                  <div className="w-2/3">
+                    <h1
+                      className="
+    relative inline-block mb-4
+    bg-gradient-to-b
+    from-white
+    via-yellow-50
+    via-30%
+    to-amber-400
+    bg-clip-text text-transparent
+    text-4xl md:text-5xl
+    font-black tracking-tight
+    [text-shadow:0_-1px_0_rgba(255,255,255,0.9),0_1px_0_rgba(255,255,255,0.8),0_2px_0_#facc15,0_3px_0_#eab308,0_5px_0_#b8860b,0_7px_0_#854d0e,0_10px_16px_rgba(0,0,0,0.35),0_0_18px_rgba(250,204,21,0.45)]
+    drop-shadow-[0_0_8px_rgba(255,223,100,0.45)]
+  "
+                    >
+                      {currentDay}/{totalDays}
+                    </h1>
+                    <h3 className="text-sm md:text-lg">Your Primary Goal</h3>
+                    <p className="text-xs text-white">{participant.goal}</p>
                   </div>
-                  <div className="overflow-hidden w-[400px]">
+                  <div className="-mr-24 md:-mr-12 lg:-mr-0 overflow-hidden w-[400px]">
                     <Image
                       src={
                         dashboardData.profile &&

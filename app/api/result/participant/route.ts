@@ -142,6 +142,7 @@ export async function GET(request: NextRequest) {
             id,
             room_status,
             is_admin,
+            goal,
             admin_role,
             status_reason,
             status_changed_at
@@ -225,6 +226,8 @@ export async function GET(request: NextRequest) {
           room_status: participant.room_status,
 
           isAdmin: participant.is_admin,
+
+          goal: participant.goal,
 
           adminRole: participant.admin_role,
 
