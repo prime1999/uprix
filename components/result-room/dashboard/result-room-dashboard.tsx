@@ -31,10 +31,7 @@ import TimelinePair from "./TImelinePair";
 import { useResultRoomStore } from "@/lib/stores/result-room-store";
 import { UprixLoadingScreen } from "@/components/branding/UprixLoadingScreen";
 import PartnerProfileCard from "./cards/PartnerProfileCard";
-import {
-  PartnerCheckCard,
-  TaskSubmissionCard,
-} from "./cards/CheckIn";
+import { PartnerCheckCard, TaskSubmissionCard } from "./cards/CheckIn";
 import { buildHeatmapData } from "@/lib/result-room/build-heatmap";
 import { computeStats, flattenDays } from "./Streak";
 import ProgressHeroCard from "./ProgressHeroCard";
@@ -625,7 +622,7 @@ const ResultRoomDashboard = () => {
                             </p>
                           </span>
 
-                          {submissionDeadline?.isOpen ? (
+                          {!submissionDeadline?.isOpen ? (
                             <Dialog
                               open={submissionDialogOpen}
                               onOpenChange={handleSubmissionDialogOpenChange}
@@ -756,7 +753,7 @@ const ResultRoomDashboard = () => {
                             </p>
                           </span>
 
-                          {partnerReportDeadline?.isOpen ? (
+                          {!partnerReportDeadline?.isOpen ? (
                             <Dialog
                               open={reportDialogOpen}
                               onOpenChange={handleReportDialogOpenChange}
@@ -854,8 +851,6 @@ const ResultRoomDashboard = () => {
               <p>This Result Room is not currently available.</p>
             </div>
           )}
-
-          
         </div>
       </main>
 
