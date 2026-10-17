@@ -41,6 +41,7 @@ import StreakCard from "./StreakCard";
 import TimelinePair from "./TImelinePair";
 import { formatDateWithOrdinal, getGreeting } from "@/lib/helper";
 import { useResultRoomStore } from "@/lib/stores/result-room-store";
+import { UprixLoadingScreen } from "@/components/branding/UprixLoadingScreen";
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -474,13 +475,7 @@ const ResultRoomDashboard = () => {
   /* ------------------------------------------------------------------------ */
 
   if (loading) {
-    return (
-      <main className="min-h-screen">
-        <div className="flex min-h-screen items-center justify-center">
-          <p>Loading Result Room...</p>
-        </div>
-      </main>
-    );
+    return <UprixLoadingScreen />;
   }
 
   /* ------------------------------------------------------------------------ */
@@ -550,7 +545,7 @@ const ResultRoomDashboard = () => {
       );
     }
 
-    return <p>Loading...</p>;
+    return <UprixLoadingScreen />;
   }
 
   /* ------------------------------------------------------------------------ */

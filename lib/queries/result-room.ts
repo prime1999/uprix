@@ -361,6 +361,7 @@ async function createPartnerReport(
 /**
  * React Query mutation for submitting a partner report.
  */
+
 export function useCreatePartnerReport() {
   const queryClient = useQueryClient();
 
@@ -368,9 +369,14 @@ export function useCreatePartnerReport() {
     mutationFn: createPartnerReport,
 
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: resultRoomDashboardQueryKey,
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: resultRoomDashboardQueryKey,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["result-room", "partner-report-history"],
+        }),
+      ]);
     },
   });
 }
@@ -790,6 +796,104 @@ export function useResultRoomSubmissionHistory(
   return useQuery({
     queryKey: resultRoomSubmissionHistoryQueryKey(page, limit),
     queryFn: () => fetchResultRoomSubmissionHistory(page, limit),
+
+    enabled:
+      enabled &&
+      Number.isSafeInteger(page) &&
+      page >= 1 &&
+      Number.isSafeInteger(limit) &&
+      limit >= 1 &&
+      limit <= 50,
+
+    staleTime: 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    retry: 2,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* PARTNER REPORT HISTORY                                                     */
+/* -------------------------------------------------------------------------- */
+
+export interface PartnerReportHistoryItem {
+  id: string;
+  reviewer_id: string;
+  partner_id: string;
+  partner_pair_id: string;
+  review_date: string;
+  submitted_on_time: boolean;
+  comment: string | null;
+  reviewed_at: string;
+  created_at: string;
+}
+
+export interface PartnerReportHistoryResponse {
+  reports: PartnerReportHistoryItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
+}
+
+/**
+ * Each page and page size have their own cache entry.
+ */
+export const resultRoomPartnerReportHistoryQueryKey = (
+  page: number,
+  limit = 10,
+) => ["result-room", "partner-report-history", page, limit] as const;
+
+/**
+ * Fetches one page of partner reports submitted by the authenticated
+ * participant.
+ */
+async function fetchResultRoomPartnerReportHistory(
+  page: number,
+  limit: number,
+): Promise<PartnerReportHistoryResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+
+  const response = await fetch(
+    `/api/result/submissions/history/reports?${params.toString()}`,
+    {
+      method: "GET",
+      headers: getTimezoneHeaders(),
+      cache: "no-store",
+    },
+  );
+
+  const data: unknown = await response.json();
+
+  if (!response.ok) {
+    const errorData = data as { error?: string };
+
+    throw new Error(
+      errorData.error ||
+        `Failed to load partner report history (${response.status}).`,
+    );
+  }
+
+  return data as PartnerReportHistoryResponse;
+}
+
+/**
+ * React Query hook for paginated partner report history.
+ */
+export function useResultRoomPartnerReportHistory(
+  page = 1,
+  limit = 10,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: resultRoomPartnerReportHistoryQueryKey(page, limit),
+    queryFn: () => fetchResultRoomPartnerReportHistory(page, limit),
 
     enabled:
       enabled &&

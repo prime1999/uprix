@@ -8,6 +8,7 @@ import dashboardBackground from "@/app/assets/images/dashboardBackground.png";
 import ResultRoomSidebar from "@/components/result-room/dashboard/result-room-sidebar";
 import { ResultRoomStoreHydrator } from "@/components/result-room/result-room-store-hydrator";
 import Topbar from "./Topbar";
+import RightSidebar from "@/components/result-room/dashboard/RightSidebar";
 
 export default function ResultRoomDashboardLayout({
   children,
@@ -27,9 +28,9 @@ export default function ResultRoomDashboardLayout({
         </header>
         <div className="grid min-w-0 flex-1 min-h-0 grid-cols-1 gap-4 p-2 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]">
           <ResultRoomStoreHydrator />
-          <div className="min-w-0">{children}</div>
-          <aside className="hidden min-h-full rounded-2xl border border-white/70 bg-white/20 p-4 shadow-md backdrop-blur-3xl lg:block">
-            vsadhv
+          <div className="min-w-0 h-screen overflow-auto">{children}</div>
+          <aside className="">
+            <RightSidebar />
           </aside>
         </div>
       </SidebarInset>

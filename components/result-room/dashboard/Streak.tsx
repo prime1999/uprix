@@ -61,8 +61,8 @@ export const STATE_LABEL: Record<DayState, string> = {
 
 export function dayState(cell: HeatmapCell | null): DayState {
   if (!cell) return "empty";
-  if (cell.submitted) return "submitted";
   if (cell.isToday) return "today";
+  if (cell.submitted) return "submitted";
   if (cell.future) return "upcoming";
   return "missed";
 }

@@ -21,10 +21,9 @@ const DISC: Record<DayState, string> = {
   submitted:
     "bg-gradient-to-b from-white to-emerald-100 text-emerald-800 shadow-[inset_0_2px_0_rgba(255,255,255,0.95),inset_0_-3px_0_rgba(16,185,129,0.22),0_8px_14px_-6px_rgba(16,185,129,0.6)]",
   today:
-    "bg-gradient-to-b from-white to-blue-100 text-blue-800 shadow-[inset_0_2px_0_rgba(255,255,255,0.95),inset_0_-3px_0_rgba(59,130,246,0.22),0_8px_14px_-6px_rgba(59,130,246,0.6)]",
-  // Diagonal hatching, like a day that was skipped.
+    "bg-gradient-to-b from-white to-blue-100 text-blue-900 shadow-[inset_0_2px_0_rgba(255,255,255,0.95),inset_0_-3px_0_rgba(59,130,246,0.22),0_8px_14px_-6px_rgba(59,130,246,0.6)]",
   missed:
-    "border border-neutral-300/60 bg-white/40 bg-[repeating-linear-gradient(135deg,rgba(115,115,115,0.28)_0px,rgba(115,115,115,0.28)_2px,transparent_2px,transparent_6px)] text-neutral-500",
+    "bg-gradient-to-b from-white to-red-100 text-red-900 shadow-[inset_0_2px_0_rgba(255,255,255,0.95),inset_0_-3px_0_rgba(239,68,68,0.22),0_8px_14px_-6px_rgba(239,68,68,0.6)]",
   upcoming:
     "bg-gradient-to-b from-white/80 to-white/40 text-neutral-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_4px_8px_-4px_rgba(60,70,160,0.25)]",
   empty: "bg-transparent text-transparent",
@@ -36,8 +35,8 @@ const GLOSS =
 
 /**
  * One day, drawn as a raised disc with a progress ring:
- * full green ring = submitted, short blue arc = today still to do,
- * hatched = missed, dotted = upcoming.
+ * full green ring = submitted, full red ring = missed, short blue arc =
+ * today, dotted = upcoming.
  */
 export default function DayDisc({
   cell,
@@ -62,7 +61,9 @@ export default function DayDisc({
       aria-label={label}
       title={label}
       className={`relative shrink-0 rounded-full transition-transform duration-200 hover:-translate-y-0.5 hover:scale-105 motion-reduce:transition-none ${s.box} ${
-        cell?.isToday ? "ring-4 ring-blue-400/25" : ""
+        cell?.isToday
+          ? "ring-4 ring-blue-400/50 shadow-[0_0_18px_rgba(59,130,246,0.5)]"
+          : ""
       }`}
     >
       {glossy && (
@@ -80,6 +81,18 @@ export default function DayDisc({
               strokeWidth="3"
               strokeLinecap="round"
               className="stroke-emerald-500 [filter:drop-shadow(0_1px_2px_rgba(16,185,129,0.6))]"
+            />
+          )}
+
+          {state === "missed" && (
+            <circle
+              cx="22"
+              cy="22"
+              r={RADIUS}
+              fill="none"
+              strokeWidth="3"
+              strokeLinecap="round"
+              className="stroke-red-500 [filter:drop-shadow(0_1px_2px_rgba(239,68,68,0.6))]"
             />
           )}
 

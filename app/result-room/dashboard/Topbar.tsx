@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   Popover,
   PopoverContent,
@@ -17,6 +18,7 @@ import GeneralButton from "@/components/miscelleneous/generalButton";
 
 const Topbar = () => {
   const { data: dashboardData } = useResultRoomDashboard();
+  const router = useRouter();
   return (
     <nav className="flex items-center justify-between w-full gap-2">
       <h2 className="text-md font-semibold font-heading">Dashboard</h2>
@@ -75,7 +77,7 @@ const Topbar = () => {
                     {" "}
                     <GeneralButton
                       text="View Profile"
-                      onClick={() => console.log("view profile button clicked")}
+                      onClick={() => router.push("/protected")}
                     />
                   </div>
                 </PopoverDescription>

@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
 import Providers from "./providers";
+import { AppLaunchSplash } from "@/components/branding/UprixLoadingScreen";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -78,9 +79,11 @@ export default function RootLayout({
       <body
         className={`${bricolage.variable} ${lato.variable} ${myCustomFont.variable} ${myDeepFont.variable} ${myBricolageFont.variable} antialiased`}
       >
-        <ToastProvider>
-          <Providers>{children}</Providers>
-        </ToastProvider>
+        <AppLaunchSplash>
+          <ToastProvider>
+            <Providers>{children}</Providers>
+          </ToastProvider>
+        </AppLaunchSplash>
       </body>
     </html>
   );
