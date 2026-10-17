@@ -25,28 +25,24 @@ interface Session {
   start: number;
 }
 
+/**
+ * Sessions are anchored to the room's start date, not to calendar months:
+ * the first one is on day one, then one every `intervalDays` (14 = every
+ * other week, so the same weekday as the room's start) until the room ends.
+ */
 function buildSessions(
   startDate: string,
   time: string,
   days: number,
   intervalDays: number,
-  weekdays?: number[],
 ): Session[] {
   const [y, m, d] = startDate.split("-").map(Number);
   const [hh, mm] = time.split(":").map(Number);
+  const step = Math.max(1, intervalDays);
   const starts: number[] = [];
 
-  if (weekdays?.length) {
-    // e.g. [0, 3] = every Sunday and Wednesday inside the room
-    for (let offset = 0; offset < days; offset++) {
-      const date = new Date(y, m - 1, d + offset, hh, mm);
-      if (weekdays.includes(date.getDay())) starts.push(date.getTime());
-    }
-  } else {
-    const step = Math.max(1, intervalDays);
-    for (let offset = 0; offset < days; offset += step) {
-      starts.push(new Date(y, m - 1, d + offset, hh, mm).getTime());
-    }
+  for (let offset = 0; offset < days; offset += step) {
+    starts.push(new Date(y, m - 1, d + offset, hh, mm).getTime());
   }
 
   return starts.map((start, i) => ({
@@ -56,6 +52,11 @@ function buildSessions(
     start,
   }));
 }
+
+const weekdayName = (startDate: string) => {
+  const [y, m, d] = startDate.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "long" });
+};
 
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
@@ -229,14 +230,12 @@ function SessionRow({
 /* -------------------------------------------------------------------------- */
 
 interface SessionRemindersProps {
-  /** First day of the room, YYYY-MM-DD. */
+  /** First day of the room, YYYY-MM-DD. The first session is on this day. */
   startDate?: string;
   /** Length of the room in days. */
   days?: number;
-  /** Gap between sessions (14 = every two weeks). Ignored if `weekdays` is set. */
+  /** Days between sessions (14 = every other week, same weekday). */
   intervalDays?: number;
-  /** Alternative to intervalDays: weekdays (0 = Sun … 6 = Sat), e.g. [0, 3]. */
-  weekdays?: number[];
   /** Session start time, 24h, in the viewer's local time. */
   time?: string;
   /** A row turns red and pulses when it's this close. */
@@ -249,10 +248,9 @@ interface SessionRemindersProps {
 }
 
 export default function SessionReminders({
-  startDate = "2026-10-18",
+  startDate = "2026-10-28",
   days = 90,
   intervalDays = 14,
-  weekdays,
   time = "20:00",
   urgentMinutes = 60,
   graceSeconds = 60,
@@ -260,8 +258,8 @@ export default function SessionReminders({
   title = "Bi-weekly schedule",
 }: SessionRemindersProps) {
   const sessions = useMemo(
-    () => buildSessions(startDate, time, days, intervalDays, weekdays),
-    [startDate, time, days, intervalDays, weekdays],
+    () => buildSessions(startDate, time, days, intervalDays),
+    [startDate, time, days, intervalDays],
   );
 
   // null until mounted, so server and client render the same markup.
@@ -306,7 +304,8 @@ export default function SessionReminders({
           </h2>
           {first && last && (
             <p className="mt-0.5 text-xs text-neutral-500">
-              Telegram · {shortDate(first)} – {shortDate(last)} ·{" "}
+              Telegram · Every other {weekdayName(startDate)} ·{" "}
+              {shortDate(first)} – {shortDate(last)} ·{" "}
               {plural(sessions.length, "session")}
             </p>
           )}

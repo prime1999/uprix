@@ -53,7 +53,10 @@ export default function DayDisc({
     : STATE_LABEL.empty;
 
   const glossy =
-    state === "submitted" || state === "today" || state === "upcoming";
+    state === "submitted" ||
+    state === "missed" ||
+    state === "today" ||
+    state === "upcoming";
 
   return (
     <div

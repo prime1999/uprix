@@ -138,7 +138,7 @@ export async function GET(request: Request) {
     const [profileResult, participantResult] = await Promise.all([
       supabase
         .from("user_profiles")
-        .select("user_id, full_name, gender")
+        .select("user_id, full_name, gender, avatar_url")
         .eq("user_id", user.sub)
         .maybeSingle(),
 
@@ -610,6 +610,7 @@ export async function GET(request: Request) {
         email: typeof user.email === "string" ? user.email : null,
         name: profileResult.data?.full_name ?? null,
         gender: profileResult.data?.gender ?? null,
+        avatar_url: profileResult.data?.avatar_url ?? null,
       },
 
       participant: {

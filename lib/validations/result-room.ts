@@ -18,6 +18,7 @@ export const resultRoomProfileSchema = z.object({
   email: z.string().email().nullable(),
   name: z.string().nullable(),
   gender: z.string().nullable(),
+  avatar_url: z.string().nullable(),
 });
 
 /**

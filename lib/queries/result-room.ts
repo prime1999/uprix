@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ZodError } from "zod";
 import {
   resultRoomDashboardSchema,
   type ResultRoomDashboard,
@@ -85,7 +86,7 @@ async function fetchResultRoomDashboard(): Promise<ResultRoomDashboard> {
   } catch (error) {
     console.error("[Result Room dashboard] Response validation failed", {
       status: response.status,
-      error,
+      issues: error instanceof ZodError ? error.issues : error,
     });
 
     throw error;
@@ -907,5 +908,153 @@ export function useResultRoomPartnerReportHistory(
     gcTime: 30 * 60 * 1000,
     retry: 2,
     refetchOnWindowFocus: false,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* PARTNER DETAILS                                                            */
+/* -------------------------------------------------------------------------- */
+
+export interface ResultRoomPartnerDetails {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  email: string | null;
+  avatar_url: string | null;
+  goal: string | null;
+  seat_number: string | null;
+}
+
+interface ResultRoomPartnerDetailsResponse {
+  partner: ResultRoomPartnerDetails;
+}
+
+export const resultRoomPartnerDetailsQueryKey = [
+  "result-room",
+  "partner-details",
+] as const;
+
+async function fetchResultRoomPartnerDetails(): Promise<ResultRoomPartnerDetailsResponse> {
+  const response = await fetch("/api/result/partner-details", {
+    method: "GET",
+    headers: getTimezoneHeaders(),
+    cache: "no-store",
+  });
+
+  const data: unknown = await response.json();
+
+  if (!response.ok) {
+    const errorData = data as { error?: string };
+
+    throw new Error(
+      errorData.error || `Failed to load partner details (${response.status}).`,
+    );
+  }
+
+  return data as ResultRoomPartnerDetailsResponse;
+}
+
+export function useResultRoomPartnerDetails(enabled = true) {
+  return useQuery({
+    queryKey: resultRoomPartnerDetailsQueryKey,
+    queryFn: fetchResultRoomPartnerDetails,
+    enabled,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    retry: 2,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* UPDATE USER PROFILE                                                        */
+/* -------------------------------------------------------------------------- */
+
+export interface UpdateMyProfileInput {
+  full_name?: string | null;
+  avatar_url?: string | null;
+  goal?: string | null;
+  phone?: string | null;
+  email?: string | null;
+}
+
+export interface UpdateMyProfileResponse {
+  message: string;
+  success: boolean;
+  profile_updated: boolean;
+  participant_updated: boolean;
+}
+
+const UPDATE_MY_PROFILE_ENDPOINT = "/api/profile";
+
+/**
+ * Updates the authenticated user's profile.
+ *
+ * Supported fields:
+ * - user_profiles: full_name, avatar_url
+ * - participants: goal, phone, email
+ *
+ * Fields can be updated individually or together.
+ * Only supplied fields are sent to the API.
+ */
+async function updateMyProfile(
+  input: UpdateMyProfileInput,
+): Promise<UpdateMyProfileResponse> {
+  const fields = Object.keys(input);
+
+  if (fields.length === 0) {
+    throw new Error("Provide at least one field to update.");
+  }
+
+  const response = await fetch(UPDATE_MY_PROFILE_ENDPOINT, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+    cache: "no-store",
+  });
+
+  const data: unknown = await response.json();
+
+  if (!response.ok) {
+    const errorData = data as { error?: string };
+
+    throw new Error(
+      errorData.error || `Failed to update your profile (${response.status}).`,
+    );
+  }
+
+  const result = data as UpdateMyProfileResponse;
+
+  if (
+    result.success !== true ||
+    typeof result.profile_updated !== "boolean" ||
+    typeof result.participant_updated !== "boolean"
+  ) {
+    throw new Error("The profile API returned an invalid response.");
+  }
+
+  return result;
+}
+
+/**
+ * React Query mutation for updating profile information.
+ *
+ * Refreshes dashboard data after a successful update.
+ */
+export function useUpdateMyProfile() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateMyProfile,
+
+    // onSettled runs after success AND failure, so the dashboard is
+    // always revalidated once a profile update finishes.
+    onSettled: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: resultRoomDashboardQueryKey,
+      });
+    },
   });
 }

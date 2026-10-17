@@ -254,7 +254,7 @@ export default function ResultRoomTwoPage({
               FAQ
             </Link>
           </div>
-          <ResultRoomButton status={status}>
+          <ResultRoomButton status={status} disabled>
             <span className="flex gap-2 items-center">
               {" "}
               Secure my spot
@@ -291,7 +291,7 @@ export default function ResultRoomTwoPage({
               harder to keep abandoning the one you already have.
             </p>
             <div className="rr-actions  mt-[34px] flex flex-wrap justify-center gap-3">
-              <ResultRoomButton status={status}>
+              <ResultRoomButton status={status} disabled>
                 <span className="flex gap-2 items-center">
                   {" "}
                   Enter the result room
@@ -336,7 +336,7 @@ export default function ResultRoomTwoPage({
                   </b>{" "}
                   With structure, accountability, and consequences.
                 </p>
-                <ResultRoomButton status={status}>
+                <ResultRoomButton status={status} disabled>
                   <span className="flex gap-2 items-center">
                     {" "}
                     I&apos;m done postponing
@@ -406,7 +406,7 @@ export default function ResultRoomTwoPage({
             <p className="rr-mono font-mono text-xs tracking-[0.02em] text-gray-800 font-semibold my-4">
               {confirmed} / 7 confirmed
             </p>
-            <ResultRoomButton status={status} disabled={confirmed !== 7}>
+            <ResultRoomButton status={status} disabled>
               <span className="flex items-center justify-center gap-2">
                 {" "}
                 I'm ready for the 90 days

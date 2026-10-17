@@ -121,12 +121,6 @@ function getNavigation({
 
       items: [
         {
-          title: "Partner",
-          url: "/result-room/dashboard/partner",
-          icon: Users,
-        },
-
-        {
           title: "Reports",
           url: "/result-room/dashboard/reports",
           icon: ShieldCheck,
@@ -151,12 +145,6 @@ function getNavigation({
         {
           title: "Help Center",
           url: "/result-room/dashboard/help",
-          icon: Headset,
-        },
-
-        {
-          title: "Complaints",
-          url: "/result-room/dashboard/complain",
           icon: Headset,
         },
       ],

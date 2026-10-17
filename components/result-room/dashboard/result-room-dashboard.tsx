@@ -1,36 +1,26 @@
 "use client";
 
-import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Info } from "lucide-react";
-import female from "@/app/assets/images/profile/female.png";
-import male from "@/app/assets/images/profile/male.png";
-
 import {
   useResultRoomDashboard,
   useCreateResultRoomSubmission,
   useCreatePartnerReport,
 } from "@/lib/queries/result-room";
-
 import type { SubmissionPayload } from "./submission/SubmissionForm";
-
 import {
   getParticipantTimezone,
   getDailySubmissionDeadline,
   getPartnerReportDeadline,
 } from "@/lib/result-room/deadlines";
-
 import GeneralButton from "@/components/miscelleneous/generalButton";
 import SecondaryButton from "@/components/miscelleneous/secondaryButton";
 import MobileNav from "./MobileNavbar";
 import SubmissionForm from "./submission/SubmissionForm";
-
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-
 import SubmissionUploading from "./submission/submissionUploading";
 import SubmissionSuccess from "./submission/submissionSuccess";
 import SubmissionError from "./submission/submissionError";
-
 import SubmitReportForm from "./reports/submitReportForm";
 import SubmitReportUploading from "./reports/submitReportUploading";
 import SubmitReportSuccess from "./reports/submitReportSuccess";
@@ -39,9 +29,12 @@ import SubmitReportError from "./reports/submitReportError";
 import SubmissionViewModal from "./modals/SubmissionViewModal";
 import StreakCard from "./StreakCard";
 import TimelinePair from "./TImelinePair";
-import { formatDateWithOrdinal, getGreeting } from "@/lib/helper";
 import { useResultRoomStore } from "@/lib/stores/result-room-store";
 import { UprixLoadingScreen } from "@/components/branding/UprixLoadingScreen";
+import PartnerProfileCard from "./cards/PartnerProfileCard";
+import { buildHeatmapData } from "@/lib/result-room/build-heatmap";
+import { computeStats, flattenDays } from "./Streak";
+import ProgressHeroCard from "./ProgressHeroCard";
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -157,6 +150,27 @@ const ResultRoomDashboard = () => {
 
   const totalDays = roomProgress?.totalDays ?? 90;
 
+  const streakStats = useMemo(() => {
+    const room = dashboardData?.room;
+
+    if (!room) {
+      return { current: 0, submitted: 0 };
+    }
+
+    const weeks = buildHeatmapData({
+      startDate: room.startDate,
+      endDate: room.endDate,
+      submissionDates: dashboardData.submissionActivity.dates,
+    });
+
+    const stats = computeStats(flattenDays(weeks));
+
+    return {
+      current: stats.current,
+      submitted: stats.submitted,
+    };
+  }, [dashboardData]);
+
   /* ------------------------------------------------------------------------ */
   /* Daily submission state                                                   */
   /* ------------------------------------------------------------------------ */
@@ -194,12 +208,6 @@ const ResultRoomDashboard = () => {
 
   const [reportSubmitting, setReportSubmitting] = useState(false);
 
-  /* ------------------------------------------------------------------------ */
-  /* Partner submission modal state                                           */
-  /* ------------------------------------------------------------------------ */
-
-  const [partnerSubmissionDialogOpen, setPartnerSubmissionDialogOpen] =
-    useState(false);
   /* ------------------------------------------------------------------------ */
   /* Participant submission modal state                                           */
   /* ------------------------------------------------------------------------ */
@@ -558,54 +566,14 @@ const ResultRoomDashboard = () => {
         <div className="h-full w-full md:col-span-1 lg:col-span-2">
           {dashboardData.room !== null ? (
             <>
-              <div>
-                <p className="text-xs text-black/50">
-                  {formatDateWithOrdinal()}
-                </p>
-                <h6 className="text-lg mb-2 capitalize">
-                  {getGreeting()},{" "}
-                  {getFirstName(
-                    dashboardData.profile && dashboardData.profile.name,
-                  )}{" "}
-                </h6>
-                <div className="flex items-center justify-between gap-2 bg-secondary-blue rounded-lg px-4 py-2 h-48 w-full overflow-hidden text-white/90">
-                  <div className="w-2/3">
-                    <h1
-                      className="
-    relative inline-block mb-4
-    bg-gradient-to-b
-    from-white
-    via-yellow-50
-    via-30%
-    to-amber-400
-    bg-clip-text text-transparent
-    text-4xl md:text-5xl
-    font-black tracking-tight
-    [text-shadow:0_-1px_0_rgba(255,255,255,0.9),0_1px_0_rgba(255,255,255,0.8),0_2px_0_#facc15,0_3px_0_#eab308,0_5px_0_#b8860b,0_7px_0_#854d0e,0_10px_16px_rgba(0,0,0,0.35),0_0_18px_rgba(250,204,21,0.45)]
-    drop-shadow-[0_0_8px_rgba(255,223,100,0.45)]
-  "
-                    >
-                      {currentDay}/{totalDays}
-                    </h1>
-                    <h3 className="text-sm md:text-lg">Your Primary Goal</h3>
-                    <p className="text-xs text-white">{participant.goal}</p>
-                  </div>
-                  <div className="-mr-24 md:-mr-12 lg:-mr-0 overflow-hidden w-[400px]">
-                    <Image
-                      src={
-                        dashboardData.profile &&
-                        dashboardData.profile.gender === "male"
-                          ? male
-                          : female
-                      }
-                      alt="profile"
-                      width={400}
-                      height={400}
-                      className="mt-6"
-                    />
-                  </div>
-                </div>
-              </div>
+              <ProgressHeroCard
+                currentDay={currentDay}
+                totalDays={totalDays}
+                goal={dashboardData.participant?.goal ?? participant.goal}
+                streak={streakStats.current}
+                daysSubmitted={streakStats.submitted}
+                gender={dashboardData.profile?.gender}
+              />
               <StreakCard
                 startDate={dashboardData.room.startDate}
                 endDate={dashboardData.room.endDate}
@@ -864,17 +832,7 @@ const ResultRoomDashboard = () => {
                   </div>
                 </section>
               </div>
-              {/* Open the reusable partner submission modal */}
-              <div className="mt-3 flex justify-end">
-                <GeneralButton
-                  onClick={() => setPartnerSubmissionDialogOpen(true)}
-                >
-                  <span className="flex items-center gap-2 text-sm">
-                    <Info className="size-4" />
-                    View Partner&apos;s Submission
-                  </span>
-                </GeneralButton>
-              </div>
+              <PartnerProfileCard date={today} />
               <TimelinePair />
             </>
           ) : (
@@ -895,17 +853,6 @@ const ResultRoomDashboard = () => {
         onClose={() => setParticipantSubmissionDialogOpen(false)}
         date={today}
         mode="own"
-      />
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Reusable partner submission modal                                  */}
-      {/* ------------------------------------------------------------------ */}
-
-      <SubmissionViewModal
-        isOpen={partnerSubmissionDialogOpen}
-        onClose={() => setPartnerSubmissionDialogOpen(false)}
-        date={today}
-        mode="partner"
       />
     </>
   );
