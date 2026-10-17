@@ -622,7 +622,7 @@ const ResultRoomDashboard = () => {
                             </p>
                           </span>
 
-                          {!submissionDeadline?.isOpen ? (
+                          {submissionDeadline?.isOpen ? (
                             <Dialog
                               open={submissionDialogOpen}
                               onOpenChange={handleSubmissionDialogOpenChange}
@@ -753,7 +753,7 @@ const ResultRoomDashboard = () => {
                             </p>
                           </span>
 
-                          {!partnerReportDeadline?.isOpen ? (
+                          {partnerReportDeadline?.isOpen ? (
                             <Dialog
                               open={reportDialogOpen}
                               onOpenChange={handleReportDialogOpenChange}
