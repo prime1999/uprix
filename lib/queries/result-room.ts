@@ -843,10 +843,13 @@ export interface PartnerReportHistoryResponse {
 /**
  * Each page and page size have their own cache entry.
  */
+export type PartnerReportDirection = "made" | "received";
+
 export const resultRoomPartnerReportHistoryQueryKey = (
   page: number,
   limit = 10,
-) => ["result-room", "partner-report-history", page, limit] as const;
+  direction: PartnerReportDirection = "made",
+) => ["result-room", "partner-report-history", direction, page, limit] as const;
 
 /**
  * Fetches one page of partner reports submitted by the authenticated
@@ -855,14 +858,16 @@ export const resultRoomPartnerReportHistoryQueryKey = (
 async function fetchResultRoomPartnerReportHistory(
   page: number,
   limit: number,
-): Promise<PartnerReportHistoryResponse> {
+  direction: PartnerReportDirection,
+) {
   const params = new URLSearchParams({
     page: String(page),
     limit: String(limit),
+    direction,
   });
 
   const response = await fetch(
-    `/api/result/submissions/history/reports?${params.toString()}`,
+    `/api/result/partner-report?${params.toString()}`,
     {
       method: "GET",
       headers: getTimezoneHeaders(),
@@ -890,11 +895,12 @@ async function fetchResultRoomPartnerReportHistory(
 export function useResultRoomPartnerReportHistory(
   page = 1,
   limit = 10,
+  direction: PartnerReportDirection = "made",
   enabled = true,
 ) {
   return useQuery({
-    queryKey: resultRoomPartnerReportHistoryQueryKey(page, limit),
-    queryFn: () => fetchResultRoomPartnerReportHistory(page, limit),
+    queryKey: resultRoomPartnerReportHistoryQueryKey(page, limit, direction),
+    queryFn: () => fetchResultRoomPartnerReportHistory(page, limit, direction),
 
     enabled:
       enabled &&
@@ -1056,5 +1062,73 @@ export function useUpdateMyProfile() {
         queryKey: resultRoomDashboardQueryKey,
       });
     },
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* RESULT ROOM ADMINS                                                         */
+/* -------------------------------------------------------------------------- */
+
+export interface ResultRoomAdmin {
+  id: string;
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  phone: string | null;
+  admin_role: string | null;
+}
+
+export interface ResultRoomAdminsResponse {
+  admins: ResultRoomAdmin[];
+  total: number;
+}
+
+const RESULT_ROOM_ADMINS_ENDPOINT = "/api/result/admins";
+
+export const resultRoomAdminsQueryKey = ["result-room", "admins"] as const;
+
+/**
+ * Fetches Result Room admins, including their profile information
+ * and phone number.
+ */
+async function fetchResultRoomAdmins(): Promise<ResultRoomAdminsResponse> {
+  const response = await fetch(RESULT_ROOM_ADMINS_ENDPOINT, {
+    method: "GET",
+    headers: getTimezoneHeaders(),
+    cache: "no-store",
+  });
+
+  const data: unknown = await response.json();
+
+  if (!response.ok) {
+    const errorData = data as { error?: string };
+
+    throw new Error(
+      errorData.error ||
+        `Failed to load Result Room admins (${response.status}).`,
+    );
+  }
+
+  const result = data as ResultRoomAdminsResponse;
+
+  if (!Array.isArray(result.admins) || typeof result.total !== "number") {
+    throw new Error("The admins API returned an invalid response.");
+  }
+
+  return result;
+}
+
+/**
+ * React Query hook for retrieving Result Room admins.
+ */
+export function useResultRoomAdmins(enabled = true) {
+  return useQuery({
+    queryKey: resultRoomAdminsQueryKey,
+    queryFn: fetchResultRoomAdmins,
+    enabled,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 }

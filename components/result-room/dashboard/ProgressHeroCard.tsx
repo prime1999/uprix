@@ -54,8 +54,9 @@ function ProgressHeroCard({
       aria-label="Your Result Room progress"
       className="
         relative flex h-52 w-full items-center
-        overflow-hidden rounded-2xl
-        bg-secondary-blue text-white/90
+        overflow-hidden rounded-3xl
+        bg-gradient-to-br from-secondary-blue via-secondary-blue to-primary-blue
+        text-white/90
         sm:h-56
         md:h-64
       "
@@ -71,19 +72,17 @@ function ProgressHeroCard({
         "
       >
         <h1
-          className="
+          className=" font-heading
             mb-3 inline-block w-fit
-            bg-gradient-to-b from-white via-yellow-50 via-30% to-amber-400
-            bg-clip-text text-4xl font-black tracking-tight text-transparent
-            [text-shadow:0_-1px_0_rgba(255,255,255,0.9),0_1px_0_rgba(255,255,255,0.8),0_2px_0_#facc15,0_3px_0_#eab308,0_5px_0_#b8860b,0_7px_0_#854d0e,0_10px_16px_rgba(0,0,0,0.35)]
-            sm:text-5xl
-            md:mb-4 md:text-6xl
+            text-yellow-300
+            text-3xl font-black tracking-tight
+            md:mb-4 md:text-4xl
           "
         >
-          {currentDay}/{totalDays}
+          Day {currentDay} / {totalDays}
         </h1>
 
-        <h2 className="mb-1 text-sm font-medium sm:text-base md:text-lg">
+        <h2 className="mb-1 text-sm font-semibold sm:text-base md:text-lg">
           Your Primary Goal
         </h2>
 

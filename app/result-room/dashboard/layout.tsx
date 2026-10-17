@@ -9,6 +9,7 @@ import ResultRoomSidebar from "@/components/result-room/dashboard/result-room-si
 import { ResultRoomStoreHydrator } from "@/components/result-room/result-room-store-hydrator";
 import Topbar from "./Topbar";
 import RightSidebar from "@/components/result-room/dashboard/RightSidebar";
+import MobileNav from "@/components/result-room/dashboard/MobileNavbar";
 
 export default function ResultRoomDashboardLayout({
   children,
@@ -28,7 +29,10 @@ export default function ResultRoomDashboardLayout({
         </header>
         <div className="grid min-w-0 flex-1 min-h-0 grid-cols-1 gap-4 p-2 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]">
           <ResultRoomStoreHydrator />
-          <div className="min-w-0 h-screen overflow-auto">{children}</div>
+          <div className="min-w-0 h-screen overflow-auto">
+            {children}
+            <MobileNav />
+          </div>
           <aside className="">
             <RightSidebar />
           </aside>

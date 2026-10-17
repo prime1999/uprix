@@ -15,7 +15,6 @@ import {
 } from "@/lib/result-room/deadlines";
 import GeneralButton from "@/components/miscelleneous/generalButton";
 import SecondaryButton from "@/components/miscelleneous/secondaryButton";
-import MobileNav from "./MobileNavbar";
 import SubmissionForm from "./submission/SubmissionForm";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import SubmissionUploading from "./submission/submissionUploading";
@@ -32,9 +31,14 @@ import TimelinePair from "./TImelinePair";
 import { useResultRoomStore } from "@/lib/stores/result-room-store";
 import { UprixLoadingScreen } from "@/components/branding/UprixLoadingScreen";
 import PartnerProfileCard from "./cards/PartnerProfileCard";
+import {
+  PartnerCheckCard,
+  TaskSubmissionCard,
+} from "./cards/CheckIn";
 import { buildHeatmapData } from "@/lib/result-room/build-heatmap";
 import { computeStats, flattenDays } from "./Streak";
 import ProgressHeroCard from "./ProgressHeroCard";
+import { formatDateWithOrdinal, getGreeting } from "@/lib/helper";
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -566,6 +570,16 @@ const ResultRoomDashboard = () => {
         <div className="h-full w-full md:col-span-1 lg:col-span-2">
           {dashboardData.room !== null ? (
             <>
+              <div className="my-2">
+                <p className="text-sm text-gray-700">
+                  {formatDateWithOrdinal()}
+                </p>
+                <h6 className="font-semibold text-lg capitalize mt-1">
+                  {getGreeting()},{" "}
+                  {dashboardData.participant !== null &&
+                    dashboardData.participant.name}
+                </h6>
+              </div>
               <ProgressHeroCard
                 currentDay={currentDay}
                 totalDays={totalDays}
@@ -841,7 +855,7 @@ const ResultRoomDashboard = () => {
             </div>
           )}
 
-          <MobileNav />
+          
         </div>
       </main>
 

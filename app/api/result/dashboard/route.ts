@@ -127,6 +127,7 @@ export async function GET(request: Request) {
     }
 
     const user = claimsData.claims;
+
     console.log("[Result Room dashboard] User authenticated");
 
     /**
@@ -134,6 +135,9 @@ export async function GET(request: Request) {
      *
      * Include timezone so we only update the database
      * when the browser's timezone has changed.
+     *
+     * grace_slots_used is included in the participant query
+     * so it can be returned to the dashboard.
      */
     const [profileResult, participantResult] = await Promise.all([
       supabase
@@ -157,7 +161,8 @@ export async function GET(request: Request) {
           admin_role,
           status_reason,
           status_changed_at,
-          timezone
+          timezone,
+          grace_slots_used
         `,
         )
         .eq("user_id", user.sub)
@@ -227,6 +232,7 @@ export async function GET(request: Request) {
       participantId: participant.id,
       roomId: participant.room_id,
       participantTimezone: participant.timezone,
+      graceSlotsUsed: participant.grace_slots_used,
     });
 
     /**
@@ -324,6 +330,7 @@ export async function GET(request: Request) {
      */
     const now = new Date();
     const todayString = getDateInTimezone(now, timezone);
+
     console.log("[Result Room dashboard] Calculated dashboard date", {
       todayString,
       timezone,
@@ -331,7 +338,7 @@ export async function GET(request: Request) {
 
     /**
      * 7. Fetch today's submission, submission activity,
-     *    violation history, and outstanding fines.
+     * violation history, and outstanding fines.
      */
     const [
       todaySubmissionResult,
@@ -624,6 +631,7 @@ export async function GET(request: Request) {
         adminRole: participant.admin_role,
         statusReason: participant.status_reason,
         statusChangedAt: participant.status_changed_at,
+        graceSlotsUsed: participant.grace_slots_used,
       },
 
       room: {
@@ -663,6 +671,7 @@ export async function GET(request: Request) {
       participantId: participant.id,
       roomId: room.id,
       hasPartner: Boolean(partner),
+      graceSlotsUsed: participant.grace_slots_used,
     });
 
     return NextResponse.json(responseData, {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -31,6 +32,9 @@ import logo from "@/app/assets/images/mobileLogo.png";
 import { useResultRoomStore } from "@/lib/stores/result-room-store";
 import { useResultRoomDashboard } from "@/lib/queries/result-room";
 
+// Adjust this path to wherever you put the dialog.
+import ComplaintDialog from "@/components/result-room/dashboard/help/comlaint-dialog";
+
 /**
  * ==========================================================================
  * TYPES
@@ -52,6 +56,17 @@ interface NavItem {
    * Accessible description for the attention indicator.
    */
   attentionLabel?: string;
+
+  /**
+   * When set, the item is a button that runs this instead of
+   * navigating to `url` (used by the Help Center, which opens a dialog).
+   */
+  onSelect?: () => void;
+
+  /**
+   * Highlights a button item while what it opened is showing.
+   */
+  selected?: boolean;
 }
 
 interface NavSection {
@@ -84,10 +99,14 @@ function getNavigation({
   needsSubmission,
   needsReport,
   hasOutstandingFine,
+  helpOpen,
+  onOpenHelp,
 }: {
   needsSubmission: boolean;
   needsReport: boolean;
   hasOutstandingFine: boolean;
+  helpOpen: boolean;
+  onOpenHelp: () => void;
 }): NavSection[] {
   return [
     {
@@ -143,9 +162,13 @@ function getNavigation({
 
       items: [
         {
+          // Opens the complaint dialog instead of a page.
+          // `url` is kept only as a unique key.
           title: "Help Center",
           url: "/result-room/dashboard/help",
           icon: Headset,
+          onSelect: onOpenHelp,
+          selected: helpOpen,
         },
       ],
     },
@@ -222,6 +245,7 @@ function SectionLabel({
 function AttentionIndicator({ label }: { label?: string }) {
   return (
     <span
+      role="img"
       aria-label={label}
       title={label}
       className="size-2 shrink-0 rounded-full bg-red-500 animate-pulse"
@@ -246,7 +270,43 @@ function NavigationItem({
   collapsed: boolean;
   onNavigate: () => void;
 }) {
-  const active = isItemActive(item.url, pathname);
+  /**
+   * Button items (Help Center) are "active" while their dialog is open.
+   * Everything else is active when its page is open.
+   */
+  const active = item.onSelect
+    ? item.selected === true
+    : isItemActive(item.url, pathname);
+
+  const rowClass = `flex ${collapsed ? "flex-col" : "flex-row"} h-full w-full items-center gap-3`;
+
+  const content = (
+    <>
+      {/* Navigation icon */}
+      <item.icon
+        className={[
+          "size-[18px] shrink-0",
+          "transition-transform duration-200",
+          "group-hover:scale-[1.04]",
+          active ? "text-primary" : "text-muted-foreground",
+        ].join(" ")}
+      />
+
+      {/* Navigation label */}
+      {!collapsed && <span className="truncate">{item.title}</span>}
+
+      {/* Attention indicator */}
+      {item.attention && <AttentionIndicator label={item.attentionLabel} />}
+
+      {/* Active indicator */}
+      {!collapsed && active && !item.attention && (
+        <span
+          aria-hidden
+          className="ml-auto size-1.5 shrink-0 rounded-full bg-secondary-blue"
+        />
+      )}
+    </>
+  );
 
   return (
     <SidebarMenuItem>
@@ -296,35 +356,20 @@ function NavigationItem({
           collapsed ? "justify-center px-0" : "justify-start px-3",
         ].join(" ")}
       >
-        <Link
-          href={item.url}
-          onClick={onNavigate}
-          className={`flex ${collapsed ? "flex-col" : "flex-row"} h-full w-full items-center gap-3`}
-        >
-          {/* Navigation icon */}
-          <item.icon
-            className={[
-              "size-[18px] shrink-0",
-              "transition-transform duration-200",
-              "group-hover:scale-[1.04]",
-              active ? "text-primary" : "text-muted-foreground",
-            ].join(" ")}
-          />
-
-          {/* Navigation label */}
-          {!collapsed && <span className="truncate">{item.title}</span>}
-
-          {/* Attention indicator */}
-          {item.attention && <AttentionIndicator label={item.attentionLabel} />}
-
-          {/* Active indicator */}
-          {!collapsed && active && !item.attention && (
-            <span
-              aria-hidden
-              className="ml-auto size-1.5 shrink-0 rounded-full bg-secondary-blue"
-            />
-          )}
-        </Link>
+        {item.onSelect ? (
+          <button
+            type="button"
+            onClick={item.onSelect}
+            aria-haspopup="dialog"
+            className={`${rowClass} text-left`}
+          >
+            {content}
+          </button>
+        ) : (
+          <Link href={item.url} onClick={onNavigate} className={rowClass}>
+            {content}
+          </Link>
+        )}
       </SidebarMenuButton>
     </SidebarMenuItem>
   );
@@ -466,6 +511,11 @@ export default function ResultRoomSidebar() {
   const { state, isMobile, setOpenMobile, toggleSidebar } = useSidebar();
 
   /**
+   * Whether the Help Center dialog is open.
+   */
+  const [helpOpen, setHelpOpen] = useState(false);
+
+  /**
    * ------------------------------------------------------------------------
    * RESULT ROOM DASHBOARD QUERY
    * ------------------------------------------------------------------------
@@ -504,18 +554,6 @@ export default function ResultRoomSidebar() {
 
   /**
    * ------------------------------------------------------------------------
-   * NAVIGATION
-   * ------------------------------------------------------------------------
-   */
-
-  const navigation = getNavigation({
-    needsSubmission,
-    needsReport,
-    hasOutstandingFine,
-  });
-
-  /**
-   * ------------------------------------------------------------------------
    * SIDEBAR STATE
    * ------------------------------------------------------------------------
    */
@@ -531,127 +569,166 @@ export default function ResultRoomSidebar() {
     }
   };
 
+  /**
+   * Open the Help Center.
+   *
+   * On mobile the sidebar is itself a sheet. Closing one overlay and opening
+   * another in the same instant can leave the page unclickable, so the dialog
+   * opens once the sheet has had time to close.
+   */
+  const openHelp = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+      window.setTimeout(() => setHelpOpen(true), 250);
+      return;
+    }
+
+    setHelpOpen(true);
+  };
+
+  /**
+   * ------------------------------------------------------------------------
+   * NAVIGATION
+   * ------------------------------------------------------------------------
+   */
+
+  const navigation = getNavigation({
+    needsSubmission,
+    needsReport,
+    hasOutstandingFine,
+    helpOpen,
+    onOpenHelp: openHelp,
+  });
+
   return (
-    <Sidebar
-      collapsible="icon"
-      className="m-2 rounded-lg border-3 border-white bg-white/20 shadow-xl backdrop-blur-xl backdrop-saturate-150"
-    >
-      <div className="flex h-full min-h-0 flex-col bg-transparent">
-        {/* ================================================================
+    <>
+      <Sidebar
+        collapsible="icon"
+        className="m-2 rounded-lg border-3 border-white bg-white/20 shadow-xl backdrop-blur-xl backdrop-saturate-150"
+      >
+        <div className="flex h-full min-h-0 flex-col bg-transparent">
+          {/* ================================================================
             HEADER
             ================================================================ */}
 
-        <SidebarHeader
-          className={[
-            "border-b border-sidebar-border",
-            collapsed ? "px-2.5 py-4" : "px-4 py-4",
-          ].join(" ")}
-        >
-          <div
+          <SidebarHeader
             className={[
-              "flex items-center",
-              collapsed ? "justify-center" : "justify-between",
+              "border-b border-sidebar-border",
+              collapsed ? "px-2.5 py-4" : "px-4 py-4",
             ].join(" ")}
           >
-            <Link
-              href="/result-room/dashboard"
-              onClick={handleNavigation}
+            <div
               className={[
-                "group flex min-w-0 items-start",
-                collapsed ? "justify-center" : "gap-3",
+                "flex items-center",
+                collapsed ? "justify-center" : "justify-between",
               ].join(" ")}
             >
-              {/* Result Room brand mark */}
-              <Image src={logo} alt="Logo" className="size-6" />
+              <Link
+                href="/result-room/dashboard"
+                onClick={handleNavigation}
+                className={[
+                  "group flex min-w-0 items-start",
+                  collapsed ? "justify-center" : "gap-3",
+                ].join(" ")}
+              >
+                {/* Result Room brand mark */}
+                <Image src={logo} alt="Logo" className="size-6" />
 
-              {/* Brand text */}
-              {!collapsed && (
-                <span className="min-w-0">
-                  <span className="block truncate text-md font-bold text-secondary-blue tracking-tight text-sidebar-foreground">
-                    Result Room
-                  </span>
+                {/* Brand text */}
+                {!collapsed && (
+                  <span className="min-w-0">
+                    <span className="block truncate text-md font-bold text-secondary-blue tracking-tight text-sidebar-foreground">
+                      Result Room
+                    </span>
 
-                  <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
-                    Participant Workspace
+                    <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                      Participant Workspace
+                    </span>
                   </span>
-                </span>
+                )}
+              </Link>
+
+              {/* Desktop collapse button */}
+              {!isMobile && !collapsed && (
+                <button
+                  type="button"
+                  onClick={toggleSidebar}
+                  aria-label="Collapse sidebar"
+                  className="ml-2 flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                >
+                  <ChevronsLeft className="size-4" />
+                </button>
               )}
-            </Link>
 
-            {/* Desktop collapse button */}
-            {!isMobile && !collapsed && (
-              <button
-                type="button"
-                onClick={toggleSidebar}
-                aria-label="Collapse sidebar"
-                className="ml-2 flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-              >
-                <ChevronsLeft className="size-4" />
-              </button>
-            )}
+              {/* Desktop expand button */}
+              {!isMobile && collapsed && (
+                <button
+                  type="button"
+                  onClick={toggleSidebar}
+                  aria-label="Expand sidebar"
+                  className="absolute -right-3 top-5 z-20 flex size-6 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-muted-foreground shadow-sm transition-colors duration-200 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                >
+                  <ChevronsLeft className="size-3.5 rotate-180" />
+                </button>
+              )}
+            </div>
+          </SidebarHeader>
 
-            {/* Desktop expand button */}
-            {!isMobile && collapsed && (
-              <button
-                type="button"
-                onClick={toggleSidebar}
-                aria-label="Expand sidebar"
-                className="absolute -right-3 top-5 z-20 flex size-6 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-muted-foreground shadow-sm transition-colors duration-200 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-              >
-                <ChevronsLeft className="size-3.5 rotate-180" />
-              </button>
-            )}
-          </div>
-        </SidebarHeader>
-
-        {/* ================================================================
+          {/* ================================================================
             MAIN NAVIGATION
             ================================================================ */}
 
-        <SidebarContent className="min-h-0">
-          <div className="px-2.5 py-4">
-            {navigation.map((section) => {
-              /**
-               * Don't render empty sections.
-               */
-              if (section.items.length === 0) {
-                return null;
-              }
+          <SidebarContent className="min-h-0">
+            <div className="px-2.5 py-4">
+              {navigation.map((section) => {
+                /**
+                 * Don't render empty sections.
+                 */
+                if (section.items.length === 0) {
+                  return null;
+                }
 
-              return (
-                <div key={section.label}>
-                  <SectionLabel title={section.label} collapsed={collapsed} />
+                return (
+                  <div key={section.label}>
+                    <SectionLabel title={section.label} collapsed={collapsed} />
 
-                  <SidebarMenu className="gap-1">
-                    {section.items.map((item) => (
-                      <NavigationItem
-                        key={item.url}
-                        item={item}
-                        pathname={pathname}
-                        collapsed={collapsed}
-                        onNavigate={handleNavigation}
-                      />
-                    ))}
-                  </SidebarMenu>
-                </div>
-              );
-            })}
-          </div>
-        </SidebarContent>
+                    <SidebarMenu className="gap-1">
+                      {section.items.map((item) => (
+                        <NavigationItem
+                          key={item.url}
+                          item={item}
+                          pathname={pathname}
+                          collapsed={collapsed}
+                          onNavigate={handleNavigation}
+                        />
+                      ))}
+                    </SidebarMenu>
+                  </div>
+                );
+              })}
+            </div>
+          </SidebarContent>
 
-        {/* ================================================================
+          {/* ================================================================
             FOOTER / ROOM PROGRESS
             ================================================================ */}
 
-        <SidebarFooter
-          className={[
-            "border-t border-sidebar-border",
-            collapsed ? "p-2.5" : "p-3",
-          ].join(" ")}
-        >
-          <ProgressCard collapsed={collapsed} />
-        </SidebarFooter>
-      </div>
-    </Sidebar>
+          <SidebarFooter
+            className={[
+              "border-t border-sidebar-border",
+              collapsed ? "p-2.5" : "p-3",
+            ].join(" ")}
+          >
+            <ProgressCard collapsed={collapsed} />
+          </SidebarFooter>
+        </div>
+      </Sidebar>
+
+      {/*
+        Outside <Sidebar> on purpose: on mobile the sidebar's own content is
+        removed when it closes, and the dialog has to stay.
+      */}
+      <ComplaintDialog open={helpOpen} onOpenChange={setHelpOpen} />
+    </>
   );
 }
