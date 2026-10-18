@@ -75,11 +75,11 @@ function ProgressHeroCard({
           className=" font-heading
             mb-3 inline-block w-fit
             text-yellow-300
-            text-3xl font-black tracking-tight
+            text-3xl font-semibold tracking-tight
             md:mb-4 md:text-4xl
           "
         >
-          Day {currentDay} / {totalDays}
+          Day {currentDay}/{totalDays}
         </h1>
 
         <h2 className="mb-1 text-sm font-semibold sm:text-base md:text-lg">

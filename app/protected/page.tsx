@@ -145,7 +145,7 @@ My name is ${profile.full_name}.`,
             </div>
             {/* Footer */}
             <div className="w-full mt-4">
-              <div className="flex flex-col gap-2 items-start justify-center w-full">
+              <div className="flex gap-2 items-center w-full">
                 <Link
                   href="/result-room"
                   className="flex items-center flex-wrap gap-2 bg-white text-secondary-blue py-1 px-3 rounded-full text-xs/6 font-semibold font-heading duration-500 transition hover:bg-white/90"
@@ -157,6 +157,14 @@ My name is ${profile.full_name}.`,
                   />
                   Join Result Room
                 </Link>
+                {profile.isResultRoomParticipant && (
+                  <Link
+                    href="/result-room/dashboard"
+                    className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-secondary-blue transition hover:bg-white/90"
+                  >
+                    Open Result Room
+                  </Link>
+                )}
               </div>
               <div className="w-full flex items-center gap-2 mt-4">
                 <Dialog>

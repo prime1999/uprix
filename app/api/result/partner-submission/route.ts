@@ -1,14 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-/**
- * GET /api/result/partner-submission?date=YYYY-MM-DD
- *
- * Returns the authenticated participant's active partner's
- * submission and all images associated with that submission.
- *
- * The client cannot choose an arbitrary participant or submission.
- */
 export async function GET(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -38,10 +30,12 @@ export async function GET(request: NextRequest) {
   const json = (body: Record<string, unknown>, status = 200) => {
     const response = NextResponse.json(body, {
       status,
-      headers: { "Cache-Control": "no-store" },
+      headers: {
+        "Cache-Control": "private, no-store",
+      },
     });
 
-    // Preserve any refreshed Supabase session cookies.
+    // Preserve refreshed Supabase session cookies.
     supabaseResponse.cookies.getAll().forEach((cookie) => {
       response.cookies.set(cookie);
     });
@@ -50,25 +44,13 @@ export async function GET(request: NextRequest) {
   };
 
   try {
-    console.log("Partner submission request received", {
-      url: request.url,
-      date: request.nextUrl.searchParams.get("date"),
-    });
-
     // 1. Authenticate the current user.
     const { data: claimsData, error: claimsError } =
       await supabase.auth.getClaims();
 
-    const user = claimsData?.claims;
+    const userId = claimsData?.claims?.sub;
 
-    console.log("Partner submission auth check", {
-      hasClaims: !!claimsData,
-      hasUserSub: !!user?.sub,
-      userSub: user?.sub,
-      claimsError: claimsError?.message,
-    });
-
-    if (claimsError || !user?.sub) {
+    if (claimsError || !userId) {
       return json({ success: false, error: "Unauthorized." }, 401);
     }
 
@@ -85,8 +67,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log("Partner submission date validated", { date });
-
     const parsedDate = new Date(`${date}T00:00:00.000Z`);
 
     if (
@@ -99,8 +79,8 @@ export async function GET(request: NextRequest) {
     // 3. Find the authenticated user's participant record.
     const { data: participant, error: participantError } = await supabase
       .from("participants")
-      .select("id, room_status")
-      .eq("user_id", user.sub)
+      .select("id, room_id, room_status")
+      .eq("user_id", userId)
       .maybeSingle();
 
     if (participantError) {
@@ -119,11 +99,6 @@ export async function GET(request: NextRequest) {
       return json({ success: false, error: "Participant not found." }, 404);
     }
 
-    console.log("Partner submission participant resolved", {
-      participantId: participant.id,
-      roomStatus: participant.room_status,
-    });
-
     if (participant.room_status !== "active") {
       return json(
         {
@@ -134,18 +109,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 4. Find the participant's active partner pair.
-    const { data: pair, error: pairError } = await supabase
+    // 4. Fetch every active assignment for this participant
+    // within their own room.
+    const { data: activePairs, error: pairError } = await supabase
       .from("partner_pairs")
-      .select("id, room_id, participant_a_id, participant_b_id")
+      .select("id, room_id, participant_a_id, participant_b_id, reviewer_id")
+      .eq("room_id", participant.room_id)
       .eq("status", "ACTIVE")
       .or(
         `participant_a_id.eq.${participant.id},participant_b_id.eq.${participant.id}`,
-      )
-      .maybeSingle();
+      );
 
     if (pairError) {
-      console.error("Error fetching active partner pair:", pairError);
+      console.error("Error fetching active partner pairs:", pairError);
 
       return json(
         { success: false, error: "Unable to load partner details." },
@@ -153,42 +129,60 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (!pair) {
-      console.log("Partner submission no active pair found", {
-        participantId: participant.id,
-        date,
-      });
+    // 5. Resolve the assignment this participant is authorized
+    // to review.
+    //
+    // Mutual assignment: reviewer_id is NULL.
+    // Directional assignment: reviewer_id must be this participant.
+    const eligiblePairs = (activePairs ?? []).filter(
+      (pair) =>
+        pair.reviewer_id === null || pair.reviewer_id === participant.id,
+    );
 
+    if (eligiblePairs.length === 0) {
       return json({
         success: true,
         submission: null,
       });
     }
 
-    // Determine the other participant exclusively from the pair.
+    // Never silently choose the wrong partner if the assignments
+    // are ambiguous.
+    if (eligiblePairs.length > 1) {
+      console.error("Ambiguous partner-submission assignment:", {
+        participantId: participant.id,
+        roomId: participant.room_id,
+        pairIds: eligiblePairs.map((pair) => pair.id),
+      });
+
+      return json(
+        {
+          success: false,
+          error:
+            "Multiple eligible partner assignments found. Please contact an administrator.",
+          code: "AMBIGUOUS_PARTNER_ASSIGNMENT",
+        },
+        409,
+      );
+    }
+
+    const pair = eligiblePairs[0];
+
+    // 6. Determine the participant whose submission must be reviewed.
     const partnerId =
       pair.participant_a_id === participant.id
         ? pair.participant_b_id
         : pair.participant_a_id;
 
-    console.log("Partner submission active pair resolved", {
-      participantId: participant.id,
-      partnerId,
-      pairId: pair.id,
-      roomId: pair.room_id,
-      date,
-    });
-
-    // 5. Find that partner's submission for the requested day.
-    // The pair's room_id prevents cross-room lookups.
+    // 7. Fetch that participant's submission for the requested date.
     const { data: submission, error: submissionError } = await supabase
       .from("submissions")
       .select("id, description, submission_date, submitted_at, status")
       .eq("participant_id", partnerId)
-      .eq("room_id", pair.room_id)
+      .eq("room_id", participant.room_id)
       .eq("submission_date", date)
       .maybeSingle();
-    console.log("submission query executed", submission);
+
     if (submissionError) {
       console.error("Error fetching partner submission:", submissionError);
 
@@ -201,28 +195,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // A missing submission is a normal state, not a server error.
+    // A partner may not have submitted for the requested date.
     if (!submission) {
-      console.log("Partner submission not found for date", {
-        participantId: participant.id,
-        partnerId,
-        date,
-      });
-
       return json({
         success: true,
         submission: null,
       });
     }
 
-    console.log("Partner submission found", {
-      submissionId: submission.id,
-      partnerId,
-      date,
-      imageCount: 0,
-    });
-
-    // 6. Each image has its own submission_files row.
+    // 8. Fetch every image associated with this submission.
     const { data: files, error: filesError } = await supabase
       .from("submission_files")
       .select("id, cloudinary_url, created_at")
@@ -246,12 +227,7 @@ export async function GET(request: NextRequest) {
       url: file.cloudinary_url,
     }));
 
-    console.log("Partner submission response built", {
-      submissionId: submission.id,
-      imageCount: images.length,
-      date,
-    });
-
+    // 9. Return the submission in the existing response format.
     return json({
       success: true,
       submission: {
@@ -266,6 +242,12 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Unexpected error in partner-submission API:", error);
 
-    return json({ success: false, error: "Internal server error." }, 500);
+    return json(
+      {
+        success: false,
+        error: "Internal server error.",
+      },
+      500,
+    );
   }
 }

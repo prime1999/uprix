@@ -28,7 +28,22 @@ export const getProfile = async () => {
     throw error;
   }
 
-  return data;
+  const { data: participant, error: participantError } = await supabase
+    .from("participants")
+    .select("id")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (participantError) {
+    console.error("Participant retrieval error:", participantError);
+    throw participantError;
+  }
+
+  return {
+    ...data,
+    isResultRoomParticipant: Boolean(participant),
+  };
 };
 
 export const createProfile = async (formData: ProfileFormData) => {

@@ -36,18 +36,13 @@ export default function SubmitReportForm({
   const handleSubmit = async () => {
     if (loading) return;
 
-    if (submittedOnTime === null) {
-      setError("Please confirm whether your partner submitted on time.");
-      return;
-    }
-
     setError(null);
     setBusy(true);
 
     try {
       await onSubmit({
         comment: comment.trim(),
-        submittedOnTime,
+        submittedOnTime: submittedOnTime === null ? false : true,
       });
     } catch (submissionError) {
       setError(

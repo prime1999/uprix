@@ -375,7 +375,11 @@ export function useCreatePartnerReport() {
           queryKey: resultRoomDashboardQueryKey,
         }),
         queryClient.invalidateQueries({
-          queryKey: ["result-room", "partner-report-history"],
+          queryKey: [
+            "result-room",
+            "today-partner-report",
+            "partner-report-history",
+          ],
         }),
       ]);
     },
@@ -867,7 +871,7 @@ async function fetchResultRoomPartnerReportHistory(
   });
 
   const response = await fetch(
-    `/api/result/partner-report?${params.toString()}`,
+    `/api/result/submissions/history/reports?${params.toString()}`,
     {
       method: "GET",
       headers: getTimezoneHeaders(),
@@ -1127,6 +1131,81 @@ export function useResultRoomAdmins(enabled = true) {
     queryFn: fetchResultRoomAdmins,
     enabled,
     staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    retry: 2,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* TODAY'S PARTNER REPORT                                                     */
+/* -------------------------------------------------------------------------- */
+
+export interface TodayPartnerReport {
+  id: string;
+  reviewer_id: string;
+  partner_id: string;
+  partner_pair_id: string;
+  review_date: string;
+  submitted_on_time: boolean;
+  comment: string | null;
+  reviewed_at: string;
+  created_at: string;
+}
+
+export interface TodayPartnerReportResponse {
+  date: string;
+  report: TodayPartnerReport | null;
+  message: string;
+}
+
+export const resultRoomTodayPartnerReportQueryKey = (date?: string) =>
+  ["result-room", "today-partner-report", date ?? "today"] as const;
+
+/**
+ * Fetches the authenticated participant's report for today.
+ * The API determines the date using the timezone header.
+ */
+async function fetchResultRoomTodayPartnerReport(): Promise<TodayPartnerReportResponse> {
+  const response = await fetch("/api/result/partner-report/today", {
+    method: "GET",
+    headers: getTimezoneHeaders(),
+    cache: "no-store",
+  });
+
+  const data: unknown = await response.json();
+
+  if (!response.ok) {
+    const errorData = data as { error?: string };
+
+    throw new Error(
+      errorData.error ||
+        `Failed to load today's partner report (${response.status}).`,
+    );
+  }
+
+  const result = data as TodayPartnerReportResponse;
+
+  if (
+    typeof result.date !== "string" ||
+    !("report" in result) ||
+    typeof result.message !== "string"
+  ) {
+    throw new Error("Today's partner report API returned an invalid response.");
+  }
+
+  return result;
+}
+
+/**
+ * React Query hook for retrieving today's submitted partner report.
+ */
+export function useResultRoomTodayPartnerReport(enabled = true) {
+  return useQuery({
+    queryKey: resultRoomTodayPartnerReportQueryKey(),
+    queryFn: fetchResultRoomTodayPartnerReport,
+    enabled,
+    staleTime: 0,
     gcTime: 30 * 60 * 1000,
     retry: 2,
     refetchOnWindowFocus: false,

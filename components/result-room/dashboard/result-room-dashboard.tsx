@@ -26,6 +26,7 @@ import SubmitReportSuccess from "./reports/submitReportSuccess";
 import SubmitReportError from "./reports/submitReportError";
 
 import SubmissionViewModal from "./modals/SubmissionViewModal";
+import PartnerReportViewModal from "./modals/TodayReportModal";
 import StreakCard from "./StreakCard";
 import TimelinePair from "./TImelinePair";
 import { useResultRoomStore } from "@/lib/stores/result-room-store";
@@ -178,6 +179,9 @@ const ResultRoomDashboard = () => {
 
   const [submissionDialogOpen, setSubmissionDialogOpen] = useState(false);
   const [submissionView, setSubmissionView] = useState<SubmissionView>("form");
+
+  const [partnerReportDialogOpen, setPartnerReportDialogOpen] =
+    useState<boolean>(false);
 
   const [submissionError, setSubmissionError] =
     useState<SubmissionErrorDetails | null>(null);
@@ -739,7 +743,10 @@ const ResultRoomDashboard = () => {
                             Partner check completed 👍
                           </p>
 
-                          <GeneralButton text="View Report" />
+                          <GeneralButton
+                            text="View Report"
+                            onClick={() => setPartnerReportDialogOpen(true)}
+                          />
                         </div>
                       ) : (
                         <div className="flex flex-col justify-between gap-2">
@@ -862,6 +869,11 @@ const ResultRoomDashboard = () => {
         onClose={() => setParticipantSubmissionDialogOpen(false)}
         date={today}
         mode="own"
+      />
+
+      <PartnerReportViewModal
+        isOpen={partnerReportDialogOpen}
+        onClose={() => setPartnerReportDialogOpen(false)}
       />
     </>
   );

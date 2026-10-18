@@ -255,7 +255,7 @@ export default function SessionReminders({
   urgentMinutes = 60,
   graceSeconds = 60,
   maxVisible = 4,
-  title = "Bi-weekly schedule",
+  title = "Result Conversation schedule",
 }: SessionRemindersProps) {
   const sessions = useMemo(
     () => buildSessions(startDate, time, days, intervalDays),
@@ -299,7 +299,7 @@ export default function SessionReminders({
       <header className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs text-neutral-500">Your sessions</p>
-          <h2 className="text-lg font-semibold tracking-tight text-neutral-900">
+          <h2 className="text-md font-heading font-semibold tracking-tight text-neutral-900">
             {title}
           </h2>
           {first && last && (
