@@ -230,22 +230,8 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    /*
-     * Admins use the admin dashboard.
-     */
-    if (participant.is_admin) {
-      const url = request.nextUrl.clone();
-
-      url.pathname = "/result-room/admin";
-
-      return NextResponse.redirect(url);
-    }
-
-    /*
-     * Only active participants can access the
-     * participant dashboard.
-     */
-    if (participant.room_status === "active") {
+    // Admins and active participants can access the normal dashboard.
+    if (participant.is_admin || participant.room_status === "active") {
       return supabaseResponse;
     }
 
