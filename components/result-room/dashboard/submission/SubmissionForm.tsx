@@ -86,6 +86,8 @@ interface FormError {
 /* Helpers and styles                                                         */
 /* -------------------------------------------------------------------------- */
 
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
 const sameFile = (a: File, b: File) =>
   a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
 
@@ -93,6 +95,20 @@ const GLASS =
   "border border-white/60 bg-white/40 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_8px_32px_-8px_rgba(60,70,160,0.25)]";
 
 const GLASS_INNER = "border border-white/70 bg-white/30 backdrop-blur-md";
+
+/**
+ * Some mobile browsers provide an empty MIME type. In that case, use the
+ * extension as an initial check; prepareImage validates the actual signature.
+ */
+function isAllowedImageType(file: File): boolean {
+  const type = file.type.toLowerCase();
+
+  if (type) {
+    return ALLOWED_IMAGE_TYPES.has(type);
+  }
+
+  return /\.(jpe?g|png|webp)$/i.test(file.name);
+}
 
 /* -------------------------------------------------------------------------- */
 /* Component                                                                  */
@@ -125,6 +141,14 @@ export default function SubmissionForm({
   const itemsRef = useRef<UploadItem[]>([]);
   const submittingRef = useRef(false);
 
+  /**
+   * Cache successful Cloudinary uploads by this form item's unique ID.
+   *
+   * If an upload or submission request fails, retrying will reuse successful
+   * uploads rather than uploading the same images to Cloudinary again.
+   */
+  const uploadedRef = useRef<Map<number, SubmissionFile>>(new Map());
+
   itemsRef.current = items;
 
   const loading = submitting || busy;
@@ -144,6 +168,7 @@ export default function SubmissionForm({
   useEffect(() => {
     return () => {
       itemsRef.current.forEach((item) => URL.revokeObjectURL(item.url));
+      uploadedRef.current.clear();
     };
   }, []);
 
@@ -171,21 +196,29 @@ export default function SubmissionForm({
       const next: UploadItem[] = [];
 
       let problem: FormError | null = null;
-      let remaining = maxImages - current.length;
+      let remaining = Math.max(0, maxImages - current.length);
 
       for (const file of incoming) {
-        if (!file.type.startsWith("image/")) {
+        if (!isAllowedImageType(file)) {
           problem = {
-            title: "We couldn't use that file.",
-            message: "Only image files can be uploaded.",
+            title: "Unsupported image format.",
+            message: "Please use JPG, JPEG, PNG, or WebP images.",
+          };
+          continue;
+        }
+
+        if (file.size === 0) {
+          problem = {
+            title: "This image is empty.",
+            message: "Please select another image.",
           };
           continue;
         }
 
         if (file.size > maxSizeMB * 1024 * 1024) {
           problem = {
-            title: "We couldn't use that file.",
-            message: `Each image must be under ${maxSizeMB}MB.`,
+            title: "Image is too large.",
+            message: `Each image must be ${maxSizeMB} MB or smaller.`,
           };
           continue;
         }
@@ -204,17 +237,27 @@ export default function SubmissionForm({
           break;
         }
 
-        next.push({
-          id: ++idCounter.current,
-          file,
-          url: URL.createObjectURL(file),
-        });
+        try {
+          const url = URL.createObjectURL(file);
 
-        remaining--;
+          next.push({
+            id: ++idCounter.current,
+            file,
+            url,
+          });
+
+          remaining--;
+        } catch {
+          problem = {
+            title: "Could not preview this image.",
+            message: "Please try selecting the image again.",
+          };
+        }
       }
 
       if (next.length) {
         const merged = [...current, ...next];
+
         itemsRef.current = merged;
         setItems(merged);
       }
@@ -229,12 +272,21 @@ export default function SubmissionForm({
   /* ------------------------------------------------------------------------ */
 
   const removeItem = (id: number) => {
+    if (loading) return;
+
     setError(null);
 
     const target = itemsRef.current.find((item) => item.id === id);
-    if (target) URL.revokeObjectURL(target.url);
+
+    if (target) {
+      URL.revokeObjectURL(target.url);
+    }
+
+    // Do not reuse a Cloudinary asset if its image is removed from the form.
+    uploadedRef.current.delete(id);
 
     const next = itemsRef.current.filter((item) => item.id !== id);
+
     itemsRef.current = next;
     setItems(next);
   };
@@ -246,13 +298,18 @@ export default function SubmissionForm({
   const reset = () => {
     itemsRef.current.forEach((item) => URL.revokeObjectURL(item.url));
 
+    // Clearing the form also clears its successful-upload cache.
+    uploadedRef.current.clear();
+
     itemsRef.current = [];
     setItems([]);
     setDescription("");
     setError(null);
     setUploadProgress(0);
 
-    if (fileInput.current) fileInput.current.value = "";
+    if (fileInput.current) {
+      fileInput.current.value = "";
+    }
   };
 
   /* ------------------------------------------------------------------------ */
@@ -296,8 +353,8 @@ export default function SubmissionForm({
   const onPaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
     if (loading) return;
 
-    const files = Array.from(event.clipboardData.files).filter((file) =>
-      file.type.startsWith("image/"),
+    const files = Array.from(event.clipboardData.files).filter(
+      (file) => file.type.startsWith("image/") || !file.type,
     );
 
     if (!files.length) return;
@@ -318,56 +375,79 @@ export default function SubmissionForm({
     setBusy(true);
     setUploadProgress(0);
 
-    const selectedFiles = itemsRef.current.map((item) => item.file);
+    const selectedItems = [...itemsRef.current];
+    const totalImages = selectedItems.length;
+    const progress = new Array(totalImages).fill(0);
 
-    if (selectedFiles.length > 0) {
+    if (totalImages > 0) {
       onUploadProgressChange?.({
         uploading: true,
         progress: 0,
-        imageCount: selectedFiles.length,
+        imageCount: totalImages,
       });
     }
 
     try {
-      const progress = new Array(selectedFiles.length).fill(0);
       const cloudinaryFiles: SubmissionFile[] = [];
 
-      for (let index = 0; index < selectedFiles.length; index++) {
-        const originalFile = selectedFiles[index];
+      // Upload sequentially to reduce memory use on mobile devices.
+      for (let index = 0; index < selectedItems.length; index++) {
+        const item = selectedItems[index];
 
-        // Prepare and compress the image before uploading.
-        const preparedFile = await prepareImage(originalFile);
+        // A prior attempt may already have uploaded this image successfully.
+        const cachedUpload = uploadedRef.current.get(item.id);
 
-        // Upload the prepared image to Cloudinary.
-        const result = await uploadToCloudinary(preparedFile, {
-          onProgress: (value) => {
-            progress[index] = value;
+        if (cachedUpload) {
+          cloudinaryFiles.push(cachedUpload);
+          progress[index] = 100;
+          updateProgress(progress, totalImages);
+          continue;
+        }
 
-            const totalProgress = progress.reduce(
-              (sum, current) => sum + current,
-              0,
-            );
+        try {
+          const preparedFile = await prepareImage(item.file, {
+            maxBytes: maxSizeMB * 1024 * 1024,
+          });
 
-            const roundedProgress = Math.round(totalProgress / progress.length);
+          const result = await uploadToCloudinary(preparedFile, {
+            onProgress: (value) => {
+              progress[index] = Math.max(0, Math.min(100, value));
+              updateProgress(progress, totalImages);
+            },
+          });
 
-            setUploadProgress(roundedProgress);
+          const uploadedFile: SubmissionFile = {
+            publicId: result.publicId,
+            secureUrl: result.secureUrl,
+          };
 
-            onUploadProgressChange?.({
-              uploading: true,
-              progress: roundedProgress,
-              imageCount: selectedFiles.length,
-            });
-          },
-        });
+          // Cache immediately after each successful upload. If a later image
+          // or the submission API fails, this result survives for the retry.
+          uploadedRef.current.set(item.id, uploadedFile);
+          cloudinaryFiles.push(uploadedFile);
 
-        cloudinaryFiles.push({
-          publicId: result.publicId,
-          secureUrl: result.secureUrl,
-        });
+          progress[index] = 100;
+          updateProgress(progress, totalImages);
+        } catch (imageError) {
+          const reason =
+            imageError instanceof Error && imageError.message
+              ? imageError.message
+              : "Please check your connection and try again.";
+
+          throw new Error(`Image ${index + 1} (${item.file.name}): ${reason}`);
+        }
       }
 
-      // The parent saves the submission through the API.
-      await onSubmit?.({
+      /**
+       * Important: onSubmit must reject/throw if saving the submission fails.
+       * If its caller catches an API error without rethrowing, this component
+       * cannot tell the save failed and will treat it as a successful submit.
+       */
+      if (!onSubmit) {
+        throw new Error("The submission handler is not configured.");
+      }
+
+      await onSubmit({
         description: description.trim(),
         files: cloudinaryFiles,
       });
@@ -380,7 +460,7 @@ export default function SubmissionForm({
         message:
           submissionError instanceof Error && submissionError.message
             ? submissionError.message
-            : "Something went wrong. Please try again.",
+            : "Something went wrong. Please check your connection and try again.",
       });
     } finally {
       onUploadProgressChange?.({
@@ -393,6 +473,21 @@ export default function SubmissionForm({
       setBusy(false);
     }
   };
+
+  function updateProgress(progress: number[], imageCount: number) {
+    if (imageCount === 0) return;
+
+    const totalProgress = progress.reduce((sum, value) => sum + value, 0);
+    const roundedProgress = Math.round(totalProgress / imageCount);
+
+    setUploadProgress(roundedProgress);
+
+    onUploadProgressChange?.({
+      uploading: true,
+      progress: roundedProgress,
+      imageCount,
+    });
+  }
 
   /* ------------------------------------------------------------------------ */
   /* Keyboard submit                                                          */
@@ -410,11 +505,7 @@ export default function SubmissionForm({
   /* ------------------------------------------------------------------------ */
 
   return (
-    <div
-      className={`relative w-full space-y-4 ${
-        withBackdrop ? "" : ""
-      } ${className}`}
-    >
+    <div className={`relative w-full space-y-4 ${className}`}>
       {withBackdrop && (
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
           <div className="sf-drift absolute -left-10 -top-10 size-56 rounded-full bg-blue-300/60 blur-3xl" />
@@ -473,10 +564,10 @@ export default function SubmissionForm({
                 Upload your evidence
               </span>
               <span className="mt-1.5 text-xs leading-relaxed text-neutral-600">
-                Drop images here or click to browse
+                Select images from your phone or computer
               </span>
               <span className="mt-3 text-[11px] font-medium text-neutral-500">
-                Up to {maxImages} images · {maxSizeMB}MB each
+                JPG, PNG, WebP · Up to {maxImages} images · {maxSizeMB}MB each
               </span>
             </button>
           ) : (
@@ -651,7 +742,7 @@ export default function SubmissionForm({
       <input
         ref={fileInput}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
         multiple
         hidden
         disabled={loading}
