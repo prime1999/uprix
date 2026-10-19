@@ -26,3 +26,8 @@ export const formatDateWithOrdinal = (date: Date = new Date()): string => {
 
   return `${day}${getOrdinalSuffix(day)}, ${month} ${year}`;
 };
+
+export const getFirstName = (fullName: string) => {
+  if (!fullName || typeof fullName !== "string") return "";
+  return fullName.trim().split(/\s+/)[0];
+};

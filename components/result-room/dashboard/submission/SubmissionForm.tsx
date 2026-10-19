@@ -110,6 +110,19 @@ function isAllowedImageType(file: File): boolean {
   return /\.(jpe?g|png|webp)$/i.test(file.name);
 }
 
+/**
+ * Copy a picked file into memory right away. Files from the picker can become
+ * unreadable later (the browser can revoke access), but a copy can't.
+ */
+async function snapshotFile(file: File): Promise<File> {
+  const buffer = await file.arrayBuffer();
+
+  return new File([buffer], file.name, {
+    type: file.type,
+    lastModified: file.lastModified,
+  });
+}
+
 /* -------------------------------------------------------------------------- */
 /* Component                                                                  */
 /* -------------------------------------------------------------------------- */
@@ -153,8 +166,11 @@ export default function SubmissionForm({
 
   const loading = submitting || busy;
 
+  const [reading, setReading] = useState(false);
+
   const canSubmit =
     !loading &&
+    !reading &&
     (requireImage
       ? items.length > 0
       : items.length > 0 || description.trim().length > 0);
@@ -189,11 +205,11 @@ export default function SubmissionForm({
   /* ------------------------------------------------------------------------ */
 
   const addFiles = useCallback(
-    (incoming: File[]) => {
+    async (incoming: File[]) => {
       setError(null);
 
       const current = itemsRef.current;
-      const next: UploadItem[] = [];
+      const accepted: File[] = [];
 
       let problem: FormError | null = null;
       let remaining = Math.max(0, maxImages - current.length);
@@ -225,7 +241,7 @@ export default function SubmissionForm({
 
         const alreadyAdded =
           current.some((item) => sameFile(item.file, file)) ||
-          next.some((item) => sameFile(item.file, file));
+          accepted.some((picked) => sameFile(picked, file));
 
         if (alreadyAdded) continue;
 
@@ -237,36 +253,62 @@ export default function SubmissionForm({
           break;
         }
 
-        try {
-          const url = URL.createObjectURL(file);
-
-          next.push({
-            id: ++idCounter.current,
-            file,
-            url,
-          });
-
-          remaining--;
-        } catch {
-          problem = {
-            title: "Could not preview this image.",
-            message: "Please try selecting the image again.",
-          };
-        }
+        accepted.push(file);
+        remaining--;
       }
 
-      if (next.length) {
-        const merged = [...current, ...next];
+      if (accepted.length > 0) {
+        setReading(true);
 
-        itemsRef.current = merged;
-        setItems(merged);
+        // Read every picked file into memory now.
+        const results = await Promise.allSettled(accepted.map(snapshotFile));
+
+        const next: UploadItem[] = [];
+
+        for (const result of results) {
+          if (result.status === "rejected") {
+            problem = {
+              title: "We couldn't read that image.",
+              message:
+                "Your device wouldn't let this page open it. If the photo is in Google Photos, iCloud or Drive, save it to your phone first, or choose a different image.",
+            };
+            continue;
+          }
+
+          try {
+            next.push({
+              id: ++idCounter.current,
+              file: result.value,
+              url: URL.createObjectURL(result.value),
+            });
+          } catch {
+            problem = {
+              title: "Could not preview this image.",
+              message: "Please try selecting the image again.",
+            };
+          }
+        }
+
+        setReading(false);
+
+        if (next.length) {
+          // The list may have changed while we were reading.
+          const merged = [...itemsRef.current, ...next];
+          const kept = merged.slice(0, maxImages);
+
+          merged
+            .slice(maxImages)
+            .forEach((item) => URL.revokeObjectURL(item.url));
+
+          itemsRef.current = kept;
+          setItems(kept);
+        }
       }
 
       if (problem) setError(problem);
     },
     [maxImages, maxSizeMB],
   );
-
   /* ------------------------------------------------------------------------ */
   /* Remove image                                                             */
   /* ------------------------------------------------------------------------ */
@@ -747,8 +789,13 @@ export default function SubmissionForm({
         hidden
         disabled={loading}
         onChange={(event) => {
-          addFiles(Array.from(event.target.files ?? []));
-          event.target.value = "";
+          const input = event.currentTarget;
+          const picked = Array.from(input.files ?? []);
+
+          // Read the files first, then clear the input so the same file can be picked again.
+          void addFiles(picked).finally(() => {
+            input.value = "";
+          });
         }}
       />
     </div>

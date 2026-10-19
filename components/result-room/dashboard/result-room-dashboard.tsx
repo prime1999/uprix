@@ -36,7 +36,7 @@ import { PartnerCheckCard, TaskSubmissionCard } from "./cards/CheckIn";
 import { buildHeatmapData } from "@/lib/result-room/build-heatmap";
 import { computeStats, flattenDays } from "./Streak";
 import ProgressHeroCard from "./ProgressHeroCard";
-import { formatDateWithOrdinal, getGreeting } from "@/lib/helper";
+import { formatDateWithOrdinal, getGreeting, getFirstName } from "@/lib/helper";
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -577,8 +577,9 @@ const ResultRoomDashboard = () => {
                 </p>
                 <h6 className="font-semibold text-lg capitalize mt-1">
                   {getGreeting()},{" "}
-                  {dashboardData.participant !== null &&
-                    dashboardData.participant.name}
+                  {getFirstName(
+                    dashboardData.profile?.name ?? participant.name,
+                  )}
                 </h6>
               </div>
               <ProgressHeroCard
