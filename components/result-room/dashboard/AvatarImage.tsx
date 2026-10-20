@@ -1,5 +1,5 @@
 import Image, { type StaticImageData } from "next/image";
-import { AVATARS, isAvatarKey } from "@/lib/result-room/avatars";
+import { ALL_AVATARS, isAvatarKey } from "@/lib/result-room/avatars";
 
 interface AvatarImageProps {
   /** A built-in avatar key ("male-1"), a real image URL, or empty. */
@@ -26,10 +26,10 @@ export default function AvatarImage({
   priority,
   fallback,
 }: AvatarImageProps) {
-  if (isAvatarKey(value)) {
+  if (isAvatarKey(value) && ALL_AVATARS?.[value]) {
     return (
       <Image
-        src={AVATARS[value]}
+        src={ALL_AVATARS[value]}
         alt={alt}
         sizes={sizes}
         priority={priority}

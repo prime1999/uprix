@@ -21,7 +21,7 @@ import {
   useUpdateMyProfile,
   type UpdateMyProfileInput,
 } from "@/lib/queries/result-room";
-import { AVATAR_OPTIONS } from "@/lib/result-room/avatars";
+import { getAvatarsByGender } from "@/lib/result-room/avatars";
 import AvatarImage from "../AvatarImage";
 
 export interface EditableProfile {
@@ -31,6 +31,7 @@ export interface EditableProfile {
   goal: string | null;
   phone: string | null;
   email: string | null;
+  gender: string | null;
 }
 
 interface EditProfileModalProps {
@@ -219,7 +220,7 @@ function EditProfileForm({
           aria-label="Choose an avatar"
           className="grid grid-cols-4 justify-items-center gap-3"
         >
-          {AVATAR_OPTIONS.map((option) => {
+          {getAvatarsByGender(profile.gender).map((option) => {
             const selected = avatar === option.key;
 
             return (

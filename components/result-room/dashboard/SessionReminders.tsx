@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { GLASS, plural } from "./Streak";
 
@@ -204,7 +206,9 @@ function SessionRow({
       </div>
 
       {/* Telegram */}
-      <span
+      <Link
+        href="https://t.me/+jfYU9n52SLhkODFk"
+        target="_blank"
         aria-hidden
         className="relative hidden size-9 shrink-0 place-items-center rounded-full border border-white/60 bg-gradient-to-b from-sky-300 to-blue-500 text-white shadow-[inset_0_2px_0_rgba(255,255,255,0.5),inset_0_-2px_0_rgba(30,64,175,0.3),0_8px_12px_-6px_rgba(37,99,235,0.8)] min-[380px]:grid"
       >
@@ -220,7 +224,7 @@ function SessionRow({
           <path d="m22 2-7 20-4-9-9-4Z" />
           <path d="M22 2 11 13" />
         </svg>
-      </span>
+      </Link>
     </li>
   );
 }

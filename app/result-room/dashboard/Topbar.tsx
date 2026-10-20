@@ -109,6 +109,7 @@ const Topbar = () => {
             goal: dashboardData?.participant?.goal ?? null,
             email: dashboardData?.participant?.email ?? null,
             phone: dashboardData?.participant?.phone ?? null,
+            gender: dashboardData?.profile?.gender ?? null,
           }}
         />
       </div>
