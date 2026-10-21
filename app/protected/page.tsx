@@ -78,7 +78,7 @@ My name is ${profile.full_name}.`,
   return (
     <main className="w-full h-full flex flex-col items-center justify-center">
       <div
-        className="relative max-h-[420px] w-11/12 md:w-full max-w-[550px] overflow-hidden rounded-[32px] bg-cover bg-center"
+        className="relative min-h-[420px] w-11/12 md:w-full max-w-[550px] overflow-hidden rounded-[32px] bg-cover bg-center"
         style={{
           backgroundImage: `url(${profileBg.src})`,
         }}
