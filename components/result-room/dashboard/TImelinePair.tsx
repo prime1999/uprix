@@ -59,6 +59,7 @@ interface TimelinePairProps {
   deadlines?: TimelineItem[];
   penalties?: TimelineItem[];
   lives?: number;
+  slots?: any;
 }
 
 /** Side by side from `md` up, stacked on phones. */
@@ -66,11 +67,17 @@ export default function TimelinePair({
   deadlines = DEADLINES,
   penalties = PENALTIES,
   lives = 5,
+  slots,
 }: TimelinePairProps) {
   return (
     <div className="mx-auto my-4 grid w-full max-w-3xl grid-cols-1 gap-4 md:grid-cols-2">
       <TimelineCard title="Daily deadlines" items={deadlines} />
-      <TimelineCard title="Penalties" items={penalties} lives={lives} />
+      <TimelineCard
+        title="Penalties"
+        items={penalties}
+        lives={lives}
+        slots={slots}
+      />
     </div>
   );
 }

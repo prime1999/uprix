@@ -35,6 +35,7 @@ export const resultRoomParticipantSchema = z.object({
   adminRole: z.string().nullable(),
   statusReason: z.string().nullable(),
   statusChangedAt: z.string().nullable(),
+  graceSlotsUsed: z.number().int().nonnegative(),
 });
 
 /**

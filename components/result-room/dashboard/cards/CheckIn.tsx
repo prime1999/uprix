@@ -38,7 +38,7 @@ interface CheckInProps {
   /** Start a new one (the "Submit" button). */
   onSubmit: () => void;
   onView?: () => void;
-  /** Edit is only offered while the window is still open. */
+  /** Update is only offered while the window is still open. */
   onEdit?: () => void;
 }
 
@@ -142,7 +142,7 @@ function CheckInCard({
         )}
       </div>
 
-      <div className="mt-4 flex gap-2.5">{children}</div>
+      <div className="mt-4 flex items-center gap-2.5">{children}</div>
     </article>
   );
 }
@@ -176,7 +176,7 @@ function CardButtons({
     return (
       <>
         <GeneralButton
-          className="flex-1"
+          className="h-10 flex-1"
           buttonFunction={onView}
           aria-label={viewLabel}
         >
@@ -184,16 +184,19 @@ function CardButtons({
           View
         </GeneralButton>
 
-        {/* Changing it is only allowed while today's window is open. */}
+        {/*
+          The update button: icon only, right after View. Changing it is
+          only allowed while today's window is open. (GeneralButton makes a
+          button with a single icon and no text a round 40px icon button.)
+        */}
         {window === "open" && onEdit && (
           <GeneralButton
-            variant="active"
-            className="flex-1"
+            variant="disabled"
             buttonFunction={onEdit}
             aria-label={editLabel}
+            title={editLabel}
           >
             <SquarePen />
-            Edit
           </GeneralButton>
         )}
       </>
@@ -204,7 +207,7 @@ function CardButtons({
     return (
       <GeneralButton
         variant="active"
-        className="flex-1"
+        className="h-10 flex-1"
         buttonFunction={onSubmit}
       >
         <Plus />
@@ -214,7 +217,7 @@ function CardButtons({
   }
 
   return (
-    <GeneralButton variant="disabled" className="flex-1" disabled>
+    <GeneralButton variant="disabled" className="h-10 flex-1" disabled>
       <Lock />
       {window === "loading" ? submitLabel : closedLabel}
     </GeneralButton>
@@ -274,7 +277,7 @@ export function TaskSubmissionCard({
         submitLabel="Submit task"
         closedLabel="Submission closed"
         viewLabel="View your submission"
-        editLabel="Edit your submission"
+        editLabel="Update your submission"
         onSubmit={onSubmit}
         onView={onView}
         onEdit={onEdit}
@@ -327,7 +330,7 @@ export function PartnerCheckCard({
         submitLabel="Submit report"
         closedLabel="Report closed"
         viewLabel="View your report"
-        editLabel="Edit your report"
+        editLabel="Update your report"
         onSubmit={onSubmit}
         onView={onView}
         onEdit={onEdit}

@@ -70,20 +70,32 @@ const DETAIL: Record<Tone, string> = {
   dark: "text-neutral-700",
 };
 
+// 3D Glassmorphic styles for life slot balls
+const BLUE_BALL =
+  "bg-gradient-to-b from-blue-400 to-blue-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),inset_0_-2px_0_rgba(30,58,138,0.35),0_5px_8px_-3px_rgba(37,99,235,0.8)]";
+const RED_BALL =
+  "bg-gradient-to-b from-rose-400 to-red-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),inset_0_-2px_0_rgba(153,27,27,0.35),0_5px_8px_-3px_rgba(225,29,72,0.8)]";
+
 interface TimelineCardProps {
   title: string;
   items: TimelineItem[];
-  /** Shows a "Life slots" strip above the list. */
+  /** Total available slots (e.g., 5) */
   lives?: number;
+  /** Used/consumed slots (displayed in RED first) */
+  slots?: number;
   className?: string;
 }
 
 export default function TimelineCard({
   title,
   items,
-  lives,
+  lives = 5,
+  slots = 0,
   className = "",
 }: TimelineCardProps) {
+  // Ensure slots don't exceed lives or fall below 0
+  const usedSlots = Math.min(Math.max(slots, 0), lives);
+
   return (
     <section
       className={`${GLASS} flex flex-col rounded-3xl p-4 sm:p-5 ${className}`}
@@ -97,7 +109,7 @@ export default function TimelineCard({
         </span>
       </header>
 
-      {lives ? (
+      {lives && title === "Penalties" ? (
         <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-white/80 bg-white/50 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,1),inset_0_-2px_0_rgba(59,130,246,0.08),0_10px_20px_-12px_rgba(59,130,246,0.45)]">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-neutral-900">Life slots</p>
@@ -106,15 +118,22 @@ export default function TimelineCard({
 
           <div
             role="img"
-            aria-label={plural(lives, "life slot")}
+            aria-label={`${usedSlots} of ${lives} life slots used`}
             className="flex shrink-0 gap-1.5"
           >
-            {Array.from({ length: lives }, (_, i) => (
-              <span
-                key={i}
-                className="relative size-5 rounded-full bg-gradient-to-b from-blue-400 to-blue-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),inset_0_-2px_0_rgba(30,58,138,0.35),0_5px_8px_-3px_rgba(37,99,235,0.8)] before:absolute before:inset-x-[20%] before:top-[8%] before:h-[35%] before:rounded-full before:bg-white/55"
-              />
-            ))}
+            {Array.from({ length: lives }, (_, i) => {
+              // Used slots (red) render first
+              const isRed = i < usedSlots;
+
+              return (
+                <span
+                  key={i}
+                  className={`relative size-5 rounded-full transition-all duration-300 before:absolute before:inset-x-[20%] before:top-[8%] before:h-[35%] before:rounded-full before:bg-white/55 ${
+                    isRed ? RED_BALL : BLUE_BALL
+                  }`}
+                />
+              );
+            })}
           </div>
         </div>
       ) : null}

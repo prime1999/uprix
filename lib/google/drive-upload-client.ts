@@ -233,3 +233,22 @@ export function uploadTestToGoogleDrive(
 ): Promise<GoogleDriveUploadResult> {
   return uploadFile(input, true);
 }
+
+/**
+ * Permanently deletes an evidence file from Google Drive.
+ * Call only from trusted server-side code.
+ */
+export async function deleteGoogleDriveFile(fileId: string): Promise<void> {
+  const id = fileId.trim();
+
+  if (!id) {
+    throw new Error("Google Drive file ID is required.");
+  }
+
+  const { drive } = await getGoogleDriveClient();
+
+  await drive.files.delete({
+    fileId: id,
+    supportsAllDrives: true,
+  });
+}

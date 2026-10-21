@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Info } from "lucide-react";
 import {
   useResultRoomDashboard,
   useCreateResultRoomSubmission,
@@ -13,10 +12,8 @@ import {
   getDailySubmissionDeadline,
   getPartnerReportDeadline,
 } from "@/lib/result-room/deadlines";
-import GeneralButton from "@/components/miscelleneous/generalButton";
-import SecondaryButton from "@/components/miscelleneous/secondaryButton";
 import SubmissionForm from "./submission/SubmissionForm";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import SubmissionUploading from "./submission/submissionUploading";
 import SubmissionSuccess from "./submission/submissionSuccess";
 import SubmissionError from "./submission/submissionError";
@@ -32,7 +29,11 @@ import TimelinePair from "./TImelinePair";
 import { useResultRoomStore } from "@/lib/stores/result-room-store";
 import { UprixLoadingScreen } from "@/components/branding/UprixLoadingScreen";
 import PartnerProfileCard from "./cards/PartnerProfileCard";
-import { PartnerCheckCard, TaskSubmissionCard } from "./cards/CheckIn";
+import {
+  PartnerCheckCard,
+  TaskSubmissionCard,
+  type WindowState,
+} from "./cards/CheckIn";
 import { buildHeatmapData } from "@/lib/result-room/build-heatmap";
 import { computeStats, flattenDays } from "./Streak";
 import ProgressHeroCard from "./ProgressHeroCard";
@@ -96,6 +97,19 @@ function formatCountdown(milliseconds: number): string {
   }
 
   return `${seconds}s`;
+}
+
+/**
+ * Turns a deadline into what the cards need to know.
+ *
+ * null means the participant's timezone and clock aren't ready yet, so we
+ * can't say whether the window is open. (Before, that moment looked like
+ * "closed", which flashed a "Submission Closed" button on every page load.)
+ */
+function getWindowState(deadline: { isOpen: boolean } | null): WindowState {
+  if (!deadline) return "loading";
+
+  return deadline.isOpen ? "open" : "closed";
 }
 
 /**
@@ -180,6 +194,7 @@ const ResultRoomDashboard = () => {
   const [submissionDialogOpen, setSubmissionDialogOpen] = useState(false);
   const [submissionView, setSubmissionView] = useState<SubmissionView>("form");
 
+  /** The "view report" modal (your report on your partner). */
   const [partnerReportDialogOpen, setPartnerReportDialogOpen] =
     useState<boolean>(false);
 
@@ -475,13 +490,27 @@ const ResultRoomDashboard = () => {
     await handleSubmitReport(reportComment, reportSubmittedOnTime);
   };
 
-  /////////// fucntion to get the first name ///////////////////////
-  const getFirstName = (fullName: string | null) => {
-    if (!fullName || typeof fullName !== "string") {
-      return "";
-    }
-    return fullName.trim().split(/\s+/)[0];
+  /* ------------------------------------------------------------------------ */
+  /* Opening the dialogs from the check-in cards                              */
+  /* ------------------------------------------------------------------------ */
+
+  const openSubmissionDialog = () => handleSubmissionDialogOpenChange(true);
+
+  const openReportDialog = () => {
+    setReportView("form");
+    setReportError(null);
+    setReportDialogOpen(true);
   };
+
+  /**
+   * TODO: editing.
+   *
+   * For now Edit opens the same form as Submit. The forms start empty and
+   * save through the "create" mutations, so a real edit needs an update
+   * endpoint and a form that is filled with what was sent before.
+   */
+  const handleEditSubmission = () => openSubmissionDialog();
+  const handleEditReport = () => openReportDialog();
 
   /* ------------------------------------------------------------------------ */
   /* Loading state                                                            */
@@ -596,263 +625,52 @@ const ResultRoomDashboard = () => {
                 submissionDates={dashboardData.submissionActivity.dates}
               />
 
-              <div className="mx-auto my-4 w-full">
-                {/* Today's check-in */}
-                <h1 className="mb-2 text-sm">Today&apos;s Check-in</h1>
-                <section className="flex flex-col lg:flex-row gap-2 items-center justify-between mt-4">
-                  {/* Task submission */}
-                  <div className="min-h-12 w-full rounded-2xl border border-white px-6 py-3 shadow-md backdrop-blur-3xl">
-                    <h1 className="text-sm">Task Submission</h1>
+              {/* Today's check-in */}
+              <div className="mx-auto my-6 w-full">
+                <h2 className="mb-3 text-sm font-semibold text-neutral-900">
+                  Today&apos;s Check-in
+                </h2>
 
-                    <div className="mt-1 w-full">
-                      {dashboardData.today.submissionCompleted ? (
-                        <div className="flex flex-col items-center justify-between gap-2">
-                          <p className="text-xs md:text-sm">Well done 👍</p>
-                          <GeneralButton
-                            onClick={() =>
-                              setParticipantSubmissionDialogOpen(true)
-                            }
-                            text="View Submission"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex flex-col justify-between gap-2">
-                          <span className="flex items-center gap-2">
-                            <Info className="size-4 text-primary-blue" />
+                <section className="grid gap-4 md:grid-cols-2">
+                  <TaskSubmissionCard
+                    completed={dashboardData.today.submissionCompleted}
+                    window={getWindowState(submissionDeadline)}
+                    countdown={
+                      submissionDeadline?.isOpen
+                        ? formatCountdown(
+                            submissionDeadline.millisecondsRemaining,
+                          )
+                        : null
+                    }
+                    onSubmit={openSubmissionDialog}
+                    onView={() => setParticipantSubmissionDialogOpen(true)}
+                    onEdit={handleEditSubmission}
+                  />
 
-                            <p className="text-xs md:text-sm">
-                              {submissionDeadline?.isOpen
-                                ? "Done with your task?"
-                                : "Today's submission window is closed."}
-                            </p>
-                          </span>
-
-                          {submissionDeadline?.isOpen ? (
-                            <Dialog
-                              open={submissionDialogOpen}
-                              onOpenChange={handleSubmissionDialogOpenChange}
-                            >
-                              <DialogTrigger asChild>
-                                <SecondaryButton>
-                                  <span className="flex items-center gap-2 text-sm">
-                                    <Plus className="size-4 md:size-6" />
-
-                                    <span className="text-xs md:text-sm">
-                                      Submit Task
-                                    </span>
-                                  </span>
-                                </SecondaryButton>
-                              </DialogTrigger>
-
-                              <DialogContent className="isolate max-h-[95vh] overflow-x-hidden overflow-y-auto rounded-[28px] border border-white/70 bg-gradient-to-br from-yellow-200 via-blue-100 to-blue-200 p-4 sm:max-w-md sm:p-5">
-                                <SubmissionForm
-                                  onSubmit={handleSubmission}
-                                  onUploadProgressChange={
-                                    handleUploadProgressChange
-                                  }
-                                  submitting={submissionMutation.isPending}
-                                  onCancel={() =>
-                                    handleSubmissionDialogOpenChange(false)
-                                  }
-                                  className={
-                                    submissionView === "form" ? "" : "hidden"
-                                  }
-                                />
-
-                                {submissionView === "uploading" && (
-                                  <SubmissionUploading
-                                    progress={submissionUploadProgress.progress}
-                                    imageCount={
-                                      submissionUploadProgress.imageCount
-                                    }
-                                    message="Uploading your evidence..."
-                                  />
-                                )}
-
-                                {submissionView === "saving" && (
-                                  <SubmissionUploading
-                                    imageCount={
-                                      lastSubmissionPayload?.files.length ?? 0
-                                    }
-                                    message="Saving your submission..."
-                                  />
-                                )}
-
-                                {submissionView === "success" && (
-                                  <SubmissionSuccess
-                                    imageCount={
-                                      lastSubmissionPayload?.files.length ?? 0
-                                    }
-                                    description={
-                                      lastSubmissionPayload?.description
-                                    }
-                                    onContinue={() =>
-                                      handleSubmissionDialogOpenChange(false)
-                                    }
-                                  />
-                                )}
-
-                                {submissionView === "error" &&
-                                  submissionError && (
-                                    <SubmissionError
-                                      message={submissionError.message}
-                                      imageCount={submissionError.imageCount}
-                                      retrying={submissionMutation.isPending}
-                                      onRetry={handleRetrySubmission}
-                                      onCancel={() =>
-                                        handleSubmissionDialogOpenChange(false)
-                                      }
-                                    />
-                                  )}
-                              </DialogContent>
-                            </Dialog>
-                          ) : (
-                            <SecondaryButton disabled>
-                              <span className="flex items-center gap-2 text-sm">
-                                <Plus className="size-4 md:size-6" />
-
-                                <span className="text-xs md:text-sm">
-                                  Submission Closed
-                                </span>
-                              </span>
-                            </SecondaryButton>
-                          )}
-                        </div>
-                      )}
-
-                      {!dashboardData.today.submissionCompleted &&
-                        submissionDeadline && (
-                          <p className="mt-2 text-right text-[11px] text-gray-500">
-                            {submissionDeadline.isOpen
-                              ? `Closes in ${formatCountdown(
-                                  submissionDeadline.millisecondsRemaining,
-                                )}`
-                              : "Submissions closed at 9:00 PM"}
-                          </p>
-                        )}
-                    </div>
-                  </div>
-
-                  {/* Partner check */}
-                  <div className="mt-2 min-h-12 w-full rounded-2xl border border-white px-6 py-3 shadow-md backdrop-blur-3xl">
-                    <h1 className="text-sm">Partner Check</h1>
-
-                    <div className="mt-1 w-full">
-                      {dashboardData.today.partnerReviewSubmitted ? (
-                        <div className="flex flex-col items-center justify-between gap-2">
-                          <p className="text-xs md:text-sm">
-                            Partner check completed 👍
-                          </p>
-
-                          <GeneralButton
-                            text="View Report"
-                            onClick={() => setPartnerReportDialogOpen(true)}
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex flex-col justify-between gap-2">
-                          <span className="flex items-center gap-2">
-                            <Info className="size-4 text-primary-blue" />
-
-                            <p className="text-xs md:text-sm">
-                              {partnerReportDeadline?.isOpen
-                                ? "Check on your partner?"
-                                : "Partner reporting is closed."}
-                            </p>
-                          </span>
-
-                          {partnerReportDeadline?.isOpen ? (
-                            <Dialog
-                              open={reportDialogOpen}
-                              onOpenChange={handleReportDialogOpenChange}
-                            >
-                              <DialogTrigger asChild>
-                                <SecondaryButton
-                                  onClick={() => {
-                                    setReportView("form");
-                                    setReportError(null);
-                                  }}
-                                >
-                                  <span className="flex items-center gap-2 text-sm">
-                                    <Plus className="size-4 md:size-6" />
-
-                                    <span className="text-xs md:text-sm">
-                                      Submit Report
-                                    </span>
-                                  </span>
-                                </SecondaryButton>
-                              </DialogTrigger>
-
-                              <DialogContent className="isolate max-h-[95vh] overflow-x-hidden overflow-y-auto rounded-[28px] border border-white/70 bg-gradient-to-br from-yellow-200 via-blue-100 to-blue-200 p-4 sm:max-w-md sm:p-5">
-                                {reportView === "form" && (
-                                  <SubmitReportForm
-                                    onSubmit={({ comment, submittedOnTime }) =>
-                                      handleSubmitReport(
-                                        comment,
-                                        submittedOnTime,
-                                      )
-                                    }
-                                    submitting={reportSubmitting}
-                                    onCancel={() =>
-                                      handleReportDialogOpenChange(false)
-                                    }
-                                  />
-                                )}
-
-                                {reportView === "submitting" && (
-                                  <SubmitReportUploading message="Submitting your partner report..." />
-                                )}
-
-                                {reportView === "success" && (
-                                  <SubmitReportSuccess
-                                    onContinue={() =>
-                                      handleReportDialogOpenChange(false)
-                                    }
-                                  />
-                                )}
-
-                                {reportView === "error" && reportError && (
-                                  <SubmitReportError
-                                    message={reportError.message}
-                                    retrying={reportSubmitting}
-                                    onRetry={handleRetryReport}
-                                    onCancel={() =>
-                                      handleReportDialogOpenChange(false)
-                                    }
-                                  />
-                                )}
-                              </DialogContent>
-                            </Dialog>
-                          ) : (
-                            <SecondaryButton disabled>
-                              <span className="flex items-center gap-2 text-sm">
-                                <Plus className="size-4 md:size-6" />
-
-                                <span className="text-xs md:text-sm">
-                                  Report Closed
-                                </span>
-                              </span>
-                            </SecondaryButton>
-                          )}
-                        </div>
-                      )}
-
-                      {!dashboardData.today.partnerReviewSubmitted &&
-                        partnerReportDeadline && (
-                          <p className="mt-2 text-right text-[11px] text-gray-500">
-                            {partnerReportDeadline.isOpen
-                              ? `Closes in ${formatCountdown(
-                                  partnerReportDeadline.millisecondsRemaining,
-                                )}`
-                              : "Reports closed at 9:30 PM"}
-                          </p>
-                        )}
-                    </div>
-                  </div>
+                  <PartnerCheckCard
+                    completed={dashboardData.today.partnerReviewSubmitted}
+                    window={getWindowState(partnerReportDeadline)}
+                    countdown={
+                      partnerReportDeadline?.isOpen
+                        ? formatCountdown(
+                            partnerReportDeadline.millisecondsRemaining,
+                          )
+                        : null
+                    }
+                    onSubmit={openReportDialog}
+                    onView={() => setPartnerReportDialogOpen(true)}
+                    onEdit={handleEditReport}
+                  />
                 </section>
               </div>
+
               <PartnerProfileCard date={today} />
-              <TimelinePair />
+              <TimelinePair
+                slots={
+                  dashboardData.participant !== null &&
+                  dashboardData.participant.graceSlotsUsed
+                }
+              />
             </>
           ) : (
             <div className="flex min-h-[240px] items-center justify-center">
@@ -861,6 +679,96 @@ const ResultRoomDashboard = () => {
           )}
         </div>
       </main>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Daily submission dialog                                             */}
+      {/* ------------------------------------------------------------------ */}
+      <Dialog
+        open={submissionDialogOpen}
+        onOpenChange={handleSubmissionDialogOpenChange}
+      >
+        <DialogContent className="isolate max-h-[95vh] overflow-x-hidden overflow-y-auto rounded-[28px] border border-white/70 bg-gradient-to-br from-yellow-200 via-blue-100 to-blue-200 p-4 sm:max-w-md sm:p-5">
+          <SubmissionForm
+            onSubmit={handleSubmission}
+            onUploadProgressChange={handleUploadProgressChange}
+            submitting={submissionMutation.isPending}
+            onCancel={() => handleSubmissionDialogOpenChange(false)}
+            className={submissionView === "form" ? "" : "hidden"}
+          />
+
+          {submissionView === "uploading" && (
+            <SubmissionUploading
+              progress={submissionUploadProgress.progress}
+              imageCount={submissionUploadProgress.imageCount}
+              message="Uploading your evidence..."
+            />
+          )}
+
+          {submissionView === "saving" && (
+            <SubmissionUploading
+              imageCount={lastSubmissionPayload?.files.length ?? 0}
+              message="Saving your submission..."
+            />
+          )}
+
+          {submissionView === "success" && (
+            <SubmissionSuccess
+              imageCount={lastSubmissionPayload?.files.length ?? 0}
+              description={lastSubmissionPayload?.description}
+              onContinue={() => handleSubmissionDialogOpenChange(false)}
+            />
+          )}
+
+          {submissionView === "error" && submissionError && (
+            <SubmissionError
+              message={submissionError.message}
+              imageCount={submissionError.imageCount}
+              retrying={submissionMutation.isPending}
+              onRetry={handleRetrySubmission}
+              onCancel={() => handleSubmissionDialogOpenChange(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Partner report dialog                                               */}
+      {/* ------------------------------------------------------------------ */}
+      <Dialog
+        open={reportDialogOpen}
+        onOpenChange={handleReportDialogOpenChange}
+      >
+        <DialogContent className="isolate max-h-[95vh] overflow-x-hidden overflow-y-auto rounded-[28px] border border-white/70 bg-gradient-to-br from-yellow-200 via-blue-100 to-blue-200 p-4 sm:max-w-md sm:p-5">
+          {reportView === "form" && (
+            <SubmitReportForm
+              onSubmit={({ comment, submittedOnTime }) =>
+                handleSubmitReport(comment, submittedOnTime)
+              }
+              submitting={reportSubmitting}
+              onCancel={() => handleReportDialogOpenChange(false)}
+            />
+          )}
+
+          {reportView === "submitting" && (
+            <SubmitReportUploading message="Submitting your partner report..." />
+          )}
+
+          {reportView === "success" && (
+            <SubmitReportSuccess
+              onContinue={() => handleReportDialogOpenChange(false)}
+            />
+          )}
+
+          {reportView === "error" && reportError && (
+            <SubmitReportError
+              message={reportError.message}
+              retrying={reportSubmitting}
+              onRetry={handleRetryReport}
+              onCancel={() => handleReportDialogOpenChange(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ------------------------------------------------------------------ */}
       {/* Reusable participant submission modal                                  */}
