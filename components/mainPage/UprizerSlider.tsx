@@ -10,6 +10,7 @@ import uprix2 from "@/app/assets/images/uprix-headshots/uprix2.jpg";
 import uprix3 from "@/app/assets/images/uprix-headshots/uprix3.png";
 import uprix4 from "@/app/assets/images/uprix-headshots/uprix4.png";
 import uprix5 from "@/app/assets/images/uprix-headshots/uprix5.jpeg";
+import BecomeButton from "./buttons/BecomeButton";
 
 type Member = {
   id: number;
@@ -255,12 +256,7 @@ const UprizerSlider = () => {
             <span className="text-4xl font-deep font-bold">700+</span> Bonafied
             Uprizers
           </h6>
-          <Link
-            href="/auth/sign-up"
-            className="rounded-full bg-primary-blue px-6 py-3 mt-8 text-xs font-bold text-white shadow-md shadow-primary-blue transition duration-500 hover:bg-secondary-blue"
-          >
-            Become an Uprizer
-          </Link>
+          <BecomeButton />
         </div>
       </div>
     </section>

@@ -1,5 +1,4 @@
-import { ArrowUpRight } from "lucide-react";
-import Link from "next/link";
+import JoinButton from "./buttons/JoinButton";
 
 export default function HeroSection() {
   return (
@@ -45,6 +44,7 @@ export default function HeroSection() {
         <div className="mt-16 flex items-center justify-center gap-4">
           {/* hand-drawn style arrow pointing at the pill */}
           <svg
+            aria-hidden
             width="70"
             height="46"
             viewBox="0 0 70 46"
@@ -68,13 +68,7 @@ export default function HeroSection() {
             />
           </svg>
 
-          <Link
-            href="/auth/sign-up"
-            className="flex items-center gap-2 bg-white text-slate-900 font-semibold text-sm px-5 py-3 rounded-full shadow-lg hover:shadow-xl active:scale-95 transition"
-          >
-            Join Us
-            <ArrowUpRight size={16} />
-          </Link>
+          <JoinButton href="/auth/sign-up">Join Us</JoinButton>
         </div>
       </div>
     </section>
