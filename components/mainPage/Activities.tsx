@@ -36,7 +36,7 @@ export default function Activities() {
               alt="clock image"
               width={400}
               height={400}
-              className="absolute -top-30 -right-20 translate-x-2 -mr-24"
+              className="pointer-events-none absolute -top-30 -right-20 translate-x-2 -mr-24"
             />
           </div>
         </div>
@@ -53,7 +53,7 @@ export default function Activities() {
             alt="Deep Image"
             width={200}
             height={200}
-            className="absolute -left-10 -bottom-12 -mb-4"
+            className="pointer-events-none absolute -left-10 -bottom-12 -mb-4"
           />
           <div className="relative z-50 bg-[rgba(255,255,255,0.90)] rounded-2xl p-4">
             <p className="text-slate-600 text-sm/5">
@@ -85,7 +85,7 @@ export default function Activities() {
             alt="Pad"
             width={400}
             height={400}
-            className="absolute -top-20 -right-10"
+            className="pointer-events-none absolute -top-20 -right-10"
           />
 
           <div className="relative z-10 mt-8 pt-6 border-t border-white/10 flex items-center justify-between text-xs text-blue-200"></div>

@@ -9,9 +9,9 @@ export default function HeroSection() {
           "radial-gradient(140% 85% at 50% 0%, #020817 0%, #071235 16%, #0d2266 30%, #1a3aa0 44%, #3a52d6 58%, #6f65d9 72%, rgba(111, 101, 217, 0.15) 86%, transparent 100%)",
       }}
     >
-      {/* right-side vertical stripe pattern */}
+      {/* Right-side vertical stripe background overlay */}
       <div
-        className="pointer-events-none absolute right-0 top-0 h-full w-1/3 opacity-40"
+        className="pointer-events-none absolute right-0 top-0 z-0 h-full w-1/3 opacity-40"
         style={{
           background:
             "repeating-linear-gradient(90deg, rgba(255,255,255,0.10) 0px, rgba(255,255,255,0.10) 2px, transparent 2px, transparent 26px)",
@@ -22,7 +22,7 @@ export default function HeroSection() {
         }}
       />
 
-      <div className="relative max-w-5xl mx-auto px-6 pt-48 pb-28 text-center">
+      <div className="relative z-10 max-w-5xl mx-auto px-6 pt-48 pb-28 text-center">
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white leading-[1.08] tracking-tight">
           <span className="block font-heading tracking-tighter">
             Growth demands
@@ -41,15 +41,16 @@ export default function HeroSection() {
           journey.
         </p>
 
-        <div className="mt-16 flex items-center justify-center gap-4">
-          {/* hand-drawn style arrow pointing at the pill */}
+        {/* Button & Arrow Wrapper */}
+        <div className="relative z-20 mt-16 flex items-center justify-center gap-4">
+          {/* Hand-drawn style arrow pointing at the button */}
           <svg
             aria-hidden
             width="70"
             height="46"
             viewBox="0 0 70 46"
             fill="none"
-            className="-ml-16 text-white/85 -mr-2 -mt-8"
+            className="pointer-events-none -ml-16 text-white/85 -mr-2 -mt-8"
           >
             <path
               d="M4 4C10 22 28 34 58 34"

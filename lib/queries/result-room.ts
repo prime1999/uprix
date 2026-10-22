@@ -201,6 +201,107 @@ export function useCreateResultRoomSubmission() {
 }
 
 /* -------------------------------------------------------------------------- */
+/* UPDATE SUBMISSION                                                          */
+/* -------------------------------------------------------------------------- */
+
+export interface UpdateSubmissionInput {
+  timezone: string;
+  description: string;
+  retainedFileIds: string[];
+  newFiles: {
+    publicId: string;
+    secureUrl: string;
+  }[];
+}
+
+export interface UpdateSubmissionResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+  code?: string;
+  cleanupWarning?: string | null;
+  submission?: {
+    id: string;
+    participantId: string;
+    roomId: string;
+    submissionDate: string;
+    description: string | null;
+    submittedAt: string;
+    status: string;
+  };
+  files?: {
+    id: string;
+    submissionId: string;
+    cloudinaryPublicId: string;
+    cloudinaryUrl: string;
+    googleDriveFileId: string | null;
+    googleDriveUrl: string | null;
+    googleDriveStatus: string;
+    createdAt: string;
+  }[];
+}
+
+/**
+ * Updates the authenticated participant's existing daily submission.
+ *
+ * Existing images are identified by their submission_files IDs.
+ * Only newFiles are uploaded to Cloudinary before this request.
+ */
+async function updateResultRoomSubmission(
+  input: UpdateSubmissionInput,
+): Promise<UpdateSubmissionResponse> {
+  const response = await fetch("/api/result/submissions", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+    cache: "no-store",
+  });
+
+  const data: unknown = await response.json();
+
+  const result = data as UpdateSubmissionResponse;
+
+  if (!response.ok) {
+    throw new Error(
+      result.error || `Failed to update submission (${response.status}).`,
+    );
+  }
+
+  if (result.success !== true) {
+    throw new Error(result.error || "Your submission could not be updated.");
+  }
+
+  return result;
+}
+
+/**
+ * React Query mutation for editing an existing daily submission.
+ */
+export function useUpdateResultRoomSubmission() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateResultRoomSubmission,
+
+    onSuccess: async (_result, input) => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: resultRoomDashboardQueryKey,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["result-room", "my-submission"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["result-room", "submission-history"],
+        }),
+      ]);
+    },
+  });
+}
+
+/* -------------------------------------------------------------------------- */
 /* PARTNER SUBMISSION                                                         */
 /* -------------------------------------------------------------------------- */
 

@@ -24,6 +24,7 @@ import SubmitReportError from "./reports/submitReportError";
 
 import SubmissionViewModal from "./modals/SubmissionViewModal";
 import PartnerReportViewModal from "./modals/TodayReportModal";
+import UpdateSubmissionModal from "@/components/result-room/dashboard/modals/UpdateSubmissionModal";
 import StreakCard from "./StreakCard";
 import TimelinePair from "./TImelinePair";
 import { useResultRoomStore } from "@/lib/stores/result-room-store";
@@ -209,6 +210,8 @@ const ResultRoomDashboard = () => {
       progress: 0,
       imageCount: 0,
     });
+
+  const [isEditOpen, setIsEditOpen] = useState<boolean>(false);
 
   /* ------------------------------------------------------------------------ */
   /* Partner report state                                                     */
@@ -509,7 +512,6 @@ const ResultRoomDashboard = () => {
    * save through the "create" mutations, so a real edit needs an update
    * endpoint and a form that is filled with what was sent before.
    */
-  const handleEditSubmission = () => openSubmissionDialog();
   const handleEditReport = () => openReportDialog();
 
   /* ------------------------------------------------------------------------ */
@@ -644,7 +646,7 @@ const ResultRoomDashboard = () => {
                     }
                     onSubmit={openSubmissionDialog}
                     onView={() => setParticipantSubmissionDialogOpen(true)}
-                    onEdit={handleEditSubmission}
+                    onEdit={() => setIsEditOpen(true)}
                   />
 
                   <PartnerCheckCard
@@ -783,6 +785,14 @@ const ResultRoomDashboard = () => {
       <PartnerReportViewModal
         isOpen={partnerReportDialogOpen}
         onClose={() => setPartnerReportDialogOpen(false)}
+      />
+      {/* ------------------------------------------------------------------ */}
+      {/* Reusable participant update modals                                 */}
+      {/* ------------------------------------------------------------------ */}
+      <UpdateSubmissionModal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        date={today}
       />
     </>
   );

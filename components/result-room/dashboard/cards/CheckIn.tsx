@@ -191,7 +191,7 @@ function CardButtons({
         */}
         {window === "open" && onEdit && (
           <GeneralButton
-            variant="disabled"
+            variant="active"
             buttonFunction={onEdit}
             aria-label={editLabel}
             title={editLabel}

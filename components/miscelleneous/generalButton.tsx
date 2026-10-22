@@ -15,6 +15,7 @@ export type ButtonVariant =
   | "active"
   | "delete"
   | "danger"
+  | "reset"
   | "disabled";
 
 type GeneralButtonProps = Omit<
@@ -26,7 +27,8 @@ type GeneralButtonProps = Omit<
   iconOnly?: boolean;
   /**
    * default = yellow, active/secondary = blue,
-   * delete/danger = red, disabled = gray
+   * delete/danger = red, reset = deep indigo (#07017b),
+   * disabled = gray
    */
   variant?: ButtonVariant;
   /**
@@ -52,6 +54,9 @@ const VARIANTS: Record<ButtonVariant, string> = {
   delete: `${MOTION} border-red-400/80 bg-gradient-to-b from-red-400 via-red-500 to-red-600 text-white shadow-[inset_0_2px_0_rgba(255,255,255,0.45),0_8px_16px_-6px_rgba(239,68,68,0.6)] hover:shadow-[inset_0_2px_0_rgba(255,255,255,0.45),0_12px_22px_-6px_rgba(239,68,68,0.7)] active:shadow-[inset_0_2px_0_rgba(255,255,255,0.3),0_3px_8px_-3px_rgba(239,68,68,0.5)] focus-visible:ring-red-400/40`,
 
   danger: `${MOTION} border-red-400/80 bg-gradient-to-b from-red-400 via-red-500 to-red-600 text-white shadow-[inset_0_2px_0_rgba(255,255,255,0.45),0_8px_16px_-6px_rgba(239,68,68,0.6)] hover:shadow-[inset_0_2px_0_rgba(255,255,255,0.45),0_12px_22px_-6px_rgba(239,68,68,0.7)] active:shadow-[inset_0_2px_0_rgba(255,255,255,0.3),0_3px_8px_-3px_rgba(239,68,68,0.5)] focus-visible:ring-red-400/40`,
+
+  // Deep indigo built around #07017b.
+  reset: `${MOTION} border-[#3b33c9]/70 bg-gradient-to-b from-[#2b22b3] via-[#07017b] to-[#040050] text-white shadow-[inset_0_2px_0_rgba(255,255,255,0.35),0_8px_16px_-6px_rgba(7,1,123,0.65)] hover:shadow-[inset_0_2px_0_rgba(255,255,255,0.35),0_12px_22px_-6px_rgba(7,1,123,0.75)] active:shadow-[inset_0_2px_0_rgba(255,255,255,0.2),0_3px_8px_-3px_rgba(7,1,123,0.55)] focus-visible:ring-[#07017b]/40`,
 
   // Flat gray, without lift or hover sweep.
   disabled:
