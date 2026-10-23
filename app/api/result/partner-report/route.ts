@@ -469,3 +469,236 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const cookieStore = await cookies();
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                cookieStore.set(name, value, options);
+              });
+            } catch {
+              // Cookie writes may be unavailable in this context.
+            }
+          },
+        },
+      },
+    );
+
+    const { data: claimsData, error: claimsError } =
+      await supabase.auth.getClaims();
+
+    const user = claimsData?.claims;
+
+    if (claimsError || !user?.sub) {
+      return NextResponse.json({ success: false, message: "Unauthorized." });
+    }
+
+    const timezone = request.headers.get("x-time-zone");
+
+    if (!timezone) {
+      return NextResponse.json(
+        { success: false, message: "A valid timezone is required." },
+        { status: 400 },
+      );
+    }
+
+    let dateFormatter: Intl.DateTimeFormat;
+    let timeFormatter: Intl.DateTimeFormat;
+
+    try {
+      dateFormatter = new Intl.DateTimeFormat("en-CA", {
+        timeZone: timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      });
+
+      timeFormatter = new Intl.DateTimeFormat("en-GB", {
+        timeZone: timezone,
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+      });
+    } catch {
+      return NextResponse.json(
+        { success: false, message: "Invalid timezone." },
+        { status: 400 },
+      );
+    }
+
+    const now = new Date();
+    const today = dateFormatter.format(now);
+    const timeParts = timeFormatter.formatToParts(now);
+
+    const hour = Number(timeParts.find((part) => part.type === "hour")?.value);
+    const minute = Number(
+      timeParts.find((part) => part.type === "minute")?.value,
+    );
+
+    if (hour > 21 || (hour === 21 && minute >= 30)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "The partner report update deadline has passed.",
+        },
+        { status: 403 },
+      );
+    }
+
+    let body: {
+      reportId?: unknown;
+      date?: unknown;
+      comment?: unknown;
+      submittedOnTime?: unknown;
+    };
+
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, message: "Invalid request body." },
+        { status: 400 },
+      );
+    }
+
+    const { reportId, date, comment, submittedOnTime } = body;
+
+    if (
+      typeof reportId !== "string" ||
+      !reportId.trim() ||
+      typeof date !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+      typeof submittedOnTime !== "boolean" ||
+      (comment !== undefined && comment !== null && typeof comment !== "string")
+    ) {
+      return NextResponse.json(
+        { success: false, message: "Invalid partner report data." },
+        { status: 400 },
+      );
+    }
+
+    if (comment && comment.trim().length > 2000) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "The comment must not exceed 2000 characters.",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (date !== today) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Only today's partner report can be updated.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const { data: participant, error: participantError } = await supabase
+      .from("participants")
+      .select("id, room_id, room_status")
+      .eq("user_id", user.sub)
+      .maybeSingle();
+
+    if (participantError) {
+      console.error("Failed to fetch participant:", participantError);
+
+      return NextResponse.json(
+        { success: false, message: "Unable to verify your participation." },
+        { status: 500 },
+      );
+    }
+
+    if (!participant || participant.room_status !== "active") {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "An active room participation is required.",
+        },
+        { status: 403 },
+      );
+    }
+
+    // The report must belong to this participant and must be today's report.
+    const { data: existingReport, error: reportError } = await supabase
+      .from("partner_reviews")
+      .select(
+        "id, reviewer_id, partner_id, partner_pair_id, review_date, submitted_on_time, comment, reviewed_at, created_at",
+      )
+      .eq("id", reportId)
+      .eq("reviewer_id", participant.id)
+      .eq("review_date", today)
+      .maybeSingle();
+
+    if (reportError) {
+      console.error("Failed to fetch partner report:", reportError);
+
+      return NextResponse.json(
+        { success: false, message: "Unable to load the partner report." },
+        { status: 500 },
+      );
+    }
+
+    if (!existingReport) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Today's partner report was not found or cannot be edited.",
+        },
+        { status: 404 },
+      );
+    }
+
+    // Preserve the report ID, partner, pair, review date and created_at.
+    const { data: updatedReport, error: updateError } = await supabase
+      .from("partner_reviews")
+      .update({
+        submitted_on_time: submittedOnTime,
+        comment: typeof comment === "string" ? comment.trim() || null : null,
+        reviewed_at: now.toISOString(),
+      })
+      .eq("id", existingReport.id)
+      .eq("reviewer_id", participant.id)
+      .eq("review_date", today)
+      .select(
+        "id, reviewer_id, partner_id, partner_pair_id, review_date, submitted_on_time, comment, reviewed_at, created_at",
+      )
+      .single();
+
+    if (updateError) {
+      console.error("Failed to update partner report:", updateError);
+
+      return NextResponse.json(
+        { success: false, message: "Failed to update the partner report." },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Partner report updated successfully.",
+      report: updatedReport,
+    });
+  } catch (error) {
+    console.error("Unexpected partner report update error:", error);
+
+    return NextResponse.json(
+      { success: false, message: "An unexpected error occurred." },
+      { status: 500 },
+    );
+  }
+}

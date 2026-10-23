@@ -25,6 +25,7 @@ import SubmitReportError from "./reports/submitReportError";
 import SubmissionViewModal from "./modals/SubmissionViewModal";
 import PartnerReportViewModal from "./modals/TodayReportModal";
 import UpdateSubmissionModal from "@/components/result-room/dashboard/modals/UpdateSubmissionModal";
+import UpdatePartnerReportModal from "@/components/result-room/dashboard/reports/update/UpdatePartnerReportModal";
 import StreakCard from "./StreakCard";
 import TimelinePair from "./TImelinePair";
 import { useResultRoomStore } from "@/lib/stores/result-room-store";
@@ -212,6 +213,7 @@ const ResultRoomDashboard = () => {
     });
 
   const [isEditOpen, setIsEditOpen] = useState<boolean>(false);
+  const [isEditReportOpen, setIsEditReportOpen] = useState<boolean>(false);
 
   /* ------------------------------------------------------------------------ */
   /* Partner report state                                                     */
@@ -661,7 +663,7 @@ const ResultRoomDashboard = () => {
                     }
                     onSubmit={openReportDialog}
                     onView={() => setPartnerReportDialogOpen(true)}
-                    onEdit={handleEditReport}
+                    onEdit={() => setIsEditReportOpen(true)}
                   />
                 </section>
               </div>
@@ -793,6 +795,10 @@ const ResultRoomDashboard = () => {
         isOpen={isEditOpen}
         onClose={() => setIsEditOpen(false)}
         date={today}
+      />
+      <UpdatePartnerReportModal
+        isOpen={isEditReportOpen}
+        onClose={() => setIsEditReportOpen(false)}
       />
     </>
   );

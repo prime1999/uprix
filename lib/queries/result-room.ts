@@ -1312,3 +1312,62 @@ export function useResultRoomTodayPartnerReport(enabled = true) {
     refetchOnWindowFocus: false,
   });
 }
+
+export interface UpdatePartnerReportInput {
+  reportId: string;
+  date: string;
+  comment?: string;
+  submittedOnTime: boolean;
+}
+
+interface UpdatePartnerReportResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+  report?: TodayPartnerReport;
+}
+
+async function updatePartnerReport(
+  input: UpdatePartnerReportInput,
+): Promise<UpdatePartnerReportResponse> {
+  const response = await fetch("/api/result/partner-report", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...getTimezoneHeaders(),
+    },
+    body: JSON.stringify(input),
+  });
+
+  const result = (await response.json()) as UpdatePartnerReportResponse;
+
+  if (!response.ok || !result.success) {
+    throw new Error(
+      result.message ?? result.error ?? "Failed to update partner report.",
+    );
+  }
+
+  return result;
+}
+
+export function useUpdatePartnerReport() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updatePartnerReport,
+
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: resultRoomDashboardQueryKey,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: resultRoomTodayPartnerReportQueryKey(),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["result-room", "partner-report-history"],
+        }),
+      ]);
+    },
+  });
+}
