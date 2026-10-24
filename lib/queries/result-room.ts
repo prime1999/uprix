@@ -1371,3 +1371,114 @@ export function useUpdatePartnerReport() {
     },
   });
 }
+
+/* -------------------------------------------------------------------------- */
+/* VIOLATIONS                                                                 */
+/* -------------------------------------------------------------------------- */
+
+export interface ResultRoomViolation {
+  id: string;
+  participant_id: string;
+  room_id: string;
+  type: string;
+  notes: string | null;
+  occurred_on: string;
+  created_at: string;
+  resolved_at: string | null;
+  resolution_note: string | null;
+  consequence: string | null;
+}
+
+export interface ResultRoomViolationsResponse {
+  violations: ResultRoomViolation[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}
+
+const RESULT_ROOM_VIOLATIONS_ENDPOINT = "/api/result/violations";
+
+/**
+ * Each page and page size have their own cache entry.
+ */
+export const resultRoomViolationsQueryKey = (page: number, pageSize = 10) =>
+  ["result-room", "violations", page, pageSize] as const;
+
+/**
+ * Fetches one page of violations belonging to the authenticated participant.
+ */
+async function fetchResultRoomViolations(
+  page: number,
+  pageSize: number,
+): Promise<ResultRoomViolationsResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    pageSize: String(pageSize),
+  });
+
+  const response = await fetch(
+    `${RESULT_ROOM_VIOLATIONS_ENDPOINT}?${params.toString()}`,
+    {
+      method: "GET",
+      headers: getTimezoneHeaders(),
+      cache: "no-store",
+    },
+  );
+
+  const data: unknown = await response.json();
+
+  if (!response.ok) {
+    const errorData = data as { error?: string };
+
+    throw new Error(
+      errorData.error || `Failed to load violations (${response.status}).`,
+    );
+  }
+
+  const result = data as ResultRoomViolationsResponse;
+
+  if (
+    !Array.isArray(result.violations) ||
+    !result.pagination ||
+    typeof result.pagination.total !== "number" ||
+    typeof result.pagination.totalPages !== "number"
+  ) {
+    throw new Error("The violations API returned an invalid response.");
+  }
+
+  return result;
+}
+
+/**
+ * React Query hook for paginated violations.
+ *
+ * Defaults to 10 violations per page, with a maximum of 50.
+ */
+export function useResultRoomViolations(
+  page = 1,
+  pageSize = 10,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: resultRoomViolationsQueryKey(page, pageSize),
+    queryFn: () => fetchResultRoomViolations(page, pageSize),
+
+    enabled:
+      enabled &&
+      Number.isSafeInteger(page) &&
+      page >= 1 &&
+      Number.isSafeInteger(pageSize) &&
+      pageSize >= 1 &&
+      pageSize <= 50,
+
+    staleTime: 30 * 1000,
+    gcTime: 30 * 60 * 1000,
+    retry: 2,
+    refetchOnWindowFocus: false,
+  });
+}

@@ -154,6 +154,13 @@ function getNavigation({
           attention: hasOutstandingFine,
           attentionLabel: "You have an outstanding fine",
         },
+        {
+          title: "Violations",
+          url: "/result-room/dashboard/violations",
+          icon: CircleDollarSign,
+          attention: hasOutstandingFine,
+          attentionLabel: "You have violated some rules",
+        },
       ],
     },
 
