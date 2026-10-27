@@ -119,7 +119,8 @@ export async function GET(request: Request) {
             status_reason,
             status_changed_at,
             timezone,
-            grace_slots_used
+            grace_slots_used,
+            eviction_stage
           `,
         )
         .eq("user_id", user.sub)
@@ -456,6 +457,7 @@ export async function GET(request: Request) {
           statusReason: participant.status_reason,
           statusChangedAt: participant.status_changed_at,
           graceSlotsUsed: participant.grace_slots_used,
+          eviction_stage: participant.eviction_stage,
         },
 
         room: {

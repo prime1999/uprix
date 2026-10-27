@@ -36,6 +36,7 @@ export const resultRoomParticipantSchema = z.object({
   statusReason: z.string().nullable(),
   statusChangedAt: z.string().nullable(),
   graceSlotsUsed: z.number().int().nonnegative(),
+  eviction_stage: z.string().nullable(),
 });
 
 /**

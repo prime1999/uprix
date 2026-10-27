@@ -305,6 +305,10 @@ export function useUpdateResultRoomSubmission() {
 /* PARTNER SUBMISSION                                                         */
 /* -------------------------------------------------------------------------- */
 
+/* -------------------------------------------------------------------------- */
+/* PARTNER SUBMISSION                                                         */
+/* -------------------------------------------------------------------------- */
+
 export interface PartnerSubmission {
   id: string;
   description: string | null;
@@ -332,8 +336,7 @@ export const resultRoomPartnerSubmissionQueryKey = (date: string) =>
 /**
  * Fetches the partner's submission for a particular date.
  *
- * The timezone header allows the server to interpret timezone-sensitive
- * rules using the participant's current device timezone.
+ * This continues to use the existing current-submission endpoint.
  */
 async function fetchResultRoomPartnerSubmission(
   date: string,
@@ -376,6 +379,75 @@ export function useResultRoomPartnerSubmission(date: string, enabled = true) {
     queryFn: () => fetchResultRoomPartnerSubmission(date),
 
     enabled: enabled && /^\d{4}-\d{2}-\d{2}$/.test(date),
+
+    staleTime: 0,
+    gcTime: 30 * 60 * 1000,
+    retry: 2,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* PARTNER SUBMISSION HISTORY                                                 */
+/* -------------------------------------------------------------------------- */
+
+export interface PartnerSubmissionHistoryResponse {
+  success: boolean;
+  history: PartnerSubmission[];
+  error?: string;
+  code?: string;
+}
+
+/**
+ * The history is independent of the date-specific submission query.
+ */
+export const resultRoomPartnerSubmissionHistoryQueryKey = [
+  "result-room",
+  "partner-submission-history",
+] as const;
+
+/**
+ * Fetches all existing submissions from the authenticated participant's
+ * assigned partner.
+ *
+ * The server resolves the partner from the authenticated session and
+ * active partner assignment; no participant ID is accepted from the client.
+ */
+async function fetchResultRoomPartnerSubmissionHistory(): Promise<PartnerSubmissionHistoryResponse> {
+  const response = await fetch("/api/result/partner-submission/history", {
+    method: "GET",
+    headers: getTimezoneHeaders(),
+    cache: "no-store",
+  });
+
+  const data: unknown = await response.json();
+
+  const result = data as PartnerSubmissionHistoryResponse;
+
+  if (!response.ok) {
+    throw new Error(
+      result.error ||
+        `Failed to load partner submission history (${response.status}).`,
+    );
+  }
+
+  if (result.success !== true || !Array.isArray(result.history)) {
+    throw new Error(
+      result.error || "The partner submission history response is invalid.",
+    );
+  }
+
+  return result;
+}
+
+/**
+ * React Query hook for the partner's complete existing submission history.
+ */
+export function useResultRoomPartnerSubmissionHistory(enabled = true) {
+  return useQuery({
+    queryKey: resultRoomPartnerSubmissionHistoryQueryKey,
+    queryFn: fetchResultRoomPartnerSubmissionHistory,
+    enabled,
 
     staleTime: 0,
     gcTime: 30 * 60 * 1000,

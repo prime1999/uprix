@@ -40,6 +40,8 @@ import { buildHeatmapData } from "@/lib/result-room/build-heatmap";
 import { computeStats, flattenDays } from "./Streak";
 import ProgressHeroCard from "./ProgressHeroCard";
 import { formatDateWithOrdinal, getGreeting, getFirstName } from "@/lib/helper";
+import LockedDashboard from "./LockedDashboard";
+import QuoteDisplay from "./QuoteDisplay";
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -54,6 +56,7 @@ type Participant = {
   adminRole: string | null;
   statusReason: string | null;
   statusChangedAt: string | null;
+  eviction_stage: string | null;
 };
 
 type ParticipantResponse = {
@@ -548,36 +551,38 @@ const ResultRoomDashboard = () => {
     return null;
   }
 
+  // /* ------------------------------------------------------------------------ */
+  // /* Non-active participant                                                   */
+  // /* ------------------------------------------------------------------------ */
+
+  // if (participant.room_status !== "active") {
+  //   return (
+  //     <main className="min-h-screen">
+  //       <div className="flex min-h-screen items-center justify-center">
+  //         <div className="text-center">
+  //           <h1 className="text-xl font-semibold">
+  //             Result Room access unavailable
+  //           </h1>
+
+  //           <p className="mt-2 text-sm text-muted-foreground">
+  //             Your current Result Room status is{" "}
+  //             <span className="font-medium">{participant.room_status}</span>.
+  //           </p>
+  //         </div>
+  //       </div>
+  //     </main>
+  //   );
+  // }
   /* ------------------------------------------------------------------------ */
-  /* Non-active participant                                                   */
+  /* For locked participant dashboard                                         */
   /* ------------------------------------------------------------------------ */
 
-  if (participant.room_status !== "active") {
-    return (
-      <main className="min-h-screen">
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-xl font-semibold">
-              Result Room access unavailable
-            </h1>
-
-            <p className="mt-2 text-sm text-muted-foreground">
-              Your current Result Room status is{" "}
-              <span className="font-medium">{participant.room_status}</span>.
-            </p>
-          </div>
-        </div>
-      </main>
-    );
-  }
-  console.log("Dashboard query state:", {
-    data: dashboardData,
-    isPending,
-    isError,
-    dashboardError,
-    status,
-    fetchStatus,
-  });
+  // if (
+  //   participant.room_status !== "active"
+  //   //participant.eviction_stage === "LOCKED"
+  // ) {
+  //   return <LockedDashboard />;
+  // }
 
   if (!dashboardData) {
     if (isError) {
@@ -628,7 +633,8 @@ const ResultRoomDashboard = () => {
                 endDate={dashboardData.room.endDate}
                 submissionDates={dashboardData.submissionActivity.dates}
               />
-
+              {/* Quotes */}
+              <QuoteDisplay intervalMs={12000} />
               {/* Today's check-in */}
               <div className="mx-auto my-6 w-full">
                 <h2 className="mb-3 text-sm font-semibold text-neutral-900">

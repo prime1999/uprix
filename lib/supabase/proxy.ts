@@ -231,7 +231,11 @@ export async function updateSession(request: NextRequest) {
     }
 
     // Admins and active participants can access the normal dashboard.
-    if (participant.is_admin || participant.room_status === "active") {
+    if (
+      participant.is_admin ||
+      participant.room_status === "active" ||
+      participant.room_status === "locked"
+    ) {
       return supabaseResponse;
     }
 
