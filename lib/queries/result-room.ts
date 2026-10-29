@@ -414,7 +414,7 @@ export const resultRoomPartnerSubmissionHistoryQueryKey = [
  * active partner assignment; no participant ID is accepted from the client.
  */
 async function fetchResultRoomPartnerSubmissionHistory(): Promise<PartnerSubmissionHistoryResponse> {
-  const response = await fetch("/api/result/partner-submission/history", {
+  const response = await fetch("/api/result/submissions/history/partner", {
     method: "GET",
     headers: getTimezoneHeaders(),
     cache: "no-store",
@@ -1552,5 +1552,102 @@ export function useResultRoomViolations(
     gcTime: 30 * 60 * 1000,
     retry: 2,
     refetchOnWindowFocus: false,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* USER PROFILE SETTINGS                                                      */
+/* -------------------------------------------------------------------------- */
+
+export interface UpdateUserProfileInput {
+  full_name?: string;
+  date_of_birth?: string | null;
+  age_group?: string;
+  gender?: string;
+  current_status?: string;
+  university?: string | null;
+  university_other?: string | null;
+  location?: string;
+  current_stage?: string;
+  current_focus?: string[];
+  current_focus_other?: string | null;
+  guidance_areas?: string[];
+  guidance_areas_other?: string | null;
+  biggest_struggle?: string;
+  progress_blocker?: string;
+  progress_blocker_other?: string | null;
+  biggest_fear?: string;
+  teaching_style?: string[];
+  active_online_time?: string;
+  ninety_day_goal?: string;
+  avatar_url?: string | null;
+}
+
+export interface UpdateUserProfileResponse {
+  success: boolean;
+  message?: string;
+  profile?: Record<string, unknown>;
+  error?: string;
+}
+
+export const userProfileQueryKey = ["user-profile"] as const;
+
+const USER_PROFILE_ENDPOINT = "/api/profile/general";
+
+/**
+ * Updates the authenticated user's general profile settings.
+ *
+ * Only supplied fields are sent to the API.
+ * This endpoint does not update Result Room participant fields.
+ */
+async function updateUserProfile(
+  input: UpdateUserProfileInput,
+): Promise<UpdateUserProfileResponse> {
+  if (Object.keys(input).length === 0) {
+    throw new Error("Provide at least one field to update.");
+  }
+
+  const response = await fetch(USER_PROFILE_ENDPOINT, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+    cache: "no-store",
+  });
+
+  const data: unknown = await response.json();
+
+  const result = data as UpdateUserProfileResponse;
+
+  if (!response.ok) {
+    throw new Error(
+      result.error ||
+        result.message ||
+        `Failed to update your profile (${response.status}).`,
+    );
+  }
+
+  if (result.success === false) {
+    throw new Error(result.error || "Your profile could not be updated.");
+  }
+
+  return result;
+}
+
+/**
+ * React Query mutation for updating general profile settings.
+ */
+export function useUpdateUserProfile() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateUserProfile,
+
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: userProfileQueryKey,
+      });
+    },
   });
 }

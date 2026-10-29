@@ -227,6 +227,7 @@ export default function SubmissionsPage({
   const mineQuery = useResultRoomSubmissionHistory(pages.mine, PAGE_SIZE);
   const mineAllQuery = useResultRoomSubmissionHistory(1, ALL_FETCH_SIZE);
   const partnerQuery = useResultRoomPartnerSubmissionHistory();
+  console.log({ mineQuery, mineAllQuery, partnerQuery });
 
   // If the big "all of mine" request fails (for example the endpoint rejects
   // a page size of ALL_FETCH_SIZE), fall back to the first page of the normal

@@ -256,7 +256,7 @@ export async function GET(request: NextRequest) {
       status: submission.status,
       images: filesBySubmission.get(submission.id) ?? [],
     }));
-
+    console.log({ history });
     return respond({
       success: true,
       history,
