@@ -56,7 +56,7 @@ export default function StreakCard({
   }
 
   return (
-    <section className={`mx-auto my-4 w-full max-w-md rounded-3xl p-4`}>
+    <section className={`mx-auto mb-4 w-full max-w-md rounded-3xl p-4`}>
       <h2 className="sr-only">Your streak</h2>
 
       {/* Current week */}

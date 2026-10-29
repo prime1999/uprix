@@ -628,13 +628,14 @@ const ResultRoomDashboard = () => {
                 daysSubmitted={streakStats.submitted}
                 gender={dashboardData.profile?.gender}
               />
+              {/* Quotes */}
+              <QuoteDisplay intervalMs={12000} />
               <StreakCard
                 startDate={dashboardData.room.startDate}
                 endDate={dashboardData.room.endDate}
                 submissionDates={dashboardData.submissionActivity.dates}
               />
-              {/* Quotes */}
-              <QuoteDisplay intervalMs={12000} />
+
               {/* Today's check-in */}
               <div className="mx-auto my-6 w-full">
                 <h2 className="mb-3 text-sm font-semibold text-neutral-900">

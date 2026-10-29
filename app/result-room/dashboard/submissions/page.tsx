@@ -37,10 +37,11 @@ const MAX_THUMBS = 3;
 
 /**
  * The "All" tab merges your submissions with your partner's, so it needs all
- * of yours at once. This is how many of yours it loads. If your history
+ * of yours at once. This is how many of yours it loads. Your history hook and
+ * endpoint both cap the page size at 50, so this must not go above it. If your history
  * endpoint caps the page size lower, the note under the tabs says so.
  */
-const ALL_FETCH_SIZE = 100;
+const ALL_FETCH_SIZE = 50;
 
 type TabId = "all" | "mine" | "partner";
 type Owner = "mine" | "partner";
@@ -182,6 +183,30 @@ const COPY: Record<
   },
 };
 
+/**
+ * Turns a raw error into something a person can read. Technical parser errors
+ * (for example when the server sends back an HTML page instead of data) are
+ * replaced with a plain message; clear server messages are kept.
+ */
+function friendlyError(error: unknown): string {
+  const fallback =
+    "Something went wrong on our side. Please try again in a moment.";
+
+  if (!(error instanceof Error) || !error.message) return fallback;
+
+  const message = error.message;
+
+  if (/unexpected token|<!doctype|is not valid json|json/i.test(message)) {
+    return fallback;
+  }
+
+  if (/failed to fetch|networkerror|network request failed/i.test(message)) {
+    return "Check your connection and try again.";
+  }
+
+  return message;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Page                                                                       */
 /* -------------------------------------------------------------------------- */
@@ -203,7 +228,15 @@ export default function SubmissionsPage({
   const mineAllQuery = useResultRoomSubmissionHistory(1, ALL_FETCH_SIZE);
   const partnerQuery = useResultRoomPartnerSubmissionHistory();
 
-  const mineAll = (mineAllQuery.data?.submissions ?? []).map(fromMine);
+  // If the big "all of mine" request fails (for example the endpoint rejects
+  // a page size of ALL_FETCH_SIZE), fall back to the first page of the normal
+  // "My submissions" request so the All tab still shows yours.
+  const mineAllSource =
+    mineAllQuery.data?.submissions ??
+    (pages.mine === 1 ? mineQuery.data?.submissions : undefined) ??
+    [];
+
+  const mineAll = mineAllSource.map(fromMine);
   const partnerAll = (partnerQuery.data?.history ?? []).map(fromPartner);
 
   partnerAll.sort(byNewest);
@@ -265,9 +298,11 @@ export default function SubmissionsPage({
       // never does, if it failed). Without this, a failing request keeps
       // retrying and holds the whole tab on the skeleton.
       isLoading:
-        !mineAllQuery.data &&
+        mineAllSource.length === 0 &&
         !partnerQuery.data &&
-        (mineAllQuery.isLoading || partnerQuery.isLoading),
+        (mineAllQuery.isLoading ||
+          mineQuery.isLoading ||
+          partnerQuery.isLoading),
       // Errors never show on this tab. Whatever loaded is listed, and each
       // failure is reported only on its own tab ("My submissions" or
       // "Partner's").
@@ -296,7 +331,7 @@ export default function SubmissionsPage({
 
   const counts: Record<TabId, number | undefined> = {
     all:
-      mineAllQuery.isLoading || partnerQuery.isLoading
+      mineAllQuery.isLoading || mineQuery.isLoading || partnerQuery.isLoading
         ? undefined
         : everything.length,
     mine: mineQuery.data?.pagination.total,
@@ -428,9 +463,7 @@ export default function SubmissionsPage({
                 {copy.errorTitle}
               </p>
               <p className="mt-1 text-sm text-neutral-600">
-                {error instanceof Error && error.message
-                  ? error.message
-                  : "Check your connection and try again."}
+                {friendlyError(error)}
               </p>
               <div className="mt-5 flex justify-center">
                 <GeneralButton
