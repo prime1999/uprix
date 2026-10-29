@@ -1,6 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=DM+Sans:wght@400;500&display=swap");
 
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -736,11 +735,10 @@
   display: flex;
   gap: 0.32em;
   /* Starts under the "r", like in the logo. */
-  margin-left: 42%;
-  margin-top: 0.15rem;
+  margin-left: 40%;
+  margin-top: 0.01rem;
   font-family: var(--font-body), sans-serif;
-  font-style: italic;
-  font-size: calc(var(--uprix-icon) * 0.125);
+  font-size: calc(var(--uprix-icon) * 0.15);
   letter-spacing: 0.04em;
   color: var(--uprix-blue);
 }
@@ -749,7 +747,7 @@
   display: block;
   overflow: hidden;
   padding: 0.1em 0.25em 0.2em;
-  margin: -0.1em -0.25em -0.2em;
+  margin: -0.3em -0.25em -0.2em;
 }
 
 .uprix-word {
@@ -1850,7 +1848,6 @@
   --sidebar-ring: hsl(217.2 91.2% 59.8%);
 }
 
-
 /* ==========================================================================
    ROUTE — dark theme + glassmorphism
    Replaces the previous route-shell styles. Import once from page.tsx.
@@ -2328,7 +2325,9 @@
 
 .status-indicator.online {
   background: var(--ok);
-  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.2), 0 0 12px var(--ok);
+  box-shadow:
+    0 0 0 3px rgba(52, 211, 153, 0.2),
+    0 0 12px var(--ok);
 }
 
 .status-indicator.offline {

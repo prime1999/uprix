@@ -156,7 +156,7 @@ function SessionRow({
         <span className="relative text-lg font-bold tabular-nums">
           {date.getDate()}
         </span>
-        <span className="relative mt-0.5 text-[10px] font-medium uppercase tracking-wide opacity-80">
+        <span className="relative mb-0.5 text-[10px] font-semibold uppercase tracking-wide opacity-80">
           {date.toLocaleDateString("en-US", { weekday: "short" })}
         </span>
       </div>
@@ -168,7 +168,7 @@ function SessionRow({
         </p>
 
         <div className="mt-1 flex items-center gap-1.5">
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-blue-200/70 bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-800">
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-blue-500 shadow-md px-2 py-0.5 text-[11px] font-medium text-white">
             <svg
               viewBox="0 0 24 24"
               className="size-3"
@@ -255,7 +255,7 @@ export default function SessionReminders({
   startDate = "2026-10-28",
   days = 90,
   intervalDays = 14,
-  time = "20:00",
+  time = "21:15",
   urgentMinutes = 60,
   graceSeconds = 60,
   maxVisible = 4,

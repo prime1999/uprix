@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
+import GeneralButton from "@/components/miscelleneous/generalButton";
+
 /* -------------------------------------------------------------------------- */
 /* Small hooks                                                                */
 /* -------------------------------------------------------------------------- */
@@ -165,13 +167,12 @@ export function UprixLoadingScreen({
         )}
 
         {showReload ? (
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="uprix-splash-reload"
-          >
-            Reload
-          </button>
+          <GeneralButton
+            text="Reload"
+            variant="reset"
+            className="mt-5"
+            buttonFunction={() => window.location.reload()}
+          />
         ) : (
           <div className="uprix-splash-bar" aria-hidden="true" />
         )}
