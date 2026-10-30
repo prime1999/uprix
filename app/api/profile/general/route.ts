@@ -96,11 +96,7 @@ const dateOfBirthSchema = z
     return (
       !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
     );
-  }, "Provide a valid date.")
-  .refine(
-    (value) => value <= new Date().toISOString().slice(0, 10),
-    "Date of birth cannot be in the future.",
-  );
+  }, "Provide a valid date.");
 
 const avatarSchema = z
   .string()

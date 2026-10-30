@@ -73,7 +73,13 @@ type OtherKey =
   | "progress_blocker_other";
 
 type Values = Record<TextKey | OtherKey, string> &
-  Record<ArrayKey, string[]> & { university: string; date_of_birth: string };
+  Record<ArrayKey, string[]> & {
+    university: string;
+    /** "01"–"12", or "" when unset. */
+    dob_month: string;
+    /** "01"–"31", or "" when unset. */
+    dob_day: string;
+  };
 
 const TEXT_KEYS: TextKey[] = [
   "full_name",
@@ -97,8 +103,33 @@ const ARRAY_KEYS: ArrayKey[] = [
 
 const OTHER = "other";
 
-/** UTC date, matching how the API rejects future dates of birth. */
-const todayUtc = () => new Date().toISOString().slice(0, 10);
+/** Only month and day are collected; the year is always this value. */
+const DOB_YEAR = 2026;
+
+const MONTH_OPTIONS: Option[] = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+].map((label, i) => ({ value: String(i + 1).padStart(2, "0"), label }));
+
+/** Days in a month for DOB_YEAR (31 while no month is chosen). */
+const daysInMonth = (month: string) =>
+  month ? new Date(DOB_YEAR, Number(month), 0).getDate() : 31;
+
+const dayOptions = (month: string): Option[] =>
+  Array.from({ length: daysInMonth(month) }, (_, i) => ({
+    value: String(i + 1).padStart(2, "0"),
+    label: String(i + 1),
+  }));
 
 /* -------------------------------------------------------------------------- */
 /* Form state helpers                                                         */
@@ -106,8 +137,9 @@ const todayUtc = () => new Date().toISOString().slice(0, 10);
 
 const toValues = (p: UserProfile): Values => ({
   full_name: p.full_name ?? "",
-  // Trim in case the DB returns a full timestamp instead of a plain date.
-  date_of_birth: p.date_of_birth?.slice(0, 10) ?? "",
+  // Stored as YYYY-MM-DD (trim in case the DB returns a timestamp).
+  dob_month: p.date_of_birth?.slice(5, 7) ?? "",
+  dob_day: p.date_of_birth?.slice(8, 10) ?? "",
   age_group: p.age_group ?? "",
   gender: p.gender ?? "",
   current_status: p.current_status ?? "",
@@ -152,10 +184,15 @@ function buildChanges(values: Values, profile: UserProfile) {
     if (!sameSet(values[key], profile[key] ?? [])) changes[key] = values[key];
   }
 
-  // Optional: an empty field clears the stored date (sent as null).
-  const dateOfBirth = values.date_of_birth || null;
-  if (dateOfBirth !== (profile.date_of_birth?.slice(0, 10) ?? null)) {
-    changes.date_of_birth = dateOfBirth;
+  // Optional. Compared by month-day only, so an older stored year is left
+  // alone unless the person actually changes their month or day.
+  const nextMonthDay =
+    values.dob_month && values.dob_day
+      ? `${values.dob_month}-${values.dob_day}`
+      : null;
+  const originalMonthDay = profile.date_of_birth?.slice(5, 10) ?? null;
+  if (nextMonthDay !== originalMonthDay) {
+    changes.date_of_birth = nextMonthDay ? `${DOB_YEAR}-${nextMonthDay}` : null;
   }
 
   const university = values.university || null;
@@ -194,12 +231,13 @@ function validate(values: Values) {
     if (!values[key].trim()) errors[key] = message;
   }
 
-  if (values.date_of_birth) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(values.date_of_birth)) {
-      errors.date_of_birth = "Enter a valid date.";
-    } else if (values.date_of_birth > todayUtc()) {
-      errors.date_of_birth = "Date of birth cannot be in the future.";
-    }
+  if (Boolean(values.dob_month) !== Boolean(values.dob_day)) {
+    errors.dob_month = "Select both a month and a day.";
+  } else if (
+    values.dob_month &&
+    Number(values.dob_day) > daysInMonth(values.dob_month)
+  ) {
+    errors.dob_month = "That day doesn't exist in the chosen month.";
   }
 
   if (!values.current_focus.length) {
@@ -474,17 +512,33 @@ function ProfileForm({
               onChange={(v) => set("gender", v)}
             />
           </div>
-          <Field label="Date of birth (optional)" error={errors.date_of_birth}>
-            <input
-              type="date"
-              value={values.date_of_birth}
-              min="1900-01-01"
-              max={todayUtc()}
-              autoComplete="bday"
-              onChange={(e) => set("date_of_birth", e.target.value)}
-              className={`${INPUT} block min-w-0`}
+          <div className="grid grid-cols-2 gap-3">
+            <SelectField
+              label="Birthday month (optional)"
+              placeholder="Month"
+              options={MONTH_OPTIONS}
+              value={values.dob_month}
+              error={errors.dob_month}
+              onChange={(month) =>
+                setValues((v) => ({
+                  ...v,
+                  dob_month: month,
+                  // Drop a day that doesn't exist in the new month (e.g. 31 → Feb).
+                  dob_day:
+                    v.dob_day && Number(v.dob_day) > daysInMonth(month)
+                      ? ""
+                      : v.dob_day,
+                }))
+              }
             />
-          </Field>
+            <SelectField
+              label="Birthday day"
+              placeholder="Day"
+              options={dayOptions(values.dob_month)}
+              value={values.dob_day}
+              onChange={(day) => set("dob_day", day)}
+            />
+          </div>
           <SelectField
             label="Current status"
             options={CURRENT_STATUS_OPTIONS}

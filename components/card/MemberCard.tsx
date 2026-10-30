@@ -22,6 +22,7 @@ import XRead from "@/components/library/XRead";
 import AvatarImage from "@/components/result-room/dashboard/AvatarImage";
 import EditProfileModal from "@/components/modal/general/profile/EditProfileModal";
 import EditAvatarModal from "@/components/modal/general/profile/EditAvatarModal";
+import { UprixLoadingScreen } from "../branding/UprixLoadingScreen";
 
 function formatLabel(value: string | null | undefined) {
   return value
@@ -68,7 +69,7 @@ export default function MemberCard() {
   }
 
   if (!profile) {
-    return <div className="p-6 text-sm text-zinc-500">Loading profile...</div>;
+    return <UprixLoadingScreen />;
   }
 
   const whatsappMessage = encodeURIComponent(
