@@ -577,12 +577,12 @@ const ResultRoomDashboard = () => {
   /* For locked participant dashboard                                         */
   /* ------------------------------------------------------------------------ */
 
-  // if (
-  //   participant.room_status !== "active"
-  //   //participant.eviction_stage === "LOCKED"
-  // ) {
-  //   return <LockedDashboard />;
-  // }
+  if (
+    participant.room_status !== "active"
+    //participant.eviction_stage === "LOCKED"
+  ) {
+    return <LockedDashboard />;
+  }
 
   if (!dashboardData) {
     if (isError) {
