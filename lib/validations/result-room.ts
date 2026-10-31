@@ -89,6 +89,7 @@ export const resultRoomAccountabilitySchema = z.object({
   hasViolation: z.boolean(),
   hasPendingFine: z.boolean(),
   hasOverdueFine: z.boolean(),
+  totalFineCount: z.number().int().nonnegative(),
 });
 
 /**

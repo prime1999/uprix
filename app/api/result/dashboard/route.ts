@@ -32,6 +32,7 @@ function isValidTimezone(timezone: string): boolean {
     new Intl.DateTimeFormat("en-US", {
       timeZone: timezone,
     });
+
     return true;
   } catch {
     return false;
@@ -145,7 +146,7 @@ export async function GET(request: Request) {
       );
     }
 
-    // IMPORTANT: narrow the nullable type before accessing participant.id.
+    // IMPORTANT: Narrow the nullable type before accessing participant.id.
     const participantData = participantResult.data;
 
     if (participantData === null) {
@@ -159,6 +160,7 @@ export async function GET(request: Request) {
     }
 
     const participant = participantData;
+
     // 3. Update the participant's timezone when it changes.
     if (participant.timezone !== timezone) {
       const { error: timezoneUpdateError } = await supabase
@@ -198,15 +200,18 @@ export async function GET(request: Request) {
 
     // 5. Calculate today's date in the browser's timezone.
     const now = new Date();
+    const nowTimestamp = now.getTime();
     const todayString = getDateInTimezone(now, timezone);
 
-    // 6. Fetch today's submission, activity, violations, and unpaid fines.
+    // 6. Fetch today's submission, activity, violations, and fines.
     const [
       todaySubmissionResult,
       submissionActivityResult,
       violationResult,
       fineResult,
+      fineCountResult,
     ] = await Promise.all([
+      // Today's submission.
       supabase
         .from("submissions")
         .select("id")
@@ -214,6 +219,7 @@ export async function GET(request: Request) {
         .eq("submission_date", todayString)
         .maybeSingle(),
 
+      // Submission activity within the room period.
       supabase
         .from("submissions")
         .select("submission_date")
@@ -222,31 +228,44 @@ export async function GET(request: Request) {
         .lte("submission_date", room.end_date)
         .order("submission_date", { ascending: true }),
 
+      // Count unresolved violations in the current room.
       supabase
         .from("violations")
-        .select("id")
+        .select("id", { count: "exact", head: true })
         .eq("participant_id", participant.id)
-        .limit(1)
-        .maybeSingle(),
+        .eq("room_id", participant.room_id)
+        .is("resolved_at", null),
 
+      // Fetch unpaid fines in the current room.
+      // created_at is needed for the 48-hour fallback deadline.
       supabase
         .from("fines")
-        .select("id, status, due_at")
+        .select("id, status, due_at, created_at")
         .eq("participant_id", participant.id)
+        .eq("room_id", participant.room_id)
         .eq("status", "UNPAID"),
+
+      // Count all fines in the current room, regardless of status.
+      supabase
+        .from("fines")
+        .select("id", { count: "exact", head: true })
+        .eq("participant_id", participant.id)
+        .eq("room_id", participant.room_id),
     ]);
 
     if (
       todaySubmissionResult.error ||
       submissionActivityResult.error ||
       violationResult.error ||
-      fineResult.error
+      fineResult.error ||
+      fineCountResult.error
     ) {
       console.error("Dashboard activity/fine query errors:", {
         todaySubmissionError: todaySubmissionResult.error,
         activityError: submissionActivityResult.error,
         violationError: violationResult.error,
         fineError: fineResult.error,
+        fineCountError: fineCountResult.error,
       });
 
       return NextResponse.json(
@@ -257,21 +276,53 @@ export async function GET(request: Request) {
         { status: 500, headers: responseHeaders },
       );
     }
+    console.log("ACCOUNTABILITY DEBUG - QUERY RESULTS", {
+      violations: {
+        count: violationResult.count,
+        data: violationResult.data,
+        error: violationResult.error,
+      },
 
+      unpaidFines: {
+        data: fineResult.data,
+        error: fineResult.error,
+      },
+
+      totalFines: {
+        count: fineCountResult.count,
+        data: fineCountResult.data,
+        error: fineCountResult.error,
+      },
+    });
+
+    // 7. Calculate accountability.
     const unpaidFines = fineResult.data ?? [];
 
-    const hasPendingFine = unpaidFines.some(
-      (fine) =>
-        fine.due_at !== null && new Date(fine.due_at).getTime() > now.getTime(),
-    );
+    const totalFineCount = fineCountResult.count ?? 0;
 
-    const hasOverdueFine = unpaidFines.some(
-      (fine) =>
-        fine.due_at !== null &&
-        new Date(fine.due_at).getTime() <= now.getTime(),
-    );
+    // A violation exists if at least one unresolved violation exists.
+    const hasViolation = (violationResult.count ?? 0) > 0;
 
-    // 7. Resolve partner assignments.
+    // Match the deadline fallback used by process_fine_enforcement:
+    // due_at, or created_at + 48 hours when due_at is NULL.
+    const getFineDeadline = (fine: {
+      due_at: string | null;
+      created_at: string;
+    }): number => {
+      return fine.due_at
+        ? new Date(fine.due_at).getTime()
+        : new Date(fine.created_at).getTime() + 48 * 60 * 60 * 1000;
+    };
+
+    const hasPendingFine = unpaidFines.some((fine) => {
+      return getFineDeadline(fine) > nowTimestamp;
+    });
+
+    const hasOverdueFine = unpaidFines.some((fine) => {
+      return getFineDeadline(fine) <= nowTimestamp;
+    });
+
+    // 8. Resolve partner assignments.
     const { data: activePairs, error: activePairsError } = await supabase
       .from("partner_pairs")
       .select("id, participant_a_id, participant_b_id, reviewer_id")
@@ -345,7 +396,7 @@ export async function GET(request: Request) {
       ? getOtherParticipantId(incomingPair)
       : null;
 
-    // 8. Fetch today's partner submission and both report statuses.
+    // 9. Fetch today's partner submission and both report statuses.
     const [
       partnerSubmissionResult,
       myPartnerReportResult,
@@ -432,7 +483,7 @@ export async function GET(request: Request) {
         }
       : null;
 
-    // 9. Return the dashboard response.
+    // 10. Return the dashboard response.
     return NextResponse.json(
       {
         success: true,
@@ -493,9 +544,10 @@ export async function GET(request: Request) {
         },
 
         accountability: {
-          hasViolation: Boolean(violationResult.data),
+          hasViolation,
           hasPendingFine,
           hasOverdueFine,
+          totalFineCount,
         },
       },
       {
