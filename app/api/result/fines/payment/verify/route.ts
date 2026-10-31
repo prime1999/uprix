@@ -274,7 +274,7 @@ export async function POST(request: Request) {
     if (
       !completion ||
       typeof completion !== "object" ||
-      completion.success !== true
+      completion.status !== "success"
     ) {
       console.error("Fine payment RPC did not confirm completion:", {
         reference,
@@ -290,15 +290,6 @@ export async function POST(request: Request) {
         { status: 200 },
       );
     }
-
-    return NextResponse.json({
-      status: "success",
-      message: "Your fine payment has been verified successfully.",
-      reference,
-      amount: expectedAmount,
-      currency: "NGN",
-      fineCount: paymentRecords.length,
-    });
   } catch (error) {
     console.error("Unexpected fine payment verification error:", error);
 
