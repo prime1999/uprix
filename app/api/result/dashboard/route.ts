@@ -32,7 +32,6 @@ function isValidTimezone(timezone: string): boolean {
     new Intl.DateTimeFormat("en-US", {
       timeZone: timezone,
     });
-
     return true;
   } catch {
     return false;
@@ -59,6 +58,13 @@ type ActivePair = {
   participant_a_id: string;
   participant_b_id: string;
   reviewer_id: string | null;
+};
+
+type UnpaidFine = {
+  id: string;
+  status: string;
+  due_at: string | null;
+  created_at: string;
 };
 
 export async function GET(request: Request) {
@@ -276,27 +282,9 @@ export async function GET(request: Request) {
         { status: 500, headers: responseHeaders },
       );
     }
-    console.log("ACCOUNTABILITY DEBUG - QUERY RESULTS", {
-      violations: {
-        count: violationResult.count,
-        data: violationResult.data,
-        error: violationResult.error,
-      },
-
-      unpaidFines: {
-        data: fineResult.data,
-        error: fineResult.error,
-      },
-
-      totalFines: {
-        count: fineCountResult.count,
-        data: fineCountResult.data,
-        error: fineCountResult.error,
-      },
-    });
 
     // 7. Calculate accountability.
-    const unpaidFines = fineResult.data ?? [];
+    const unpaidFines: UnpaidFine[] = fineResult.data ?? [];
 
     const totalFineCount = fineCountResult.count ?? 0;
 
@@ -305,22 +293,29 @@ export async function GET(request: Request) {
 
     // Match the deadline fallback used by process_fine_enforcement:
     // due_at, or created_at + 48 hours when due_at is NULL.
-    const getFineDeadline = (fine: {
-      due_at: string | null;
-      created_at: string;
-    }): number => {
+    const getFineDeadline = (fine: UnpaidFine): number => {
       return fine.due_at
         ? new Date(fine.due_at).getTime()
         : new Date(fine.created_at).getTime() + 48 * 60 * 60 * 1000;
     };
 
-    const hasPendingFine = unpaidFines.some((fine) => {
-      return getFineDeadline(fine) > nowTimestamp;
+    // Prepare fine data for the frontend countdown.
+    const fines = unpaidFines.map((fine) => {
+      const deadline = getFineDeadline(fine);
+
+      return {
+        id: fine.id,
+        status: fine.status,
+        dueAt: fine.due_at,
+        effectiveDueAt: new Date(deadline).toISOString(),
+        isOverdue: deadline <= nowTimestamp,
+      };
     });
 
-    const hasOverdueFine = unpaidFines.some((fine) => {
-      return getFineDeadline(fine) <= nowTimestamp;
-    });
+    // Derive both flags from the same fine data returned to the frontend.
+    const hasPendingFine = fines.some((fine) => !fine.isOverdue);
+
+    const hasOverdueFine = fines.some((fine) => fine.isOverdue);
 
     // 8. Resolve partner assignments.
     const { data: activePairs, error: activePairsError } = await supabase
@@ -386,6 +381,7 @@ export async function GET(request: Request) {
     }
 
     const reviewPair = pairsToReview[0] ?? null;
+
     const incomingPair = pairsReviewingMe[0] ?? null;
 
     const partnerToReviewId = reviewPair
@@ -548,6 +544,7 @@ export async function GET(request: Request) {
           hasPendingFine,
           hasOverdueFine,
           totalFineCount,
+          fines,
         },
       },
       {

@@ -85,11 +85,22 @@ export const resultRoomSubmissionActivitySchema = z.object({
   dates: z.array(z.string()),
 });
 
+export const resultRoomFineSchema = z.object({
+  id: z.string(),
+  status: z.string(),
+  /** Original database value. Can be null. */
+  dueAt: z.string().nullable(),
+  /** The deadline that is enforced (due_at, or created_at + 48h). */
+  effectiveDueAt: z.string(),
+  isOverdue: z.boolean(),
+});
+
 export const resultRoomAccountabilitySchema = z.object({
   hasViolation: z.boolean(),
   hasPendingFine: z.boolean(),
   hasOverdueFine: z.boolean(),
   totalFineCount: z.number().int().nonnegative(),
+  fines: z.array(resultRoomFineSchema).default([]),
 });
 
 /**
