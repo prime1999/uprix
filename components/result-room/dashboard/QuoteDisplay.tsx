@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+
 import {
   Brain,
   Repeat,
@@ -16,25 +17,27 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-// Adjust these paths to match your project.
 import {
   Icon3D,
   type Tone,
 } from "@/components/result-room/dashboard/fines/icon-3d";
-import { getRandomQuote, type Quote } from "@/lib/quotes";
+
+import { getAvailableQuotes, type Quote } from "@/lib/quotes";
 
 type Category = Quote["category"];
 
 interface QuoteDisplayProps {
-  /** Slide to the next quote on a timer. */
+  /** Automatically switch quotes on a timer. */
   autoRotate?: boolean;
-  /** How long each quote stays on screen, in ms (default 15 seconds). */
+
+  /** How long each quote stays visible after typing (default 15 seconds). */
   intervalMs?: number;
+
   className?: string;
 }
 
 /* -------------------------------------------------------------------------- */
-/* One icon and colour per category                                           */
+/* Category styles                                                            */
 /* -------------------------------------------------------------------------- */
 
 const CATEGORY_STYLE: Record<Category, { icon: LucideIcon; tone: Tone }> = {
@@ -46,46 +49,40 @@ const CATEGORY_STYLE: Record<Category, { icon: LucideIcon; tone: Tone }> = {
 };
 
 /* -------------------------------------------------------------------------- */
-/* Every quote, once each, in random order                                    */
+/* Quote round                                                                */
 /* -------------------------------------------------------------------------- */
 
 /**
- * Builds one full round of quotes: every quote exactly once, shuffled.
- * It only needs getRandomQuote, so your quotes file needs no changes:
- * the round is complete when getRandomQuote has nothing new left to give.
- * `avoidFirstId` stops a new round from opening with the quote that just ran.
+ * Creates a shuffled round.
+ * Every quote appears exactly once.
  */
 function buildRound(avoidFirstId?: string): Quote[] {
-  const round: Quote[] = [];
-  const ids: string[] = [];
+  const round = getAvailableQuotes();
 
-  for (let i = 0; i < 1000; i++) {
-    const quote = getRandomQuote({ excludeIds: ids });
-
-    if (ids.includes(quote.id)) break; // nothing new left
-    ids.push(quote.id);
-    round.push(quote);
+  // Fisher-Yates shuffle
+  for (let i = round.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [round[i], round[j]] = [round[j], round[i]];
   }
 
+  // Prevent consecutive rounds from starting with the same quote.
   if (round.length > 1 && round[0].id === avoidFirstId) {
-    const last = round.length - 1;
-    [round[0], round[last]] = [round[last], round[0]];
+    const swapIndex = 1 + Math.floor(Math.random() * (round.length - 1));
+
+    [round[0], round[swapIndex]] = [round[swapIndex], round[0]];
   }
 
   return round;
 }
 
 /* -------------------------------------------------------------------------- */
-/* Animation: icon pops in/out with a bounce, text types in / erases          */
+/* Animation settings                                                         */
 /* -------------------------------------------------------------------------- */
 
 type Phase = "enter" | "shown" | "exit";
 
-/** Wait for the icon to start popping before the text begins typing. */
 const TYPE_DELAY_MS = 220;
-/** One typing tick. */
 const TICK_MS = 22;
-/** The longest typing in / erasing out is allowed to take. */
 const TYPE_IN_MAX_MS = 1800;
 const TYPE_OUT_MAX_MS = 700;
 
@@ -97,7 +94,6 @@ const POP_IN: Keyframe[] = [
   { transform: "scale(1)", opacity: 1, offset: 1 },
 ];
 
-// The same bounce, played out: a small hop up, then shrinking away.
 const POP_OUT: Keyframe[] = [
   { transform: "scale(1)", opacity: 1, offset: 0 },
   { transform: "scale(1.06)", opacity: 1, offset: 0.14 },
@@ -119,58 +115,79 @@ export default function QuoteDisplay({
   intervalMs = 15000,
   className = "",
 }: QuoteDisplayProps) {
-  // Starts empty: a random pick during render would differ between the server
-  // and the browser and cause a hydration mismatch.
   const [quote, setQuote] = useState<Quote | null>(null);
   const [phase, setPhase] = useState<Phase>("enter");
   const [paused, setPaused] = useState(false);
-
-  // How many characters of "quote + author" are showing right now.
   const [typed, setTyped] = useState(0);
-
-  // Does the quote text wrap onto a second line? Decides where the author goes.
-  const textRef = useRef<HTMLSpanElement>(null);
   const [wraps, setWraps] = useState(false);
 
+  const textRef = useRef<HTMLSpanElement>(null);
   const iconRef = useRef<HTMLSpanElement>(null);
+
   const quoteRef = useRef<Quote | null>(null);
   const busyRef = useRef(false);
+
   const roundRef = useRef<Quote[]>([]);
   const indexRef = useRef(0);
+
   const typingRef = useRef<ReturnType<typeof setInterval> | undefined>(
     undefined,
   );
+
   const delayRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
   const exitRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  /* ------------------------------------------------------------------------ */
+  /* Keep the current quote accessible to timers and callbacks.               */
+  /* ------------------------------------------------------------------------ */
 
   useEffect(() => {
     quoteRef.current = quote;
   }, [quote]);
 
-  /** The next quote in the round; starts a fresh shuffled round when done. */
-  const takeNext = useCallback((): Quote => {
+  /* ------------------------------------------------------------------------ */
+  /* Get the next quote in the current round.                                 */
+  /* ------------------------------------------------------------------------ */
+
+  const takeNext = useCallback((): Quote | null => {
     if (indexRef.current >= roundRef.current.length) {
       roundRef.current = buildRound(quoteRef.current?.id);
       indexRef.current = 0;
     }
 
-    return roundRef.current[indexRef.current++];
+    const next = roundRef.current[indexRef.current];
+
+    if (!next) return null;
+
+    indexRef.current++;
+
+    return next;
   }, []);
 
-  // First quote, picked in the browser.
+  /* ------------------------------------------------------------------------ */
+  /* Initialize the first quote on the client.                                */
+  /* ------------------------------------------------------------------------ */
+
   useEffect(() => {
     roundRef.current = buildRound();
     indexRef.current = 0;
+
     setQuote(takeNext());
   }, [takeNext]);
 
-  /** Types the text in (or erases it) one step at a time. */
+  /* ------------------------------------------------------------------------ */
+  /* Typing and erasing animation.                                            */
+  /* ------------------------------------------------------------------------ */
+
   const runTyping = useCallback(
     (direction: "in" | "out", total: number, onDone: () => void) => {
       clearInterval(typingRef.current);
 
       const maxMs = direction === "in" ? TYPE_IN_MAX_MS : TYPE_OUT_MAX_MS;
+
       const perTick = Math.max(1, Math.ceil(total / (maxMs / TICK_MS)));
+
       let n = direction === "in" ? 0 : total;
 
       typingRef.current = setInterval(() => {
@@ -181,8 +198,11 @@ export default function QuoteDisplay({
 
         setTyped(n);
 
-        if (n === (direction === "in" ? total : 0)) {
+        const finished = direction === "in" ? n >= total : n <= 0;
+
+        if (finished) {
           clearInterval(typingRef.current);
+          typingRef.current = undefined;
           onDone();
         }
       }, TICK_MS);
@@ -190,8 +210,10 @@ export default function QuoteDisplay({
     [],
   );
 
-  // A new quote: the icon bounces in, then the text types itself out.
-  // Runs before paint so the old text never flashes on the new quote.
+  /* ------------------------------------------------------------------------ */
+  /* Enter animation whenever a new quote is selected.                       */
+  /* ------------------------------------------------------------------------ */
+
   useLayoutEffect(() => {
     if (!quote) return;
 
@@ -211,40 +233,49 @@ export default function QuoteDisplay({
     setTyped(0);
     setPhase("enter");
 
-    iconRef.current?.animate(POP_IN, {
+    const animation = iconRef.current?.animate(POP_IN, {
       duration: 650,
       easing: "ease-out",
       fill: "both",
     });
 
-    delayRef.current = setTimeout(
-      () => runTyping("in", total, finish),
-      TYPE_DELAY_MS,
-    );
+    delayRef.current = setTimeout(() => {
+      runTyping("in", total, finish);
+    }, TYPE_DELAY_MS);
 
     return () => {
       clearTimeout(delayRef.current);
       clearInterval(typingRef.current);
+
+      animation?.cancel();
     };
   }, [quote, runTyping]);
+
+  /* ------------------------------------------------------------------------ */
+  /* Global timer cleanup.                                                    */
+  /* ------------------------------------------------------------------------ */
 
   useEffect(() => {
     return () => {
       clearTimeout(delayRef.current);
       clearTimeout(exitRef.current);
       clearInterval(typingRef.current);
+      iconRef.current?.getAnimations().forEach((a) => a.cancel());
     };
   }, []);
 
-  /** Icon bounces out and the text erases, then the next quote comes in. */
+  /* ------------------------------------------------------------------------ */
+  /* Advance to the next quote.                                               */
+  /* ------------------------------------------------------------------------ */
+
   const advance = useCallback(() => {
     const current = quoteRef.current;
+
     if (busyRef.current || !current) return;
 
     const next = takeNext();
 
-    // Only one quote in total: nothing to switch to.
-    if (next.id === current.id) return;
+    if (!next || next.id === current.id) return;
 
     busyRef.current = true;
 
@@ -264,58 +295,84 @@ export default function QuoteDisplay({
     const total = current.quote.length + current.author.length + 4;
 
     runTyping("out", total, () => {
-      // Let the icon finish shrinking before the next quote starts.
-      exitRef.current = setTimeout(() => setQuote(next), 120);
+      exitRef.current = setTimeout(() => {
+        setQuote(next);
+      }, 120);
     });
   }, [runTyping, takeNext]);
 
-  // Auto-rotate: the timer starts once a quote has finished typing, and
-  // pauses on hover/focus.
-  useEffect(() => {
-    if (!autoRotate || paused || !quote || phase !== "shown") return;
+  /* ------------------------------------------------------------------------ */
+  /* Auto-rotation.                                                           */
+  /* ------------------------------------------------------------------------ */
 
-    const id = setTimeout(advance, intervalMs);
+  useEffect(() => {
+    if (!autoRotate || paused || !quote || phase !== "shown") {
+      return;
+    }
+
+    const id = setTimeout(advance, Math.max(0, intervalMs));
+
     return () => clearTimeout(id);
   }, [autoRotate, paused, quote, phase, intervalMs, advance]);
 
-  // Measure the quote (before paint, and again if the width changes).
+  /* ------------------------------------------------------------------------ */
+  /* Measure text wrapping.                                                    */
+  /* ------------------------------------------------------------------------ */
+
   useLayoutEffect(() => {
     const el = textRef.current;
+
     if (!el) return;
 
-    const measure = () => setWraps(el.getClientRects().length > 1);
+    const measure = () => {
+      setWraps(el.getClientRects().length > 1);
+    };
 
     measure();
 
+    if (typeof ResizeObserver === "undefined") return;
+
     const observer = new ResizeObserver(measure);
-    // Inline text has no box of its own to watch, so watch its container.
-    if (el.parentElement) observer.observe(el.parentElement);
+
+    if (el.parentElement) {
+      observer.observe(el.parentElement);
+    }
+
     return () => observer.disconnect();
   }, [quote]);
 
+  /* ------------------------------------------------------------------------ */
+  /* Render data.                                                             */
+  /* ------------------------------------------------------------------------ */
+
   const style = quote ? CATEGORY_STYLE[quote.category] : null;
 
-  // The full text is always laid out (the untyped part is just invisible), so
-  // the line breaks and the author position never jump while typing.
-  const quoteText = quote ? `\u201C${quote.quote}\u201D` : "";
-  const authorText = quote ? `\u2014 ${quote.author}` : "";
+  const quoteText = quote ? `“${quote.quote}”` : "";
+  const authorText = quote ? `— ${quote.author}` : "";
 
   const quoteShown = quoteText.slice(0, typed);
   const quoteHidden = quoteText.slice(typed);
+
   const authorTyped = Math.max(0, typed - quoteText.length);
+
   const authorShown = authorText.slice(0, authorTyped);
   const authorHidden = authorText.slice(authorTyped);
 
   const typing = phase !== "shown";
+
   const caretInQuote = typing && typed < quoteText.length;
   const caretInAuthor = typing && !caretInQuote;
 
   const caret = (
     <span
-      aria-hidden
+      aria-hidden="true"
       className="-mr-px inline-block h-[1em] w-0 animate-pulse border-r border-neutral-500 align-[-0.15em]"
     />
   );
+
+  /* ------------------------------------------------------------------------ */
+  /* UI                                                                       */
+  /* ------------------------------------------------------------------------ */
 
   return (
     <section
@@ -328,19 +385,15 @@ export default function QuoteDisplay({
     >
       {quote && style && (
         <figure className="flex w-full items-center justify-center gap-3">
-          {/* Screen readers get the whole quote at once, not letter by letter. */}
+          {/* Accessible version for screen readers */}
           <span className="sr-only">
             {quoteText} {authorText}
           </span>
 
-          {/*
-            Icon3D's smallest size is "sm", so it is shrunk here. The outer box
-            sets the space it takes (and bounces); change scale-[0.6] to make
-            the icon larger or smaller, and size-6 to match.
-          */}
+          {/* Animated category icon */}
           <span
             ref={iconRef}
-            aria-hidden
+            aria-hidden="true"
             className="flex size-6 shrink-0 items-center justify-center"
           >
             <span className="block origin-center scale-[0.6]">
@@ -348,14 +401,12 @@ export default function QuoteDisplay({
             </span>
           </span>
 
-          {/*
-            One line: the author goes below the quote.
-            Two lines: the author sits beside the end of the second line.
-            Never more than 2 lines in total.
-          */}
+          {/* Quote and author */}
           <figcaption
-            aria-hidden
-            className={`min-w-0 text-xs leading-snug ${wraps ? "line-clamp-2" : ""}`}
+            aria-hidden="true"
+            className={`min-w-0 text-xs leading-snug ${
+              wraps ? "line-clamp-2" : ""
+            }`}
           >
             <span ref={textRef} className="font-medium text-neutral-800">
               {quoteShown}

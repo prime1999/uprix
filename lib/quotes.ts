@@ -70,46 +70,132 @@ const PRODUCTIVITY_QUOTES: Quote[] = [
     category: "growth",
     tag: "Compounding",
   },
+  {
+    id: "prod-9",
+    quote: "Work while your bones are strong, rest while your bones are weak.",
+    author: "Taifaq",
+    category: "execution",
+    tag: "Urgency",
+  },
+  {
+    id: "prod-10",
+    quote: "Amateurs call it genius, masters call it practice.",
+    author: "Cräcky Bröwn",
+    category: "growth",
+    tag: "Practice",
+  },
+  {
+    id: "prod-11",
+    quote:
+      "What you know you'll eventually do, it makes no sense doing it later. Do it now.",
+    author: "Taifaq",
+    category: "execution",
+    tag: "Now",
+  },
+  {
+    id: "prod-12",
+    quote: "It always seems impossible until it's done.",
+    author: "Nelson Mandela",
+    category: "mindset",
+    tag: "Persistence",
+  },
+  {
+    id: "prod-13",
+    quote:
+      "If you spend too much time thinking about a thing, you'll never get it done.",
+    author: "Bruce Lee",
+    category: "execution",
+    tag: "Overthinking",
+  },
+  {
+    id: "prod-14",
+    quote: "Don't watch the clock; do what it does. Keep going.",
+    author: "Sam Levenson",
+    category: "consistency",
+    tag: "Keep going",
+  },
+  {
+    id: "prod-15",
+    quote: "There is no substitute for hard work.",
+    author: "Thomas Edison",
+    category: "consistency",
+    tag: "Effort",
+  },
+  {
+    id: "prod-16",
+    quote:
+      "We must all suffer one of two things: the pain of discipline or the pain of regret.",
+    author: "Jim Rohn",
+    category: "mindset",
+    tag: "Discipline",
+  },
+  {
+    id: "prod-17",
+    quote: "Whether you think you can, or you think you can't, you're right.",
+    author: "Henry Ford",
+    category: "mindset",
+    tag: "Belief",
+  },
 ];
 
 /**
- * Generates a random productivity/growth quote with optional category filtering.
+ * Returns all available quotes after applying filters.
+ * Unlike getRandomQuote, this never reintroduces excluded quotes.
  */
-export function getRandomQuote(options: QuoteGeneratorOptions = {}): Quote {
+export function getAvailableQuotes(
+  options: QuoteGeneratorOptions = {},
+): Quote[] {
   const { category, excludeIds = [] } = options;
 
-  let pool = PRODUCTIVITY_QUOTES.filter((q) => !excludeIds.includes(q.id));
+  return PRODUCTIVITY_QUOTES.filter((quote) => {
+    const matchesCategory = !category || quote.category === category;
+    const notExcluded = !excludeIds.includes(quote.id);
 
-  if (category) {
-    pool = pool.filter((q) => q.category === category);
+    return matchesCategory && notExcluded;
+  });
+}
+
+/**
+ * Returns one random quote.
+ * If every quote has been excluded, starts from the full matching pool.
+ */
+export function getRandomQuote(options: QuoteGeneratorOptions = {}): Quote {
+  const { category } = options;
+
+  let pool = getAvailableQuotes(options);
+
+  if (pool.length === 0) {
+    pool = PRODUCTIVITY_QUOTES.filter(
+      (quote) => !category || quote.category === category,
+    );
   }
 
-  // Fallback if all quotes in category were excluded
   if (pool.length === 0) {
-    pool = category
-      ? PRODUCTIVITY_QUOTES.filter((q) => q.category === category)
-      : PRODUCTIVITY_QUOTES;
+    throw new Error("No quotes available.");
   }
 
   const randomIndex = Math.floor(Math.random() * pool.length);
+
   return pool[randomIndex];
 }
 
 /**
- * Generates an array of unique quotes for batch rendering (e.g., daily streaks or cards).
+ * Returns a batch of unique quotes.
+ * If count exceeds the available quotes, returns all available quotes.
  */
 export function getQuoteBatch(
   count: number,
   category?: Quote["category"],
 ): Quote[] {
-  const result: Quote[] = [];
-  const excluded: string[] = [];
+  if (count <= 0) return [];
 
-  for (let i = 0; i < count; i++) {
-    const quote = getRandomQuote({ category, excludeIds: excluded });
-    result.push(quote);
-    excluded.push(quote.id);
+  const pool = getAvailableQuotes({ category });
+
+  // Fisher-Yates shuffle
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
   }
 
-  return result;
+  return pool.slice(0, count);
 }
