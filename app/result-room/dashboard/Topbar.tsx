@@ -87,8 +87,8 @@ const countdownParts = (ms: number) => {
     unit("secs", seconds, "sec", "secs"),
   ];
 
-  // Drop only the leading zero units; zeros in the middle stay
-  // ("1 hr 0 mins 5 secs"). At zero, show "0 secs".
+  // Drop only the leading zero units; zeros in the middle stay.
+  // At zero, show "0 secs".
   const first = parts.findIndex((part) => part.value > 0);
 
   return parts.slice(first === -1 ? 3 : first);
@@ -125,7 +125,8 @@ function useNextFineCountdown(
     [fines],
   );
 
-  const [now, setNow] = useState(() => Date.now());
+  // Start with null so prerendering does not evaluate Date.now().
+  const [now, setNow] = useState<number | null>(null);
 
   // Deadlines that were still ahead when we first saw them. Only those fire
   // onExpire, so fines that were already overdue on load don't trigger it.
@@ -140,6 +141,7 @@ function useNextFineCountdown(
     const current = Date.now();
 
     setNow(current);
+
     deadlines.forEach((time) => {
       if (time > current) watching.current.add(time);
     });
@@ -152,6 +154,7 @@ function useNextFineCountdown(
       setNow(tick);
 
       let fired = false;
+
       watching.current.forEach((time) => {
         if (time <= tick) {
           watching.current.delete(time);
@@ -160,16 +163,21 @@ function useNextFineCountdown(
       });
 
       if (fired) expire.current();
-      if (!deadlines.some((time) => time > tick)) window.clearInterval(id);
+
+      if (!deadlines.some((time) => time > tick)) {
+        window.clearInterval(id);
+      }
     }, 1000);
 
     return () => window.clearInterval(id);
   }, [deadlines]);
 
-  const upcoming = deadlines.filter((time) => time > now);
+  // Don't calculate the countdown until the client has supplied the time.
+  const upcoming = now === null ? [] : deadlines.filter((time) => time > now);
+
   const next = upcoming.length ? Math.min(...upcoming) : null;
 
-  return next === null ? null : next - now;
+  return next === null || now === null ? null : next - now;
 }
 
 const Topbar = () => {
@@ -200,6 +208,7 @@ const Topbar = () => {
   }, [refetch]);
 
   const msLeft = useNextFineCountdown(accountability?.fines, reloadDashboard);
+
   // Shown whenever an unpaid fine is still ahead of its deadline.
   const countdownMs = msLeft;
   const urgent = countdownMs !== null && countdownMs <= URGENT_MS;
@@ -218,8 +227,9 @@ const Topbar = () => {
   return (
     <nav className="flex items-center justify-between w-full gap-2">
       <h2 className="text-md font-semibold font-heading">Dashboard</h2>
+
       <div className="flex items-center gap-4 sm:gap-6">
-        {/* Fines: visible on every screen size (unlike Bell and Settings), with a count when there are any */}
+        {/* Fines: visible on every screen size, with a count when there are any */}
         <Link
           href={FINES_HREF}
           aria-label={finesLabel}
@@ -281,16 +291,20 @@ const Topbar = () => {
         >
           <Bell size={15} />
         </button>
+
         <button type="button" aria-label="Settings" className="hidden md:block">
           <Settings size={15} />
         </button>
-        {/* The divider stays on small screens too, between the fines icon and the avatar */}
+
+        {/* Divider */}
         <p aria-hidden className="font-bold">
           |
         </p>
+
         <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
           <PopoverTrigger className="flex items-center gap-1">
             <h3 className="text-sm font-medium">Go Getter</h3>
+
             {/* avatar_url is a built-in key ("male-1"), a URL, or empty */}
             <AvatarImage
               value={dashboardData?.profile?.avatar_url}
@@ -300,11 +314,12 @@ const Topbar = () => {
               className="size-8 rounded-full border border-white object-cover"
             />
           </PopoverTrigger>
+
           <PopoverContent className="backdrop-blur-3xl bg-transparent border-2 border-white mr-4">
             <PopoverHeader>
               <PopoverTitle className="text-sm font-semibold capitalize flex items-center justify-between">
-                {/* A span, not an h1: the title is already a heading */}
                 <span>{dashboardData && dashboardData.profile?.name}</span>
+
                 <SecondaryButton
                   onClick={() => {
                     // Close the popover first so its heavy blur isn't
@@ -316,9 +331,8 @@ const Topbar = () => {
                   <Pencil className="text-white" />
                 </SecondaryButton>
               </PopoverTitle>
+
               {dashboardData && dashboardData !== null ? (
-                // A div, not PopoverDescription: that renders a <p>, and
-                // <div>s can't go inside a <p>.
                 <div className="text-sm text-muted-foreground">
                   <div className="w-full flex flex-col gap-2">
                     <div>
@@ -342,6 +356,7 @@ const Topbar = () => {
                       </h6>
                     </div>
                   </div>
+
                   <div className="mt-4">
                     <GeneralButton
                       text="View Profile"
@@ -355,6 +370,7 @@ const Topbar = () => {
             </PopoverHeader>
           </PopoverContent>
         </Popover>
+
         <EditProfileModal
           open={editOpen}
           onOpenChange={setEditOpen}
