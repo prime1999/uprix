@@ -41,12 +41,11 @@ export async function POST(request: Request) {
     const { data: claimsData, error: claimsError } =
       await supabase.auth.getClaims();
 
-    const claims = claimsData && claimsData.claims;
-    const userId = claims && claims.sub;
-
     if (claimsError || !claimsData?.claims) {
       return response("error", "Please sign in to verify your payment.", 401);
     }
+
+    const userId = claimsData.claims.sub;
 
     // 2. Validate the reference supplied by the dashboard.
     let body: { reference?: unknown };
@@ -290,6 +289,19 @@ export async function POST(request: Request) {
         { status: 200 },
       );
     }
+
+    // 10. Success: the payment is verified and the fines are marked as paid.
+    return NextResponse.json(
+      {
+        status: "success",
+        message: "Your payment was successful.",
+        reference,
+        amount: transaction.amount, // kobo
+        currency: transaction.currency,
+        fineCount: paymentRecords.length,
+      },
+      { status: 200 },
+    );
   } catch (error) {
     console.error("Unexpected fine payment verification error:", error);
 

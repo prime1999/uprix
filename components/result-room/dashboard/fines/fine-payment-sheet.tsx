@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-
 import {
   AlertCircle,
   BadgeCheck,
@@ -10,7 +9,6 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
-
 import GeneralButton from "@/components/miscelleneous/generalButton";
 import {
   Sheet,
@@ -19,7 +17,6 @@ import {
   SheetFooter,
   SheetTitle,
 } from "@/components/ui/sheet";
-
 import { Icon3D, type Tone } from "./icon-3d";
 import { money, type PayTarget, type PaymentPhase } from "./use-fine-payment";
 
